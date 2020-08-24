@@ -175,6 +175,3 @@ octave-workspace
 
 # Pycharm Settings
 .idea/
-
-# pipenv Machine Settings
-Pipfile
