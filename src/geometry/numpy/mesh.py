@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.sparse import csr_matrix
 
 
 def read_off(path):
@@ -16,7 +17,8 @@ def read_off(path):
             lines = file.readlines()
             if lines[0] != 'OFF\n':
                 print(path, 'Error: is not an .off file')
-            [num_vertices, numFaces, _] = lines[1].split()
+            num_vertices = lines[1].split()[0]
+            num_vertices = int(num_vertices)
             vertices = []
             faces = []
             idx = 0
@@ -25,14 +27,16 @@ def read_off(path):
                 if line[0] == '#':
                     continue
                 if indexing_vertices:
-                    vertices.append(map(float, line.split()[:3]))
+                    vertices.append(list(map(float, line.split()[:3])))
                     idx += 1
                     if idx >= num_vertices:
                         indexing_vertices = False
                 else:
                     size, *split_line = line.split()
-                    faces.append(map(int, split_line[:size]))
-            return np.array(vertices, dtype=np.float32), np.array(faces, dtype=np.int32)
+                    size = int(size)
+                    split_line = [int(x) for x in split_line[:size]]
+                    faces.append(split_line)
+            return np.array(vertices, dtype=np.float64), np.array(faces, dtype=np.int32)
     except IOError:
         print('Error: Failed reading file:', path)
 
@@ -57,7 +61,9 @@ def write_off(shape, path):
                 x, y, z = tuple(v)
                 file.write(f"{x} {y} {z}\n")
             for face in faces:
-                file.write(' '.join(len(face), *list(face)) + '\n')
+                face_str = ' '.join(list(map(str, face)))
+                face_str = str(len(face)) + " " + face_str + "\n"
+                file.write(face_str)
     except IOError:
         print('Error: Failed reading file:', path)
 
@@ -78,9 +84,19 @@ class Mesh:
         data = read_off(path)
         self.vertices = data[0]
         self.faces = data[1]
-        self.adj = None
+        adj_set = set()
 
-    #### Basic Visualizer ####
+        for face in self.faces:
+            for a, b in zip(face[:-1], face[1:]):
+                adj_set.add((min(a, b), max(a, b)))
+            adj_set.add((min(face[-1], face[0]), max(face[-1], face[0])))
+        adj_np_arr = np.array(list(adj_set))
+        values = np.ones(len(adj_np_arr))
+        x = adj_np_arr[:, 0]
+        y = adj_np_arr[:, 1]
+        self.adj = csr_matrix((values, (x, y)))
+
+    # ----------------------------Basic Visualizer----------------------------#
 
     def plot_wireframe(self, index_row=1, index_col=1, show=True, plotter=None):
         """
@@ -102,6 +118,7 @@ class Mesh:
             plots the vertices of the Mesh
 
             Args:
+                f: map between (x,y,z) to (r,g,b)
                 index_row: chosen subplot row
                 index_col: chosen subplot column
                 show: should the function call imshow()
@@ -117,6 +134,7 @@ class Mesh:
              plots the faces of the Mesh
 
              Args:
+                  f: map between (x,y,z) to (r,g,b)
                   index_row: chosen subplot row
                   index_col: chosen subplot column
                   show: should the function call imshow()
@@ -127,7 +145,7 @@ class Mesh:
         """
         pass
 
-    ##### Basic Properties ####
+    # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):
         """
         Calculates valence for a vertex or for all vertexes if idx<0
