@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 from scipy.sparse import csr_matrix
 
@@ -95,6 +97,12 @@ class Mesh:
         y = adj_np_arr[:, 1]
         values = np.ones(len(x))
         self.adj = csr_matrix((values, (x, y)), shape=(len(self.vertices), len(self.vertices)))
+
+        self.corners=defaultdict(set)
+        for idx,face in enumerate(self.faces):
+            for v in face:
+                self.corners[v].add(idx)
+
 
     # ----------------------------Basic Visualizer----------------------------#
 
@@ -208,23 +216,50 @@ class Mesh:
             the wanted barycenters
 
         Raises:
-        if idx >= len(vertices) raises IndexError
-        """
-        pass
+            if idx >= len(vertices) raises IndexError
+
+        Warning:
+            Only works on triangular faces
+             """
+        if idx >= len(self.faces):
+            raise IndexError
+        if idx >= 0:
+            v = np.vectorize(lambda x: self.vertices[x], signature='()->(n)')(self.faces[idx])
+            return np.mean(v, axis=0)
+        else:
+            vector_face_centers_func = np.vectorize(lambda x: self.get_face_barycenters(x),
+                                                    signature='()->(n)')
+            return vector_face_centers_func(np.arange(0, self.faces.shape[0]))
 
     def get_face_areas(self, idx=-1):
         """
-               Calculates area of a face or of all faces if idx<0
-                Args:
-                    idx: The index of the wanted area, if idx<0 then the entire array is wanted
+        Calculates area of a face or of all faces if idx<0
 
-                Returns:
-                    the wanted area
+            Args:
+                 idx: The index of the wanted area, if idx<0 then the entire array is wanted
 
-                Raises:
-                if idx >= len(vertices) raises IndexError
+            Returns:
+                 the wanted area
+
+            Raises:
+                 if idx >= len(vertices) raises IndexError
+            Warning:
+                 Only works on triangular faces
                 """
-        pass
+        if idx >= len(self.faces):
+            raise IndexError
+        if idx >= 0:
+            v1, v2, v3 = self.faces[idx]
+            v1, v2, v3 = self.vertices[v1], self.vertices[v2], self.vertices[v3]
+            a = np.linalg.norm(v1 - v2)
+            b = np.linalg.norm(v1 - v3)
+            c = np.linalg.norm(v2 - v3)
+            s = (a + b + c) / 2
+            area = np.sqrt(s * (s - a) * (s - b) * (s - c))
+            return area
+        else:
+            vector_face_area_func = np.vectorize(lambda x: self.get_face_areas(x))
+            return vector_face_area_func(np.arange(0, self.faces.shape[0]))
 
     def get_vertex_normals(self, idx=-1, norm=False):
         """
@@ -237,12 +272,26 @@ class Mesh:
                     the wanted normals
 
                 Raises:
-                if idx >= len(vertices) raises IndexError
+                    if idx >= len(vertices) raises IndexError
+
+                Warning:
+                    only works on triangular faces
                 """
-        pass
+        if idx >= len(self.faces):
+            raise IndexError
+        if idx >= 0:
+            neighbours=np.array(list(self.corners[idx]))
+            areas=np.vectorize(lambda x:self.get_face_areas(x))(neighbours)
+            face_norms=np.vectorize(lambda x:self.get_face_normals(x,True),signature='()->(n)')(neighbours)
+            #TODO: fix einsum formula
+            vertex_normal=np.einsum('j,ij->ij',areas[0],face_norms)
+            return vertex_normal
+        else:
+            vector_face_normals_func = np.vectorize(lambda x: self.get_face_normals(x, norm=norm),
+                                                    signature='()->(n)')
+            return vector_face_normals_func(np.arange(0, self.faces.shape[0]))
 
-
-mesh = Mesh('/home/alex/PycharmProjects/AeroVision/data/example_off_files/cat.off')
-print(mesh.get_face_normals(0))
-temp = mesh.get_vertex_valence()
-print(temp)
+# mesh = Mesh('/home/alex/PycharmProjects/AeroVision/data/example_off_files/cat.off')
+# print(mesh.get_vertex_normals(0))
+# temp = mesh.get_face_areas()
+# print(temp)
