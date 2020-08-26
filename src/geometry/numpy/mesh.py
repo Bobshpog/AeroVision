@@ -71,6 +71,7 @@ def write_off(shape, path):
 
 
 class Mesh:
+
     """
     A class representing a Mesh grid
     """
@@ -82,7 +83,6 @@ class Mesh:
         Args:
             path: path to .off file
         """
-
         data = read_off(path)
         self.vertices = data[0]
         self.faces = data[1]
@@ -283,15 +283,9 @@ class Mesh:
             neighbours=np.array(list(self.corners[idx]))
             areas=np.vectorize(lambda x:self.get_face_areas(x))(neighbours)
             face_norms=np.vectorize(lambda x:self.get_face_normals(x,True),signature='()->(n)')(neighbours)
-            #TODO: fix einsum formula
-            vertex_normal=np.einsum('j,ij->ij',areas[0],face_norms)
-            return vertex_normal
+            vertex_normal= np.sum(face_norms * areas[:,np.newaxis],axis=0)
+            return vertex_normal/ np.linalg.norm(vertex_normal) if norm else vertex_normal
         else:
-            vector_face_normals_func = np.vectorize(lambda x: self.get_face_normals(x, norm=norm),
+            vector_vertex_normals_func = np.vectorize(lambda x: self.get_vertex_normals(x, norm=norm),
                                                     signature='()->(n)')
-            return vector_face_normals_func(np.arange(0, self.faces.shape[0]))
-
-# mesh = Mesh('/home/alex/PycharmProjects/AeroVision/data/example_off_files/cat.off')
-# print(mesh.get_vertex_normals(0))
-# temp = mesh.get_face_areas()
-# print(temp)
+            return vector_vertex_normals_func(np.arange(0, self.vertices.shape[0]))
