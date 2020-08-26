@@ -91,10 +91,10 @@ class Mesh:
                 adj_set.add((min(a, b), max(a, b)))
             adj_set.add((min(face[-1], face[0]), max(face[-1], face[0])))
         adj_np_arr = np.array(list(adj_set))
-        values = np.ones(len(adj_np_arr))
         x = adj_np_arr[:, 0]
         y = adj_np_arr[:, 1]
-        self.adj = csr_matrix((values, (x, y)))
+        values = np.ones(len(x))
+        self.adj = csr_matrix((values, (x, y)), shape=(len(self.vertices), len(self.vertices)))
 
     # ----------------------------Basic Visualizer----------------------------#
 
@@ -159,13 +159,19 @@ class Mesh:
         Raises:
             if idx >= len(vertices) raises IndexError
         """
-        pass
+        if idx >= len(self.vertices):
+            raise IndexError
+        if idx >= 0:
+            return np.sum(self.adj[:, idx]) + np.sum(self.adj[idx, :]) - self.adj[idx, idx]
+        else:
+            vector_valance_func = np.vectorize(lambda x: self.get_vertex_valence(x), otypes=[np.int32])
+            return vector_valance_func(np.arange(0, len(self.vertices)))
 
     def get_face_normals(self, idx=-1, norm=False):
         """
        Calculates normal of a face or of all faces if idx<0
 
-       Args:
+        Args:
             idx: The index of the wanted normal,if idx<0 then the entire array is wanted
             norm: Whether the normal should be normalized
 
@@ -173,9 +179,24 @@ class Mesh:
             The wanted normals
 
         Raises:
-        if idx >= len(vertices) raises IndexError
+            If idx >= len(vertices) raises IndexError
+
+        Warning:
+            Only works on triangular faces
         """
-        pass
+        if idx >= len(self.faces):
+            raise IndexError
+        if idx >= 0:
+            v1, v2, v3 = self.faces[idx]
+            v1, v2, v3 = self.vertices[v1], self.vertices[v2], self.vertices[v3]
+            e1 = v2 - v1
+            e2 = v3 - v1
+            cross = np.cross(e1, e2)
+            return cross / np.linalg.norm(cross) if norm else cross
+        else:
+            vector_face_normals_func = np.vectorize(lambda x: self.get_face_normals(x, norm=norm),
+                                                    signature='()->(n)')
+            return vector_face_normals_func(np.arange(0, self.faces.shape[0]))
 
     def get_face_barycenters(self, idx=-1):
         """
@@ -219,3 +240,9 @@ class Mesh:
                 if idx >= len(vertices) raises IndexError
                 """
         pass
+
+
+mesh = Mesh('/home/alex/PycharmProjects/AeroVision/data/example_off_files/cat.off')
+print(mesh.get_face_normals(0))
+temp = mesh.get_vertex_valence()
+print(temp)
