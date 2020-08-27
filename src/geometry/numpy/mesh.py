@@ -106,7 +106,7 @@ class Mesh:
 
     # ----------------------------Basic Visualizer----------------------------#
 
-    def plot_wireframe(self, index_row=1, index_col=1, show=True, plotter=None):
+    def plot_wireframe(self, index_row=0, index_col=0, show=True, plotter=None):
         """
        plots the wireframe of the Mesh
 
@@ -121,32 +121,34 @@ class Mesh:
         """
         pass
 
-    def plot_vertices(self, f, index_row=1, index_col=1, show=True, plotter=None):
+    def plot_vertices(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet'):
         """
             plots the vertices of the Mesh
 
             Args:
-                f: map between (x,y,z) to (r,g,b)
+                f: map between (x,y,z) to scalar for the color map
                 index_row: chosen subplot row
                 index_col: chosen subplot column
                 show: should the function call imshow()
                 plotter: the pyvista plotter
+                cmap: the color map to use
 
              Returns:
                  the pyvista plotter
              """
         pass
 
-    def plot_faces(self, f, index_row=1, index_col=1, show=True, plotter=None):
+    def plot_faces(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet'):
         """
              plots the faces of the Mesh
 
              Args:
-                  f: map between (x,y,z) to (r,g,b)
+                  f: map between (x,y,z) to scalar for the color map
                   index_row: chosen subplot row
                   index_col: chosen subplot column
                   show: should the function call imshow()
                   plotter: the pyvista plotter
+                  cmap: the color map to use
 
              Returns:
                  the pyvista plotter
