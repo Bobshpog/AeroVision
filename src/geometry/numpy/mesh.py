@@ -171,8 +171,6 @@ class Mesh:
         if idx >= 0:
             return np.sum(self.adj[:, idx]) + np.sum(self.adj[idx, :]) - self.adj[idx, idx]
         else:
-            # vector_valance_func = np.vectorize(lambda x: self.get_vertex_valence(x), otypes=[np.int32])
-            # return vector_valance_func(np.arange(0, len(self.vertices)))
             return self.adj.sum(axis=1)
 
     def get_face_normals(self, idx=-1, norm=False):
@@ -202,9 +200,6 @@ class Mesh:
             cross = np.cross(e1, e2)
             return cross / np.linalg.norm(cross) if norm else cross
         else:
-            # vector_face_normals_func = np.vectorize(lambda x: self.get_face_normals(x, norm=norm),
-            #                                         signature='()->(n)')
-            # return vector_face_normals_func(np.arange(0, self.faces.shape[0]))
             f = self.faces
             v = self.vertices
             a = v[f[:, 0], :]
@@ -235,9 +230,6 @@ class Mesh:
             v = np.vectorize(lambda x: self.vertices[x], signature='()->(n)')(self.faces[idx])
             return np.mean(v, axis=0)
         else:
-            # vector_face_centers_func = np.vectorize(lambda x: self.get_face_barycenters(x),
-            #                                         signature='()->(n)')
-            # return vector_face_centers_func(np.arange(0, self.faces.shape[0]))
             v = self.vertices
             f = self.faces
             return v[f.flatten()].reshape((-1, 3, 3)).mean(axis=1)
@@ -270,10 +262,6 @@ class Mesh:
             area = np.sqrt(s * (s - a) * (s - b) * (s - c))
             return area
         else:
-
-            # vector_face_area_func = np.vectorize(lambda x: self.get_face_areas(x))
-            # return vector_face_area_func(np.arange(0, self.faces.shape[0]))
-
             v1, v2, v3 = self.faces[:, 0], self.faces[:, 1], self.faces[:, 2]
             v1, v2, v3 = self.vertices[v1], self.vertices[v2], self.vertices[v3]
             a = np.linalg.norm(v1 - v2, axis=1)
