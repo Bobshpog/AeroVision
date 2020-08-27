@@ -52,23 +52,14 @@ class MyTestCase(unittest.TestCase):
         mesh.plot_wireframe(index_col=0, index_row=2, show=False, plotter=plotter)
 
         plotter.subplot(1,0)
+        faces_barycenter = mesh.get_face_barycenters()
         normals = mesh.get_face_normals()
-        for idx, vec in np.ndenumerate(normals):
-            arrow = pv.Arrow(
-                start=mesh.get_face_barycenters(idx=idx), direction=vec,
-                scale='auto'
-            )
-            plotter.add_mesh(arrow, show_edges=True)
+
+        pv.plot_arrows(faces_barycenter, normals)
 
         plotter.subplot(1, 1)
         normals = mesh.get_face_normals(norm=True)
-        for idx, vec in np.ndenumerate(normals):
-            arrow = pv.Arrow(
-                start=mesh.get_face_barycenters(idx=idx), direction=vec,
-                scale='auto'
-                #  the scale should not affect, the vectors should be normalized
-            )
-            plotter.add_mesh(arrow, show_edges=True)
+        pv.plot_arrows(faces_barycenter, normals)
 
         #  creating (x,y,z) -> id dict
         table = {}
