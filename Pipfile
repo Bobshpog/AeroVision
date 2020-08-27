@@ -13,6 +13,7 @@ pyvista = "*"
 pytorch-lightning = "*"
 scipy = "*"
 matplotlib = "*"
+scikit-learn = "*"
 
 [requires]
 python_version = "3.8"

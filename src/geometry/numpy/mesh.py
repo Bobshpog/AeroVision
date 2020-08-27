@@ -101,6 +101,7 @@ class Mesh:
         for idx, face in enumerate(self.faces):
             for v in face:
                 self.corners[v].add(idx)
+        self.corners = {k: np.fromiter(v, int, len(v)) for (k, v) in self.corners.items()}
 
     # ----------------------------Basic Visualizer----------------------------#
 
@@ -170,8 +171,9 @@ class Mesh:
         if idx >= 0:
             return np.sum(self.adj[:, idx]) + np.sum(self.adj[idx, :]) - self.adj[idx, idx]
         else:
-            vector_valance_func = np.vectorize(lambda x: self.get_vertex_valence(x), otypes=[np.int32])
-            return vector_valance_func(np.arange(0, len(self.vertices)))
+            # vector_valance_func = np.vectorize(lambda x: self.get_vertex_valence(x), otypes=[np.int32])
+            # return vector_valance_func(np.arange(0, len(self.vertices)))
+            return self.adj.sum(axis=1)
 
     def get_face_normals(self, idx=-1, norm=False):
         """
@@ -200,9 +202,16 @@ class Mesh:
             cross = np.cross(e1, e2)
             return cross / np.linalg.norm(cross) if norm else cross
         else:
-            vector_face_normals_func = np.vectorize(lambda x: self.get_face_normals(x, norm=norm),
-                                                    signature='()->(n)')
-            return vector_face_normals_func(np.arange(0, self.faces.shape[0]))
+            # vector_face_normals_func = np.vectorize(lambda x: self.get_face_normals(x, norm=norm),
+            #                                         signature='()->(n)')
+            # return vector_face_normals_func(np.arange(0, self.faces.shape[0]))
+            f = self.faces
+            v = self.vertices
+            a = v[f[:, 0], :]
+            b = v[f[:, 1], :]
+            c = v[f[:, 2], :]
+            fn = np.cross(b - a, c - a)
+            fn / np.linalg.norm(fn) if norm else fn
 
     def get_face_barycenters(self, idx=-1):
         """
@@ -226,9 +235,12 @@ class Mesh:
             v = np.vectorize(lambda x: self.vertices[x], signature='()->(n)')(self.faces[idx])
             return np.mean(v, axis=0)
         else:
-            vector_face_centers_func = np.vectorize(lambda x: self.get_face_barycenters(x),
-                                                    signature='()->(n)')
-            return vector_face_centers_func(np.arange(0, self.faces.shape[0]))
+            # vector_face_centers_func = np.vectorize(lambda x: self.get_face_barycenters(x),
+            #                                         signature='()->(n)')
+            # return vector_face_centers_func(np.arange(0, self.faces.shape[0]))
+            v = self.vertices
+            f = self.faces
+            return v[f.flatten()].reshape((-1, 3, 3)).mean(axis=1)
 
     def get_face_areas(self, idx=-1):
         """
@@ -258,8 +270,18 @@ class Mesh:
             area = np.sqrt(s * (s - a) * (s - b) * (s - c))
             return area
         else:
-            vector_face_area_func = np.vectorize(lambda x: self.get_face_areas(x))
-            return vector_face_area_func(np.arange(0, self.faces.shape[0]))
+
+            # vector_face_area_func = np.vectorize(lambda x: self.get_face_areas(x))
+            # return vector_face_area_func(np.arange(0, self.faces.shape[0]))
+
+            v1, v2, v3 = self.faces[:, 0], self.faces[:, 1], self.faces[:, 2]
+            v1, v2, v3 = self.vertices[v1], self.vertices[v2], self.vertices[v3]
+            a = np.linalg.norm(v1 - v2, axis=1)
+            b = np.linalg.norm(v1 - v3, axis=1)
+            c = np.linalg.norm(v2 - v3, axis=1)
+            s = (a + b + c) / 2
+            area = np.sqrt(s * (s - a) * (s - b) * (s - c))
+            return area
 
     def get_vertex_normals(self, idx=-1, norm=False):
         """
@@ -281,12 +303,13 @@ class Mesh:
         if idx >= len(self.faces):
             raise IndexError
         if idx >= 0:
-            neighbours = np.array(list(self.corners[idx]))
+            neighbours = self.corners[idx]
             areas = np.vectorize(lambda x: self.get_face_areas(x))(neighbours)
             face_norms = np.vectorize(lambda x: self.get_face_normals(x, True), signature='()->(n)')(neighbours)
             vertex_normal = np.sum(face_norms * areas[:, np.newaxis], axis=0)
             return vertex_normal / np.linalg.norm(vertex_normal) if norm else vertex_normal
         else:
+
             vector_vertex_normals_func = np.vectorize(lambda x: self.get_vertex_normals(x, norm=norm),
                                                       signature='()->(n)')
             return vector_vertex_normals_func(np.arange(0, self.vertices.shape[0]))
