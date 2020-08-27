@@ -27,25 +27,19 @@ class TestMesh(unittest.TestCase):
     def test_get_vertex_normals(self):
         self.mesh.get_vertex_normals()
 
-    def test_read_write_off(self, files):
+    def test_read_write_off(self):
         """"
         reads all off files, writes them to temp directory and calls diff
 
         Args
         files:  iterator over files to write
         """
-        passed = True
-        for file in files:
+        for file in TestMesh.off_files:
             data = read_off(file)
-        write_off(data, "temp")
-        if not filecmp.cmp(file, "temp"):
-            print("FAILED on file: {}".format(file))
-        passed = False
+            write_off(data, "temp")
+            self.assertTrue(filecmp.cmp(file, "temp"))
 
-        if passed:
-            print("PASSED ON ALL FILES")
-
-    def test_visualization(self, path):
+    def test_visualization(self):
         """"
         for each image plots:
          - vertices
@@ -61,7 +55,7 @@ class TestMesh(unittest.TestCase):
                 path:  path for the .off file
         """
         plotter = pv.Plotter(shape=(3, 3))
-        mesh = Mesh(path)
+        mesh = self.mesh
 
         mesh.plot_vertices(f=lambda: 0, index_col=0, index_row=0, show=False, plotter=plotter)
         mesh.plot_faces(f=lambda: 0, index_col=0, index_row=1, show=False, plotter=plotter)
