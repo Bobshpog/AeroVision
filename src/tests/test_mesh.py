@@ -36,11 +36,14 @@ class TestMesh(unittest.TestCase):
         """
         for file in self.off_files:
             data = read_off(file)
-            write_off(data, "temp/tempFile")
-            old_file = np.fromfile('file')
-            new_file = np.fromfile('temp/tempFile')
-            self.assertTrue(np.array_equal(old_file, new_file))
-        os.remove('temp/tempFile')
+            if not os.path.exists('test/tempFile'):
+                os.mknod('test/tempFile')
+            write_off(data, "test/tempFile")
+            mesh_new = read_off("temp/tempFile")
+            self.assertTrue(np.array_equal(data,mesh_new))
+            os.remove('temp/tempFile')
+
+
 
     def test_visualization(self):
         """"
