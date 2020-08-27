@@ -70,10 +70,15 @@ class MyTestCase(unittest.TestCase):
 
         mean = mean/(idx+1)
 
+
+
         val_func = lambda a:mesh.get_vertex_valence(table[a])
+
         dist_func = lambda a:np.linalg.norm(a-mean) # L2 distance between the mean and the point
 
         mesh.plot_vertices(f=val_func, index_col=1, index_row=2, show=False, plotter=plotter)
+        plotter.subplot(2,0)
+        plotter.add_mesh(mesh=pv.Sphere(center=mean), color='black')
         mesh.plot_vertices(f=dist_func, index_col=2, index_row=0,show=False, plotter=plotter)
 
         plotter.show()
