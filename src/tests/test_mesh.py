@@ -9,7 +9,7 @@ from src.geometry.numpy.mesh import *
 
 class TestMesh(unittest.TestCase):
     def setUp(self):
-        self.off_files = glob.glob('./data/example_off_files/*.off')
+        self.off_files = glob.glob('../data/example_off_files/*.off')
         self.mesh = Mesh('/home/alex/PycharmProjects/AeroVision/data/opto_wing.off')
 
     def test_get_vertex_valence(self):
@@ -34,7 +34,7 @@ class TestMesh(unittest.TestCase):
         Args
         files:  iterator over files to write
         """
-        for file in TestMesh.off_files:
+        for file in self.off_files:
             data = read_off(file)
             write_off(data, "temp/tempFile")
             old_file = np.fromfile('file')
