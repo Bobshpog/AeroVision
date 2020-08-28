@@ -1,5 +1,5 @@
 from collections import defaultdict
-
+import pyvista as pv
 import numpy as np
 from scipy.sparse import csr_matrix
 
@@ -118,7 +118,15 @@ class Mesh:
         Returns:
             the pyvista plotter
         """
-        pass
+        if plotter is None:
+            plotter = pv.Plotter()
+        plotter.subplot(index_column=index_col,index_row=index_row)
+        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
+        pv_mesh = pv.PolyData(self.vertices,pv_styled_faces)
+        plotter.add_mesh(pv_mesh, style='wireframe')
+        if show is True:
+            plotter.show()
+        return plotter
 
     def plot_vertices(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet'):
         """
@@ -134,8 +142,15 @@ class Mesh:
 
              Returns:
                  the pyvista plotter
-             """
-        pass
+        """
+
+        if plotter is None:
+            plotter = pv.Plotter()
+        plotter.subplot(index_column=index_col, index_row=index_row)
+        plotter.add_mesh(self.vertices, scalars= np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
+        if show is True:
+            plotter.show()
+        return plotter
 
     def plot_faces(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet'):
         """
@@ -152,7 +167,15 @@ class Mesh:
              Returns:
                  the pyvista plotter
         """
-        pass
+        if plotter is None:
+            plotter = pv.Plotter()
+        plotter.subplot(index_column=index_col, index_row=index_row)
+        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
+        pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
+        plotter.add_mesh(pv_mesh, scalars= np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
+        if show is True:
+            plotter.show()
+        return plotter
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):

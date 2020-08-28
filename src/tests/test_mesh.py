@@ -10,7 +10,7 @@ from src.geometry.numpy.mesh import *
 class TestMesh(unittest.TestCase):
     def setUp(self):
         self.off_files = glob.glob('data/example_off_files/*.off')
-        self.mesh = Mesh('data/opto_wing.off')
+        self.mesh = Mesh('data/example_off_files/cat.off')
 
     def test_get_vertex_valence(self):
         self.mesh.get_vertex_valence()
@@ -64,38 +64,41 @@ class TestMesh(unittest.TestCase):
         plotter = pv.Plotter(shape=(3, 3))
         mesh = self.mesh
 
-        mesh.plot_vertices(f=lambda: 0, index_col=0, index_row=0, show=False, plotter=plotter)
-        mesh.plot_faces(f=lambda: 0, index_col=0, index_row=1, show=False, plotter=plotter)
-        mesh.plot_wireframe(index_col=0, index_row=2, show=False, plotter=plotter)
+        mesh.plot_vertices(f=lambda a: 0, index_row=0, index_col=0, show=False, plotter=plotter)
+        mesh.plot_faces(f=lambda a: 0, index_row=0, index_col=1, show=False, plotter=plotter)
+        mesh.plot_wireframe(index_row=0, index_col=2, show=False, plotter=plotter)
 
-        plotter.subplot(1, 0)
         faces_barycenter = mesh.get_face_barycenters()
         normals = mesh.get_face_normals()
 
-        pv.plot_arrows(faces_barycenter, normals)
+        plotter.subplot(1, 0)
+        plotter.add_arrows(faces_barycenter, normals)
 
         plotter.subplot(1, 1)
         normals = mesh.get_face_normals(norm=True)
-        pv.plot_arrows(faces_barycenter, normals)
+        plotter.add_arrows(faces_barycenter, normals)
 
         #  creating (x,y,z) -> id dict
         table = {}
         mean = (0, 0, 0)
-        for idx, cord in np.ndenumerate(mesh.vertices):
-            table[cord] = idx
+
+        i = 0
+        for cord in mesh.vertices:
+            table[np.array_str(cord)] = i
+            i += 1
             mean += cord
 
-        mean = mean / (idx + 1)
+        mean = mean / (i + 1)
 
-        val_func = lambda a: mesh.get_vertex_valence(table[a])
+        val_func = lambda a: mesh.get_vertex_valence(table[np.array_str(a)])
 
         dist_func = lambda a: np.linalg.norm(a - mean)  # L2 distance between the mean and the point
 
-        mesh.plot_vertices(f=val_func, index_col=1, index_row=2, show=False, plotter=plotter)
+        mesh.plot_vertices(f=val_func,index_row=1, index_col=2, show=False, plotter=plotter)
         plotter.subplot(2, 0)
-        plotter.add_mesh(mesh=pv.Sphere(center=mean), color='black')
-        mesh.plot_vertices(f=dist_func, index_col=2, index_row=0, show=False, plotter=plotter)
 
+        mesh.plot_vertices(f=dist_func, index_row=2, index_col=0, show=False, plotter=plotter)
+        plotter.add_mesh(mesh=pv.Sphere(center=mean, radius=0.2), color='black')
         plotter.show()
 
 
