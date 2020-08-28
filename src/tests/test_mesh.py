@@ -9,8 +9,8 @@ from src.geometry.numpy.mesh import *
 
 class TestMesh(unittest.TestCase):
     def setUp(self):
-        self.off_files = glob.glob('../../data/example_off_files/*.off')
-        self.mesh = Mesh('../../data/opto_wing.off')
+        self.off_files = glob.glob('data/example_off_files/*.off')
+        self.mesh = Mesh('data/opto_wing.off')
 
     def test_get_vertex_valence(self):
         self.mesh.get_vertex_valence()
@@ -36,12 +36,13 @@ class TestMesh(unittest.TestCase):
         """
         for file in self.off_files:
             data = read_off(file)
-            if not os.path.exists('test/tempFile'):
-                os.mknod('test/tempFile')
-            write_off(data, "test/tempFile")
-            mesh_new = read_off("temp/tempFile")
-            self.assertTrue(np.array_equal(data,mesh_new))
-            os.remove('temp/tempFile')
+            temp_file = 'src/tests/temp/tempFile'
+            # if not os.path.exists(temp_file):
+            #     os.mknod(temp_file)
+            write_off(data, temp_file)
+            mesh_new = read_off(temp_file)
+            self.assertTrue(np.array_equal(data[0],mesh_new[0]) and np.array_equal(data[1],mesh_new[1]))
+            os.remove(temp_file)
 
 
 
