@@ -1,8 +1,7 @@
 import glob
 import unittest
 import os
-import pyvista as pv
-from src.util.profiler import profile
+from src.util.timing import profile
 
 from src.geometry.numpy.mesh import *
 
