@@ -208,7 +208,7 @@ class Mesh:
             b = v[f[:, 1], :]
             c = v[f[:, 2], :]
             fn = np.cross(b - a, c - a)
-            fn / np.linalg.norm(fn) if norm else fn
+            return fn / np.linalg.norm(fn) if norm else fn
 
     def get_face_barycenters(self, idx=-1):
         """
@@ -299,7 +299,17 @@ class Mesh:
             vertex_normal = np.sum(face_norms * areas[:, np.newaxis], axis=0)
             return vertex_normal / np.linalg.norm(vertex_normal) if norm else vertex_normal
         else:
+            areas_dict = self.get_face_areas()
+            face_norms_dict = self.get_face_normals(norm=True)
+            areas_data = [areas_dict[item] for i, row in self.corners.items() for j, item in enumerate(row) for _ in range(3)]
+            rows = [3*i+k for i, row in self.corners.items() for _ in row for k in range(3)]
+            cols = [j for i, row in self.corners.items() for j, item in enumerate(row) for _ in range(3)]
+            areas = csr_matrix((areas_data, (rows, cols)))
+            face_norms_data = [k for i, row in self.corners.items() for j, item in enumerate(row) for k in face_norms_dict[item]]
+            face_norms = csr_matrix((face_norms_data, (rows, cols)))
+            vertex_normals=np.array((face_norms.multiply(areas)).sum(axis=1).reshape(-1,3))
+            return vertex_normals/np.linalg.norm(vertex_normals,axis=1,keepdims=True) if norm else vertex_normals
 
-            vector_vertex_normals_func = np.vectorize(lambda x: self.get_vertex_normals(x, norm=norm),
-                                                      signature='()->(n)')
-            return vector_vertex_normals_func(np.arange(0, self.vertices.shape[0]))
+            # vector_vertex_normals_func = np.vectorize(lambda x: self.get_vertex_normals(x, norm=norm),
+            #                                           signature='()->(n)')
+            # return vector_vertex_normals_func(np.arange(0, self.vertices.shape[0]))

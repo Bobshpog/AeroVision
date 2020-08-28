@@ -9,8 +9,8 @@ from src.geometry.numpy.mesh import *
 
 class TestMesh(unittest.TestCase):
     def setUp(self):
-        self.off_files = glob.glob('../data/example_off_files/*.off')
-        self.mesh = Mesh('/home/alex/PycharmProjects/AeroVision/data/opto_wing.off')
+        self.off_files = glob.glob('../../data/example_off_files/*.off')
+        self.mesh = Mesh('../../data/opto_wing.off')
 
     def test_get_vertex_valence(self):
         self.mesh.get_vertex_valence()
