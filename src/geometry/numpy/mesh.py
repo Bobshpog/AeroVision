@@ -324,14 +324,16 @@ class Mesh:
         else:
             areas_dict = self.get_face_areas()
             face_norms_dict = self.get_face_normals(norm=True)
-            areas_data = [areas_dict[item] for i, row in self.corners.items() for j, item in enumerate(row) for _ in range(3)]
-            rows = [3*i+k for i, row in self.corners.items() for _ in row for k in range(3)]
+            areas_data = [areas_dict[item] for i, row in self.corners.items() for j, item in enumerate(row) for _ in
+                          range(3)]
+            rows = [3 * i + k for i, row in self.corners.items() for _ in row for k in range(3)]
             cols = [j for i, row in self.corners.items() for j, item in enumerate(row) for _ in range(3)]
             areas = csr_matrix((areas_data, (rows, cols)))
-            face_norms_data = [k for i, row in self.corners.items() for j, item in enumerate(row) for k in face_norms_dict[item]]
+            face_norms_data = [k for i, row in self.corners.items() for j, item in enumerate(row) for k in
+                               face_norms_dict[item]]
             face_norms = csr_matrix((face_norms_data, (rows, cols)))
-            vertex_normals=np.array((face_norms.multiply(areas)).sum(axis=1).reshape(-1,3))
-            return vertex_normals/np.linalg.norm(vertex_normals,axis=1,keepdims=True) if norm else vertex_normals
+            vertex_normals = np.array((face_norms.multiply(areas)).sum(axis=1).reshape(-1, 3))
+            return vertex_normals / np.linalg.norm(vertex_normals, axis=1, keepdims=True) if norm else vertex_normals
 
             # vector_vertex_normals_func = np.vectorize(lambda x: self.get_vertex_normals(x, norm=norm),
             #                                           signature='()->(n)')
