@@ -105,7 +105,7 @@ class Mesh:
 
     # ----------------------------Basic Visualizer----------------------------#
 
-    def plot_wireframe(self, index_row=0, index_col=0, show=True, plotter=None):
+    def plot_wireframe(self, index_row=0, index_col=0, show=True, plotter=None, title='',font_size=10):
         """
        plots the wireframe of the Mesh
 
@@ -114,21 +114,24 @@ class Mesh:
            index_col: chosen subplot column
            show: should the function call imshow()
            plotter: the pyvista plotter
+           title: the title of the figure
+           font_size: the font size of the title
 
         Returns:
             the pyvista plotter
         """
         if plotter is None:
             plotter = pv.Plotter()
-        plotter.subplot(index_column=index_col,index_row=index_row)
+        plotter.subplot(index_column=index_col, index_row=index_row)
+        plotter.add_text(title, position="upper_edge",font_size=font_size)
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
-        pv_mesh = pv.PolyData(self.vertices,pv_styled_faces)
+        pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         plotter.add_mesh(pv_mesh, style='wireframe')
         if show is True:
             plotter.show()
         return plotter
 
-    def plot_vertices(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet'):
+    def plot_vertices(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',font_size=10):
         """
             plots the vertices of the Mesh
 
@@ -139,6 +142,8 @@ class Mesh:
                 show: should the function call imshow()
                 plotter: the pyvista plotter
                 cmap: the color map to use
+                title: the title of the figure
+                font_size: the font size of the title
 
              Returns:
                  the pyvista plotter
@@ -147,12 +152,13 @@ class Mesh:
         if plotter is None:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
-        plotter.add_mesh(self.vertices, scalars= np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
+        plotter.add_text(title, position="upper_edge", font_size=font_size)
+        plotter.add_mesh(self.vertices, scalars=np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
         if show is True:
             plotter.show()
         return plotter
 
-    def plot_faces(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet'):
+    def plot_faces(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',font_size=10):
         """
              plots the faces of the Mesh
 
@@ -163,6 +169,8 @@ class Mesh:
                   show: should the function call imshow()
                   plotter: the pyvista plotter
                   cmap: the color map to use
+                  title: the title of the figure
+                  font_size: the font size of the title
 
              Returns:
                  the pyvista plotter
@@ -170,9 +178,10 @@ class Mesh:
         if plotter is None:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
+        plotter.add_text(title, position="upper_edge",font_size=font_size)
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
-        plotter.add_mesh(pv_mesh, scalars= np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
+        plotter.add_mesh(pv_mesh, scalars=np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
         if show is True:
             plotter.show()
         return plotter
@@ -324,14 +333,16 @@ class Mesh:
         else:
             areas_dict = self.get_face_areas()
             face_norms_dict = self.get_face_normals(norm=True)
-            areas_data = [areas_dict[item] for i, row in self.corners.items() for j, item in enumerate(row) for _ in range(3)]
-            rows = [3*i+k for i, row in self.corners.items() for _ in row for k in range(3)]
+            areas_data = [areas_dict[item] for i, row in self.corners.items() for j, item in enumerate(row) for _ in
+                          range(3)]
+            rows = [3 * i + k for i, row in self.corners.items() for _ in row for k in range(3)]
             cols = [j for i, row in self.corners.items() for j, item in enumerate(row) for _ in range(3)]
             areas = csr_matrix((areas_data, (rows, cols)))
-            face_norms_data = [k for i, row in self.corners.items() for j, item in enumerate(row) for k in face_norms_dict[item]]
+            face_norms_data = [k for i, row in self.corners.items() for j, item in enumerate(row) for k in
+                               face_norms_dict[item]]
             face_norms = csr_matrix((face_norms_data, (rows, cols)))
-            vertex_normals=np.array((face_norms.multiply(areas)).sum(axis=1).reshape(-1,3))
-            return vertex_normals/np.linalg.norm(vertex_normals,axis=1,keepdims=True) if norm else vertex_normals
+            vertex_normals = np.array((face_norms.multiply(areas)).sum(axis=1).reshape(-1, 3))
+            return vertex_normals / np.linalg.norm(vertex_normals, axis=1, keepdims=True) if norm else vertex_normals
 
             # vector_vertex_normals_func = np.vectorize(lambda x: self.get_vertex_normals(x, norm=norm),
             #                                           signature='()->(n)')
