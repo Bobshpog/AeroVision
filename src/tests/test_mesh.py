@@ -66,14 +66,14 @@ class TestMesh(unittest.TestCase):
         """
 
         plotter = pv.Plotter(shape=(3, 3))
-        mesh = self.mesh
 
-        mesh.plot_vertices(f=lambda a: 0, index_row=0, index_col=0, show=False, plotter=plotter, title="vertices")
-        mesh.plot_faces(f=lambda a: 0, index_row=0, index_col=1, show=False, plotter=plotter, title="faces")
-        mesh.plot_wireframe(index_row=0, index_col=2, show=False, plotter=plotter, title= "wireframe")
 
-        faces_barycenter = mesh.get_face_barycenters()
-        normals = mesh.get_face_normals()
+        self.mesh.plot_vertices(f=lambda a: 0, index_row=0, index_col=0, show=False, plotter=plotter, title="vertices")
+        self.mesh.plot_faces(f=lambda a: 0, index_row=0, index_col=1, show=False, plotter=plotter, title="faces")
+        self.mesh.plot_wireframe(index_row=0, index_col=2, show=False, plotter=plotter, title= "wireframe")
+
+        faces_barycenter = self.mesh.get_face_barycenters()
+        normals = self.mesh.get_face_normals()
 
         plotter.subplot(1, 0)
         plotter.add_text("un-normalized normals", position='upper_edge',font_size=10)
@@ -81,7 +81,7 @@ class TestMesh(unittest.TestCase):
 
         plotter.subplot(1, 1)
         plotter.add_text("normalized normals", position='upper_edge',font_size=10)
-        normals = mesh.get_face_normals(norm=True)
+        normals = self.mesh.get_face_normals(norm=True)
         plotter.add_arrows(faces_barycenter, normals)
 
         #  creating (x,y,z) -> id dict
@@ -89,21 +89,21 @@ class TestMesh(unittest.TestCase):
         mean = (0, 0, 0)
 
         i = 0
-        for cord in mesh.vertices:
+        for cord in self.mesh.vertices:
             table[np.array_str(cord)] = i
             i += 1
             mean += cord
 
         mean = mean / (i + 1)
 
-        val_func = lambda a: mesh.get_vertex_valence(table[np.array_str(a)])
+        val_func = lambda a: self.mesh.get_vertex_valence(table[np.array_str(a)])
 
         dist_func = lambda a: np.linalg.norm(a - mean)  # L2 distance between the mean and the point
 
-        mesh.plot_vertices(f=val_func, index_row=1, index_col=2, show=False, plotter=plotter,title='valance figure')
+        self.mesh.plot_vertices(f=val_func, index_row=1, index_col=2, show=False, plotter=plotter,title='valance figure')
         plotter.subplot(2, 0)
 
-        mesh.plot_vertices(f=dist_func, index_row=2, index_col=0, show=False, plotter=plotter,
+        self.mesh.plot_vertices(f=dist_func, index_row=2, index_col=0, show=False, plotter=plotter,
                            title="distance from mean")
         plotter.add_mesh(mesh=pv.Sphere(center=mean, radius=0.2), color='black')
 
