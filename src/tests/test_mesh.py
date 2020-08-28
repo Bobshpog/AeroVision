@@ -3,6 +3,7 @@ import glob
 import unittest
 import os
 import pyvista as pv
+from src.util.profiler import profile
 
 from src.geometry.numpy.mesh import *
 
@@ -12,21 +13,23 @@ class TestMesh(unittest.TestCase):
         self.off_files = glob.glob('data/example_off_files/*.off')
         self.mesh = Mesh('data/example_off_files/cat.off')
 
+    @profile
     def test_get_vertex_valence(self):
         self.mesh.get_vertex_valence()
-
+    @profile
     def test_get_face_normals(self):
         self.mesh.get_face_normals()
-
+    @profile
     def test_get_face_barycenters(self):
         self.mesh.get_face_barycenters()
-
+    @profile
     def test_get_face_areas(self):
         self.mesh.get_face_areas()
-
+    @profile
     def test_get_vertex_normals(self):
         self.mesh.get_vertex_normals()
 
+    @profile
     def test_read_write_off(self):
         """"
         reads all off files, writes them to temp directory and calls diff
