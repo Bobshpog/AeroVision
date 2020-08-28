@@ -9,7 +9,7 @@ from src.geometry.numpy.mesh import *
 class TestMesh(unittest.TestCase):
     def setUp(self):
         self.off_files = glob.glob('data/example_off_files/*.off')
-        self.mesh = Mesh('data/example_off_files/cat.off')
+        self.mesh = Mesh('data/example_off_files/phands.off')
 
     @profile
     def test_get_vertex_valence(self):
@@ -64,23 +64,24 @@ class TestMesh(unittest.TestCase):
          Args
                 path:  path for the .off file
         """
+        size_of_black_sphere = 1/3
+        # hyper parameter that decide the rate between the longest distance to the sphere to the size of the sphere
 
         plotter = pv.Plotter(shape=(3, 3))
 
-
         self.mesh.plot_vertices(f=lambda a: 0, index_row=0, index_col=0, show=False, plotter=plotter, title="vertices")
         self.mesh.plot_faces(f=lambda a: 0, index_row=0, index_col=1, show=False, plotter=plotter, title="faces")
-        self.mesh.plot_wireframe(index_row=0, index_col=2, show=False, plotter=plotter, title= "wireframe")
+        self.mesh.plot_wireframe(index_row=0, index_col=2, show=False, plotter=plotter, title="wireframe")
 
         faces_barycenter = self.mesh.get_face_barycenters()
         normals = self.mesh.get_face_normals()
 
         plotter.subplot(1, 0)
-        plotter.add_text("un-normalized normals", position='upper_edge',font_size=10)
+        plotter.add_text("un-normalized normals", position='upper_edge', font_size=10)
         plotter.add_arrows(faces_barycenter, normals)
 
         plotter.subplot(1, 1)
-        plotter.add_text("normalized normals", position='upper_edge',font_size=10)
+        plotter.add_text("normalized normals", position='upper_edge', font_size=10)
         normals = self.mesh.get_face_normals(norm=True)
         plotter.add_arrows(faces_barycenter, normals)
 
@@ -96,18 +97,17 @@ class TestMesh(unittest.TestCase):
 
         mean = mean / (i + 1)
 
-        val_func = lambda a: self.mesh.get_vertex_valence(table[np.array_str(a)])
+        self.mesh.plot_vertices(f=lambda a: self.mesh.get_vertex_valence(table[np.array_str(a)]),
+                                index_row=1, index_col=2, show=False, plotter=plotter,
+                                title='valance figure')
 
-        dist_func = lambda a: np.linalg.norm(a - mean)  # L2 distance between the mean and the point
-
-        self.mesh.plot_vertices(f=val_func, index_row=1, index_col=2, show=False, plotter=plotter,title='valance figure')
         plotter.subplot(2, 0)
-
-        self.mesh.plot_vertices(f=dist_func, index_row=2, index_col=0, show=False, plotter=plotter,
-                           title="distance from mean")
-        plotter.add_mesh(mesh=pv.Sphere(center=mean, radius=0.2), color='black')
-
-
+        max_dist = np.apply_along_axis(lambda a: np.linalg.norm(a - mean), 1, self.mesh.vertices).max()
+        self.mesh.plot_vertices(f=lambda a: np.linalg.norm(a - mean),
+                                #  L2 distance between the mean and the point
+                                index_row=2, index_col=0, show=False, plotter=plotter,
+                                title="distance from mean")
+        plotter.add_mesh(mesh=pv.Sphere(center=mean, radius=size_of_black_sphere * max_dist), color='black')
 
         plotter.show()
 

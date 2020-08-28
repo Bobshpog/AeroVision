@@ -127,7 +127,7 @@ class Mesh:
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         plotter.add_mesh(pv_mesh, style='wireframe')
-        if show is True:
+        if show:
             plotter.show()
         return plotter
 
@@ -154,7 +154,7 @@ class Mesh:
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size)
         plotter.add_mesh(self.vertices, scalars=np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
-        if show is True:
+        if show:
             plotter.show()
         return plotter
 
@@ -182,7 +182,7 @@ class Mesh:
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         plotter.add_mesh(pv_mesh, scalars=np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
-        if show is True:
+        if show:
             plotter.show()
         return plotter
 
