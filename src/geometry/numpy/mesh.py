@@ -1,6 +1,7 @@
 from collections import defaultdict
-import pyvista as pv
+
 import numpy as np
+import pyvista as pv
 from scipy.sparse import csr_matrix
 
 
@@ -105,7 +106,7 @@ class Mesh:
 
     # ----------------------------Basic Visualizer----------------------------#
 
-    def plot_wireframe(self, index_row=0, index_col=0, show=True, plotter=None, title='',font_size=10):
+    def plot_wireframe(self, index_row=0, index_col=0, show=True, plotter=None, title='', font_size=10):
         """
        plots the wireframe of the Mesh
 
@@ -123,7 +124,7 @@ class Mesh:
         if plotter is None:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
-        plotter.add_text(title, position="upper_edge",font_size=font_size)
+        plotter.add_text(title, position="upper_edge", font_size=font_size)
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         plotter.add_mesh(pv_mesh, style='wireframe')
@@ -131,7 +132,7 @@ class Mesh:
             plotter.show()
         return plotter
 
-    def plot_vertices(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',font_size=10):
+    def plot_vertices(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='', font_size=10):
         """
             plots the vertices of the Mesh
 
@@ -158,7 +159,7 @@ class Mesh:
             plotter.show()
         return plotter
 
-    def plot_faces(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',font_size=10):
+    def plot_faces(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='', font_size=10):
         """
              plots the faces of the Mesh
 
@@ -178,7 +179,7 @@ class Mesh:
         if plotter is None:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
-        plotter.add_text(title, position="upper_edge",font_size=font_size)
+        plotter.add_text(title, position="upper_edge", font_size=font_size)
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         plotter.add_mesh(pv_mesh, scalars=np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
