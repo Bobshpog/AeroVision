@@ -47,7 +47,6 @@ class TestMesh(unittest.TestCase):
             self.assertTrue(np.array_equal(data[0], mesh_new[0]) and np.array_equal(data[1], mesh_new[1]))
             os.remove(temp_file)
 
-
     def test_visualization(self):
         """"
         for each image plots:
@@ -87,17 +86,16 @@ class TestMesh(unittest.TestCase):
 
             #  creating (x,y,z) -> id dict
             table = {}
-            mean = np.array([0, 0, 0],dtype=np.float64)
+            mean = np.array([0, 0, 0], dtype=np.float64)
 
             for i, cord in enumerate(mesh.vertices):
                 table[cord.tobytes()] = i
 
-            mean =mesh.vertices.mean()
+            mean = mesh.vertices.mean()
 
             mesh.plot_vertices(f=lambda a: mesh.get_vertex_valence(table[a.tobytes()]),
                                index_row=1, index_col=2, show=False, plotter=plotter,
                                title='valance figure')
-
 
             plotter.subplot(2, 0)
             max_dist = np.apply_along_axis(lambda a: np.linalg.norm(a - mean), 1, mesh.vertices).max()
