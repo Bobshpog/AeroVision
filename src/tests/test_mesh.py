@@ -86,12 +86,11 @@ class TestMesh(unittest.TestCase):
 
             #  creating (x,y,z) -> id dict
             table = {}
-            mean = np.array([0, 0, 0], dtype=np.float64)
 
             for i, cord in enumerate(mesh.vertices):
                 table[cord.tobytes()] = i
 
-            mean = mesh.vertices.mean()
+            mean = mesh.vertices.mean(axis=0)
 
             mesh.plot_vertices(f=lambda a: mesh.get_vertex_valence(table[a.tobytes()]),
                                index_row=1, index_col=2, show=False, plotter=plotter,
@@ -105,7 +104,6 @@ class TestMesh(unittest.TestCase):
                                title="distance from mean")
             plotter.add_mesh(mesh=pv.Sphere(center=mean, radius=size_of_black_sphere * max_dist), color='black')
             plotter.show(title=file)
-            plotter.close()
 
 
 if __name__ == '__main__':
