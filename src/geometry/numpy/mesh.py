@@ -344,7 +344,3 @@ class Mesh:
             face_norms = csr_matrix((face_norms_data, (rows, cols)))
             vertex_normals = np.array((face_norms.multiply(areas)).sum(axis=1).reshape(-1, 3))
             return vertex_normals / np.linalg.norm(vertex_normals, axis=1, keepdims=True) if norm else vertex_normals
-
-            # vector_vertex_normals_func = np.vectorize(lambda x: self.get_vertex_normals(x, norm=norm),
-            #                                           signature='()->(n)')
-            # return vector_vertex_normals_func(np.arange(0, self.vertices.shape[0]))
