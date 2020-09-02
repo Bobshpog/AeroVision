@@ -3,6 +3,7 @@ from collections import defaultdict
 import numpy as np
 import pyvista as pv
 from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import connected_components
 
 
 def read_off(path):
@@ -13,7 +14,7 @@ def read_off(path):
         path: path to .off file
 
     Returns:
-        (vertices, faces)
+        (vertices, faces, table)
     """
     try:
         with open(path, 'r') as file:
@@ -24,6 +25,7 @@ def read_off(path):
             num_vertices = int(num_vertices)
             vertices = []
             faces = []
+            table = {}
             idx = 0
             indexing_vertices = True
             for line in lines[2:]:
@@ -31,6 +33,7 @@ def read_off(path):
                     continue
                 if indexing_vertices:
                     vertices.append(list(map(float, line.split()[:3])))
+                    table[np.asarray(vertices[idx]).tobytes()] = idx
                     idx += 1
                     if idx >= num_vertices:
                         indexing_vertices = False
@@ -39,7 +42,7 @@ def read_off(path):
                     size = int(size)
                     split_line = [int(x) for x in split_line[:size]]
                     faces.append(split_line)
-            return np.array(vertices, dtype=np.float64), np.array(faces, dtype=np.int32)
+            return np.array(vertices, dtype=np.float64), np.array(faces, dtype=np.int32),table
     except IOError:
         print('Error: Failed reading file:', path)
 
@@ -86,6 +89,7 @@ class Mesh:
         data = read_off(path)
         self.vertices = data[0]
         self.faces = data[1]
+        self.table = data[2]
         adj_set = set()
 
         for face in self.faces:
@@ -129,18 +133,22 @@ class Mesh:
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
+        #og = pv_mesh.center
+        #og[-1] -= pv_mesh.length / 3.
+        #projected = pv_mesh.project_points_to_plane(origin=og, normal=[1, 1, 1])
+        #plotter.add_mesh(projected)
         plotter.add_mesh(pv_mesh, style='wireframe')
         if show:
             plotter.show()
         return plotter
 
     def plot_vertices(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='', font_size=10,
-                      font_color = 'black'):
+                      font_color='black'):
         """
             plots the vertices of the Mesh
 
             Args:
-                f: map between (x,y,z) to scalar for the color map
+                f: map between (x,y,z) of vertex to scalar for the color map
                 index_row: chosen subplot row
                 index_col: chosen subplot column
                 show: should the function call imshow()
@@ -164,12 +172,12 @@ class Mesh:
         return plotter
 
     def plot_faces(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='', font_size=10,
-                   font_color = 'black'):
+                   font_color='black'):
         """
              plots the faces of the Mesh
 
              Args:
-                  f: map between (x,y,z) to scalar for the color map
+                  f: map between (x,y,z) of vertex to scalar for the color map
                   index_row: chosen subplot row
                   index_col: chosen subplot column
                   show: should the function call imshow()
@@ -192,6 +200,35 @@ class Mesh:
         if show:
             plotter.show()
         return plotter
+
+    # ----------------------------Advanced Visualizer----------------------------#
+
+    def connected_component(self, plot=False, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
+                            font_size=10, font_color='black'):
+        """
+             plots the faces of the Mesh
+
+             Args:
+                  plot: does the algorithm need to plot to plotter (will be more efficient with plot=false)
+                  index_row: chosen subplot row
+                  index_col: chosen subplot column
+                  show: should the function call imshow()
+                  plotter: the pyvista plotter
+                  cmap: the color map to use
+                  title: the title of the figure
+                  font_size: the font size of the title
+                  font_color: the color of the font for the title
+
+             Returns:
+                 (number of connected components, label for each vertex):(int, np.array)
+        """
+        cc_num, labels = connected_components(csgraph=self.adj, directed=False, return_labels=True)
+        if not plot:
+            return cc_num, labels
+        self.plot_faces(f=lambda a: labels[self.table[a.tobytes()]], index_row=index_row, index_col=index_col, show=show,
+                        plotter=plotter, cmap=cmap, title=title, font_size=font_size, font_color=font_color)
+        return cc_num, labels
+
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):
