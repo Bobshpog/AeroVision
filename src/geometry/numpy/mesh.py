@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 import pyvista as pv
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, coo_matrix
 from scipy.sparse.csgraph import connected_components
 from sklearn.decomposition import PCA
 
@@ -43,7 +43,7 @@ def read_off(path):
                     size = int(size)
                     split_line = [int(x) for x in split_line[:size]]
                     faces.append(split_line)
-            return np.array(vertices, dtype=np.float64), np.array(faces, dtype=np.int32),table
+            return np.array(vertices, dtype=np.float64), np.array(faces, dtype=np.int32), table
     except IOError:
         print('Error: Failed reading file:', path)
 
@@ -112,7 +112,7 @@ class Mesh:
     # ----------------------------Basic Visualizer----------------------------#
 
     def plot_wireframe(self, index_row=0, index_col=0, show=True, plotter=None, title='', font_size=10,
-                       font_color = 'black'):
+                       font_color='black'):
         """
        plots the wireframe of the Mesh
 
@@ -134,10 +134,10 @@ class Mesh:
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
-        #og = pv_mesh.center
-        #og[-1] -= pv_mesh.length / 3.
-        #projected = pv_mesh.project_points_to_plane(origin=og, normal=[1, 1, 1])
-        #plotter.add_mesh(projected)
+        # og = pv_mesh.center
+        # og[-1] -= pv_mesh.length / 3.
+        # projected = pv_mesh.project_points_to_plane(origin=og, normal=[1, 1, 1])
+        # plotter.add_mesh(projected)
         plotter.add_mesh(pv_mesh, style='wireframe')
         if show:
             plotter.show()
@@ -226,7 +226,8 @@ class Mesh:
         cc_num, labels = connected_components(csgraph=self.adj, directed=False, return_labels=True)
         if not plot:
             return cc_num, labels
-        self.plot_faces(f=lambda a: labels[self.table[a.tobytes()]], index_row=index_row, index_col=index_col, show=show,
+        self.plot_faces(f=lambda a: labels[self.table[a.tobytes()]], index_row=index_row, index_col=index_col,
+                        show=show,
                         plotter=plotter, cmap=cmap, title=title, font_size=font_size, font_color=font_color)
         return cc_num, labels
 
@@ -416,15 +417,27 @@ class Mesh:
             vertex_normal = np.sum(face_norms * areas[:, np.newaxis], axis=0)
             return vertex_normal / np.linalg.norm(vertex_normal) if norm else vertex_normal
         else:
-            areas_dict = self.get_face_areas()
-            face_norms_dict = self.get_face_normals(norm=True)
-            areas_data = [areas_dict[item] for i, row in self.corners.items() for j, item in enumerate(row) for _ in
-                          range(3)]
-            rows = [3 * i + k for i, row in self.corners.items() for _ in row for k in range(3)]
-            cols = [j for i, row in self.corners.items() for j, item in enumerate(row) for _ in range(3)]
-            areas = csr_matrix((areas_data, (rows, cols)))
-            face_norms_data = [k for i, row in self.corners.items() for j, item in enumerate(row) for k in
-                               face_norms_dict[item]]
-            face_norms = csr_matrix((face_norms_data, (rows, cols)))
-            vertex_normals = np.array((face_norms.multiply(areas)).sum(axis=1).reshape(-1, 3))
-            return vertex_normals / np.linalg.norm(vertex_normals, axis=1, keepdims=True) if norm else vertex_normals
+            fn = self.get_face_normals(norm=False)
+            matrix = self._get_vertex_face_adjacency()
+            vertex_normal = matrix.dot(fn)
+            return vertex_normal / np.linalg.norm(vertex_normal) if norm else vertex_normal
+
+    def _get_vertex_face_adjacency(self, data=None):
+        """
+        Return a sparse matrix for which vertices are contained in which faces.
+        A data vector can be passed which is then used instead of booleans
+        """
+        # Input checks:
+        nv = self.vertices.shape[0]
+        f = self.faces  # Convert to an ndarray or pass if already is one
+
+        # Computation
+        row = f.reshape(-1)  # Flatten indices
+        col = np.tile(np.arange(len(f)).reshape((-1, 1)), (1, f.shape[1])).reshape(-1)  # Data for vertices
+        shape = (nv, len(f))
+
+        if data is None:
+            data = np.ones(len(col), dtype=np.bool)
+
+        # assemble into sparse matrix
+        return coo_matrix((data, (row, col)), shape=shape, dtype=data.dtype)
