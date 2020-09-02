@@ -143,7 +143,8 @@ class Mesh:
             plotter.show()
         return plotter
 
-    def plot_vertices(self, f=lambda a: 0, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='', font_size=10,
+    def plot_vertices(self, f=lambda a: 0, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
+                      font_size=10,
                       font_color='black'):
         """
             plots the vertices of the Mesh
@@ -234,7 +235,7 @@ class Mesh:
     def main_cords(self, num_of_cords=3, scale=100, plot=False, index_row=0, index_col=0,
                    show=True, plotter=None, title='', font_size=10, font_color='black'):
         """
-             returning the cords in which there are most varience
+             returning the cords in which there are most variance
 
              Args:
                   num_of_cords: number of coordinates needed, maximum 3
@@ -269,8 +270,6 @@ class Mesh:
         if show:
             plotter.show()
         return pca.components_ * scale
-
-
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):

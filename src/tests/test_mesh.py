@@ -4,8 +4,6 @@ import unittest
 
 from src.geometry.numpy.mesh import *
 from src.util.timing import profile
-from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
 
 
 class TestMesh(unittest.TestCase):
@@ -13,7 +11,6 @@ class TestMesh(unittest.TestCase):
         self.off_files = glob.glob('data/example_off_files/*.off')
         self.mesh = Mesh('data/opto_wing.off')
         self.off_files = {'data/opto_wing.off'}
-
 
     @profile
     def test_get_vertex_valence(self):
@@ -103,7 +100,7 @@ class TestMesh(unittest.TestCase):
             plotter.add_mesh(mesh=pv.Sphere(center=mean, radius=size_of_black_sphere * max_dist), color='black')
 
             mesh.connected_component(plot=True, index_row=2, index_col=1, show=False, plotter=plotter,
-                                     title="CC", cmap=['red','green','blue'])
+                                     title="CC", cmap=['red', 'green', 'blue'])
             mesh.main_cords(plot=True, show=False, plotter=plotter, index_row=2, index_col=2,
                             title="cords", font_color="white")
             plotter.show(title=file)
