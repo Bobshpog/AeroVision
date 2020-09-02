@@ -10,6 +10,8 @@ class TestMesh(unittest.TestCase):
     def setUp(self):
         self.off_files = glob.glob('data/example_off_files/*.off')
         self.mesh = Mesh('data/example_off_files/cat.off')
+        self.off_files = {'data/opto_wing.off'}
+
 
     @profile
     def test_get_vertex_valence(self):
@@ -85,17 +87,11 @@ class TestMesh(unittest.TestCase):
             plotter.add_arrows(faces_barycenter, normals)
 
             #  creating (x,y,z) -> id dict
-            table = {}
-
-            for i, cord in enumerate(mesh.vertices):
-                table[cord.tobytes()] = i
-
             mean = mesh.vertices.mean(axis=0)
 
-            mesh.plot_vertices(f=lambda a: mesh.get_vertex_valence(table[a.tobytes()]),
+            mesh.plot_vertices(f=lambda a: mesh.get_vertex_valence(mesh.table[a.tobytes()]),
                                index_row=1, index_col=2, show=False, plotter=plotter,
                                title='valance figure')
-
             plotter.subplot(2, 0)
             max_dist = np.apply_along_axis(lambda a: np.linalg.norm(a - mean), 1, mesh.vertices).max()
             mesh.plot_vertices(f=lambda a: np.linalg.norm(a - mean),
@@ -103,7 +99,14 @@ class TestMesh(unittest.TestCase):
                                index_row=2, index_col=0, show=False, plotter=plotter,
                                title="distance from mean")
             plotter.add_mesh(mesh=pv.Sphere(center=mean, radius=size_of_black_sphere * max_dist), color='black')
+
+            a, labels = mesh.connected_component(plot=True, index_row=2, index_col=1, show=False, plotter=plotter,
+                                                 title="CC", cmap=['red','green','blue'])
+
+            mesh.plot_faces(f=lambda b: labels[mesh.table[b.tobytes()]] == 1, index_row=2, index_col=2,
+                            show=False, plotter=plotter, title="green only")
             plotter.show(title=file)
+
 
 
 if __name__ == '__main__':
