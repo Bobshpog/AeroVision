@@ -4,6 +4,7 @@ import numpy as np
 import pyvista as pv
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components
+from sklearn.decomposition import PCA
 
 
 def read_off(path):
@@ -142,7 +143,7 @@ class Mesh:
             plotter.show()
         return plotter
 
-    def plot_vertices(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='', font_size=10,
+    def plot_vertices(self, f=lambda a: 0, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='', font_size=10,
                       font_color='black'):
         """
             plots the vertices of the Mesh
@@ -171,8 +172,8 @@ class Mesh:
             plotter.show()
         return plotter
 
-    def plot_faces(self, f, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='', font_size=10,
-                   font_color='black'):
+    def plot_faces(self, f=lambda a: 0, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
+                   font_size=10, font_color='black'):
         """
              plots the faces of the Mesh
 
@@ -206,7 +207,7 @@ class Mesh:
     def connected_component(self, plot=False, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
                             font_size=10, font_color='black'):
         """
-             plots the faces of the Mesh
+             giving the connected components of the mesh
 
              Args:
                   plot: does the algorithm need to plot to plotter (will be more efficient with plot=false)
@@ -228,6 +229,46 @@ class Mesh:
         self.plot_faces(f=lambda a: labels[self.table[a.tobytes()]], index_row=index_row, index_col=index_col, show=show,
                         plotter=plotter, cmap=cmap, title=title, font_size=font_size, font_color=font_color)
         return cc_num, labels
+
+    def main_cords(self, num_of_cords=3, scale=100, plot=False, index_row=0, index_col=0,
+                   show=True, plotter=None, title='', font_size=10, font_color='black'):
+        """
+             returning the cords in which there are most varience
+
+             Args:
+                  num_of_cords: number of coordinates needed, maximum 3
+                  scale: the scale which we would scale the cord vectors
+                  plot: does the algorithm need to plot to plotter (will be more efficient with plot=false)
+                  index_row: chosen subplot row
+                  index_col: chosen subplot column
+                  show: should the function call imshow()
+                  plotter: the pyvista plotter
+                  title: the title of the figure
+                  font_size: the font size of the title
+                  font_color: the color of the font for the title
+
+             Returns:
+                 the main cords of the mash, if plot then red is the main one, green is the second and blue is the third
+        """
+        pca = PCA(n_components=num_of_cords)
+        pca.fit(self.vertices)
+        if not plot:
+            return pca.components_ * scale
+        mean = self.vertices.mean(axis=0)
+        if not plotter:
+            plotter = pv.Plotter()
+        self.plot_faces(show=False, plotter=plotter, cmap=['black'], index_col=index_col, index_row=index_row)
+        plotter.subplot(index_column=index_col, index_row=index_row)
+        plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
+        plotter.add_arrows(mean, scale * pca.components_[0], color='red')
+        if num_of_cords > 1:
+            plotter.add_arrows(mean, scale * pca.components_[1], color='green')
+        if num_of_cords > 2:
+            plotter.add_arrows(mean, scale * pca.components_[2], color='blue')
+        if show:
+            plotter.show()
+        return pca.components_ * scale
+
 
 
     # ----------------------------Basic Properties----------------------------#

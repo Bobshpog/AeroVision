@@ -4,12 +4,14 @@ import unittest
 
 from src.geometry.numpy.mesh import *
 from src.util.timing import profile
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 
 class TestMesh(unittest.TestCase):
     def setUp(self):
         self.off_files = glob.glob('data/example_off_files/*.off')
-        self.mesh = Mesh('data/example_off_files/cat.off')
+        self.mesh = Mesh('data/opto_wing.off')
         self.off_files = {'data/opto_wing.off'}
 
 
@@ -70,8 +72,8 @@ class TestMesh(unittest.TestCase):
             size_of_black_sphere = 0.05
 
             plotter = pv.Plotter(shape=(3, 3))
-            mesh.plot_vertices(f=lambda a: 0, index_row=0, index_col=0, show=False, plotter=plotter, title="vertices")
-            mesh.plot_faces(f=lambda a: 0, index_row=0, index_col=1, show=False, plotter=plotter, title="faces")
+            mesh.plot_vertices(index_row=0, index_col=0, show=False, plotter=plotter, title="vertices")
+            mesh.plot_faces(index_row=0, index_col=1, show=False, plotter=plotter, title="faces")
             mesh.plot_wireframe(index_row=0, index_col=2, show=False, plotter=plotter, title="wireframe")
 
             faces_barycenter = mesh.get_face_barycenters()
@@ -100,13 +102,11 @@ class TestMesh(unittest.TestCase):
                                title="distance from mean")
             plotter.add_mesh(mesh=pv.Sphere(center=mean, radius=size_of_black_sphere * max_dist), color='black')
 
-            a, labels = mesh.connected_component(plot=True, index_row=2, index_col=1, show=False, plotter=plotter,
-                                                 title="CC", cmap=['red','green','blue'])
-
-            mesh.plot_faces(f=lambda b: labels[mesh.table[b.tobytes()]] == 1, index_row=2, index_col=2,
-                            show=False, plotter=plotter, title="green only")
+            mesh.connected_component(plot=True, index_row=2, index_col=1, show=False, plotter=plotter,
+                                     title="CC", cmap=['red','green','blue'])
+            mesh.main_cords(plot=True, show=False, plotter=plotter, index_row=2, index_col=2,
+                            title="cords", font_color="white")
             plotter.show(title=file)
-
 
 
 if __name__ == '__main__':
