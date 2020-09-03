@@ -269,7 +269,43 @@ class Mesh:
             plotter.show()
         return pca.components_ * scale
 
+    def plot_projection(self, normal=(1, 1, 1), index_row=0, index_col=0, show=True,
+                          plotter=None, title='', font_size=10, font_color='black'):
+        """
+       plots the projection of the Mesh
 
+       Args:
+           normal: the normal of the projected image
+           index_row: chosen subplot row
+           index_col: chosen subplot column
+           show: should the function call imshow()
+           plotter: the pyvista plotter
+           title: the title of the figure
+           font_size: the font size of the title
+           font_color: the color of the font for the title
+
+        Returns:
+            the pyvista plotter
+        """
+        if plotter is None:
+            plotter = pv.Plotter()
+        plotter.subplot(index_column=index_col, index_row=index_row)
+
+        plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
+        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
+        pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
+        plotter.set_viewup([0, 0, 0])
+        og = pv_mesh.center
+        print(og)
+
+        main_c = self.main_cords(plot=False)
+        pos = plotter.camera_position
+        projected = pv_mesh.project_points_to_plane(origin=og, normal=normal)
+        #print(plotter.camera_position)
+        plotter.add_mesh(projected)
+        if show:
+            plotter.show()
+        return plotter
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):
