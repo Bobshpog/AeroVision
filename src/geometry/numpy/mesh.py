@@ -258,7 +258,6 @@ class Mesh:
         mean = self.vertices.mean(axis=0)
         if not plotter:
             plotter = pv.Plotter()
-        self.plot_faces(show=False, plotter=plotter, cmap=['black'], index_col=index_col, index_row=index_row)
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
         plotter.add_arrows(mean, scale * pca.components_[0], color='red')
