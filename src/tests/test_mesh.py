@@ -103,7 +103,80 @@ class TestMesh(unittest.TestCase):
                                      title="CC", cmap=['red', 'green', 'blue'])
             mesh.main_cords(plot=True, show=False, plotter=plotter, index_row=2, index_col=2,
                             title="cords", font_color="white")
+            mesh.plot_faces(show=False, plotter=plotter, cmap=['black'], index_col=2, index_row=2)
             plotter.show(title=file)
+
+    def test_camera_angle(self):
+        plotter = pv.Plotter(shape=(3,3))
+        self.mesh.plot_faces(show=False, plotter=plotter, title="front view")
+        self.mesh.plot_faces(index_row=0, index_col=1, show=False, plotter=plotter, title="side view")
+        self.mesh.plot_faces(index_row=0, index_col=2, show=False, plotter=plotter, title="below view")
+        main_c = self.mesh.main_cords(plot=True, show=False, plotter=plotter, index_row=0, index_col=0)
+        mesh2 = Mesh("data/baseless_wing.off")
+        mesh2.plot_faces(index_row=1, index_col=0, show=False, plotter=plotter)
+        mesh2.plot_faces(index_row=1, index_col=1, show=False, plotter=plotter, title="baseless wing")
+        mesh2.plot_faces(index_row=1, index_col=2, show=False, plotter=plotter)
+        self.mesh.plot_projection(index_row=2, index_col=0, show=False, plotter=plotter, normal=-main_c[2])
+        self.mesh.plot_projection(index_row=2, index_col=1, show=False, plotter=plotter, normal=-main_c[1])
+        self.mesh.plot_projection(index_row=2, index_col=2, show=False, plotter=plotter, normal=-main_c[0])
+
+        # front view: pos: (122, 1063, -673) focus: (151.5, 60.5, 321.5) viewup: (0, 0,7, 0,7)
+        # side view: pos:(2044,75,512) focus: (151.5, 60.5, 321.5) viewup:(-0.1,0.05,1)
+        # below view: pos:(136,92,-860) focus: (151.5, 60.5, 321.5) viewup:(0,0,0)
+
+        # for 2D angle (not the same angle as 3D..):
+        # front view: pos: (340, 1411, 400) focus: (151.5, 60.5, 321.5) viewup: (0.1, 0.5, 1)
+        # side view: pos:(1540, -64, 235) focus: (151.5, 60.5, 321.5) viewup:(0.1,1, 0)
+        # below view: pos:(132, -11, 941) focus: (151.5, 60.5, 321.5) viewup:(0, -1, -0.1)
+
+
+        plotter.subplot(0, 0)
+        plotter.set_position([122, 1063, -673])
+        plotter.set_focus([151.5, 60.5, 321.5])
+        plotter.set_viewup([0, 0.7, 0.7])
+        plotter.subplot(0, 1)
+        plotter.set_position([2044, 75, 512])
+        plotter.set_focus([151.5, 60.5, 321.5])
+        plotter.set_viewup([0, 0, 0])
+        plotter.subplot(0, 2)
+        plotter.set_position([136, 92, -331])
+        plotter.set_focus([151.5, 60.5, 321.5])
+        plotter.set_viewup([0, 0, 0])
+
+        plotter.subplot(1, 0)
+        plotter.set_position([122, 1063, -673])
+        plotter.set_focus([151.5, 60.5, 321.5])
+        plotter.set_viewup([0, 0.7, 0.7])
+
+        plotter.subplot(1, 1)
+        plotter.set_position([2044, 75, 512])
+        plotter.set_focus([151.5, 60.5, 321.5])
+        plotter.set_viewup([0, 0, 0])
+
+        plotter.subplot(1, 2)
+        plotter.set_position([136, 92, -331])
+        plotter.set_focus([151.5, 60.5, 321.5])
+        plotter.set_viewup([0, 0, 0])
+
+        plotter.subplot(2, 0)
+        plotter.set_position([340, 1411, 400])
+        plotter.set_focus([151.5, 60.5, 321.5])
+        plotter.set_viewup([0.1, 0.5, 1])
+
+        plotter.subplot(2, 1)
+        plotter.set_position([1540, -64, 235])
+        plotter.set_focus([151.5, 60.5, 321.5])
+        plotter.set_viewup([0.1,1, 0])
+
+        plotter.subplot(2, 2)
+        plotter.set_position([132, -11, 941])
+        plotter.set_focus([151.5, 60.5, 321.5])
+        plotter.set_viewup([0, -1, -0.1])
+
+        plotter.subplot(2, 0)
+        plotter.show()
+        print(plotter.camera_position)
+        pass
 
 
 if __name__ == '__main__':
