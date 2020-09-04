@@ -1,16 +1,24 @@
+import enum
 import logging
 import os
 import subprocess
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
-import pause as pause
+import pause
 
 logger = logging.getLogger(__name__)
 
 
+class Devices(enum.Enum):
+    cam = 0
+    imu = 1
+
+
 class Const:
     device_name = 'cam0'
+    device_type = Devices.cam
+    record_func_dict = {}  # initialized in main
     broker = "localhost"  # "server" ip
     root_folder = os.path.expanduser('~/cam_script/')
     data_folder = root_folder + 'data/'
@@ -19,11 +27,12 @@ class Const:
     port = 1883
     timeout = 300
     sub_topics = ["broadcast/instructions", device_name + "/instructions"]
-    pub_topic = device_name + "/feedback"
+    pub_messages = device_name + "/feedback"
+    pub_data = device_name + "/data"
     delim = '||'
 
 
-def take_video(length):
+def record_camera(length):
     """
     This functions records a length long video and saves it
 
@@ -42,6 +51,20 @@ def take_video(length):
     return start_time, filename
 
 
+def record_imu(length):
+    """
+       This functions records a length imu measurement and saves it
+
+       Args:
+           length: The length of the measurement in seconds
+       Returns:
+           start_time: datetime object of the record start
+           filename: location of saved file
+       """
+    # TODO: write function
+    return None, None
+
+
 def on_connect(client, userdata, flags, rc):
     """
     Runs when connection to broker is established
@@ -58,7 +81,7 @@ def on_message(client, userdata, msg):
     "PING": publishes a reply with device ip and system time
     "RECORD <time in seconds since epoch> <video length>":
         Begins a recording at provided time and publishes
-        "Video started at <start_time>, Saved at <filename>"
+        "Record started at <start_time>, Saved at <filename>"
     "SAMPLE": Publishes a data sample
     "SHUTDOWN": Publishes "Shutting Down..." and Shuts down gracefully
     """
@@ -68,22 +91,26 @@ def on_message(client, userdata, msg):
     if message == "PING":
         ip = subprocess.check_output(["hostname", "-I"]).decode("utf-8")[:-2]
         reply = ip + Const.delim + datetime.now().strftime(Const.time_format)
+
     elif message[:6] == "RECORD":
+        record_fun = Const.record_func_dict[Const.device_type]
         start_recording, length = message[7:].split(' ')
         start_recording, length = float(start_recording), int(length)
         pause.until(start_recording)
-        start_time, filename = take_video(length)
+        start_time, filename = record_fun(length)
         start_time = str(start_time)
-        reply = f"Video started at {start_time}, Saved at {filename}"
+        reply = f"Record started at {start_time}, Saved at {filename}"
+
     elif message == "SAMPLE":
         pass
     # TODO create sample image/imu data and send it
+
     elif message == "SHUTDOWN":
-        client.publish(Const.pub_topic, "Shutting Down...")
+        client.publish(Const.pub_messages, "Shutting Down...")
         client.disconnect()
     else:
         logger.error(f"Unknown command: {message}")
-    client.publish(Const.pub_topic, reply)
+    client.publish(Const.pub_messages, reply)
     logger.info("Sent Message: \"" + reply + "\"")
 
 
@@ -109,6 +136,7 @@ def main():
     sync_clocks()
     init_folder_struct()
     init_logger()
+    Const.record_func_dict = {Devices.cam: record_camera, Devices.imu: record_imu}
     client = mqtt.Client(Const.device_name)
     client.on_connect = on_connect
     client.on_message = on_message
