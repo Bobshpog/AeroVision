@@ -30,6 +30,12 @@ class Const:
 
 
 def take_video():
+    """
+    This functions records a Const.video_length long video, saves it
+    Returns:
+    start_time: datetime object of the record start
+    filename: location of saved file
+    """
     # TODO fix function with actual cam api
     start_time = datetime.now()
     filename = Const.data_folder + Const.device_name + '::' + start_time.strftime(Const.time_format) + '.mp4'
@@ -40,6 +46,9 @@ def take_video():
 
 
 def on_connect(client, userdata, flags, rc):
+    """
+    Runs when connection to broker is established
+    """
     logger.info("Connected with result code " + str(rc))
     for i in Const.sub_topics:
         client.subscribe(i)
@@ -47,6 +56,14 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
+    """
+    runs when message is received, supported messages are:
+    "PING": publishes a reply with device ip
+    "RECORD <time in seconds since epoch>": Begins a recording at provided time and publishes
+                                             "Video started at <start_time>, Saved at <filename>"
+    "SAMPLE": Publishes a data sample
+    "SHUTDOWN": Shuts down gracefully
+    """
     message = str(msg.payload)
     logger.info(f"Received message: {message} from {msg.topic}")
     if message == "PING":
@@ -82,12 +99,9 @@ def init_logger():
 
 
 def init_folder_struct():
-    for dir in Const.folders:
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-
-    if not os.path.exists(Const.root_folder):
-        os.makedirs(Const.root_folder)
+    for folder in Const.folders:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
 
 
 def main():
