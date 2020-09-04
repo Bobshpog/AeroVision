@@ -11,16 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 class Const:
+    device_name = 'cam0'
+    broker = "192.168.0.1"  # "server" ip
     root_folder = os.path.expanduser('~/cam_script/')
     data_folder = root_folder + 'data/'
     folders = [root_folder, data_folder]
-    device_name = 'cam0'
     time_format = "%Y_%m_%d_%H_%M_%S_%f"  # <Year>_<Month>_<Day>_<Hour>_<Minute>_<Sec>_<MilliSec>
-    broker = "192.168.0.1"  # "server" ip
     port = 1883
     timeout = 300
-    sub_topics = []  # TODO
-    pub_topic = ""  # TODO
+    sub_topics = ["broadcast/instructions", device_name + "/instructions"]
+    pub_topic = device_name + "/feedback"
 
 
 def take_video(length):
