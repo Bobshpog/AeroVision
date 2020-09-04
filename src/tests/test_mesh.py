@@ -8,7 +8,7 @@ from src.util.timing import profile
 
 class TestMesh(unittest.TestCase):
     def setUp(self):
-        #self.off_files = glob.glob('data/example_off_files/*.off')
+        self.off_files = glob.glob('data/example_off_files/*.off')
         self.mesh = Mesh('data/opto_wing.off')
         self.off_files = {'data/opto_wing.off'}
 
@@ -177,6 +177,7 @@ class TestMesh(unittest.TestCase):
         plotter.show()
         print(plotter.camera_position)
         pass
+
 
 if __name__ == '__main__':
     unittest.main()
