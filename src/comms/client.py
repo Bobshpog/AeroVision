@@ -1,8 +1,3 @@
-# Status/ device working?
-# Begin recording @time for x seconds
-# Sync clocks
-# Stop recording
-# Shutdown
 import logging
 import os
 import subprocess
@@ -16,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class Const:
-    video_length = 20  # sec
     root_folder = os.path.expanduser('~/cam_script/')
     data_folder = root_folder + 'data/'
     folders = [root_folder, data_folder]
@@ -29,12 +23,15 @@ class Const:
     pub_topic = ""  # TODO
 
 
-def take_video():
+def take_video(length):
     """
-    This functions records a Const.video_length long video, saves it
+    This functions records a length long video and saves it
+
+    Args:
+        length: The length of the video in seconds
     Returns:
-    start_time: datetime object of the record start
-    filename: location of saved file
+        start_time: datetime object of the record start
+        filename: location of saved file
     """
     # TODO fix function with actual cam api
     start_time = datetime.now()
@@ -57,20 +54,23 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     """
-    runs when message is received, supported messages are:
+    Runs when message is received, supported messages are:
     "PING": publishes a reply with device ip
-    "RECORD <time in seconds since epoch>": Begins a recording at provided time and publishes
-                                             "Video started at <start_time>, Saved at <filename>"
+    "RECORD <time in seconds since epoch> <video length>":
+        Begins a recording at provided time and publishes
+        "Video started at <start_time>, Saved at <filename>"
     "SAMPLE": Publishes a data sample
-    "SHUTDOWN": Shuts down gracefully
+    "SHUTDOWN": Publishes "Shutting Down" and Shuts down gracefully
     """
     message = str(msg.payload)
     logger.info(f"Received message: {message} from {msg.topic}")
+    reply = "Unknown command"
     if message == "PING":
         ip = subprocess.check_output(["hostname", "-I"]).decode("utf-8")[:-2]
         reply = ip
     elif message[:6] == "RECORD":
-        start_recording = float(message[7:])
+        start_recording, length = message[7:].split(' ')
+        start_recording, length = float(start_recording), int(length)
         pause.until(start_recording)
         start_time, filename = take_video()
         start_time = str(start_time)
@@ -84,7 +84,6 @@ def on_message(client, userdata, msg):
         client.loop_stop()
         pass  # TODO:send ACK,close connections and end script
     else:
-        reply = "Unknown command"
         logger.error(f"Unknown command: {message}")
     client.publish(Const.pub_topic, reply)
     logger.info("Sent Message" + reply)
@@ -104,7 +103,12 @@ def init_folder_struct():
             os.makedirs(folder)
 
 
+def sync_clocks():
+    pass  # TODO
+
+
 def main():
+    sync_clocks()
     init_folder_struct()
     init_logger()
     client = mqtt.Client(Const.device_name)
