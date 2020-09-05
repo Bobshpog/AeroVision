@@ -1,6 +1,7 @@
 import glob
 import os
 import unittest
+import trimesh
 
 from src.geometry.numpy.mesh import *
 from src.util.timing import profile
@@ -9,8 +10,8 @@ from src.util.timing import profile
 class TestMesh(unittest.TestCase):
     def setUp(self):
         #self.off_files = glob.glob('data/example_off_files/*.off')
-        self.mesh = Mesh('data/opto_wing.off')
-        self.off_files = {'data/opto_wing.off'}
+        self.mesh = Mesh('data/wing_off_files/fem_wing_with_faces.off')
+        self.off_files = {'data/wing_off_files/opto_wing.off'}
 
     @profile
     def test_get_vertex_valence(self):
@@ -64,7 +65,9 @@ class TestMesh(unittest.TestCase):
                 path:  path for the .off file
         """
         for file in self.off_files:
+
             mesh = Mesh(file)
+
             # hyper parameter that decide the rate between the longest distance to the sphere to the size of the sphere
             size_of_black_sphere = 0.05
 
@@ -85,25 +88,24 @@ class TestMesh(unittest.TestCase):
             normals = mesh.get_face_normals(norm=True)
             plotter.add_arrows(faces_barycenter, normals)
 
-            #  creating (x,y,z) -> id dict
-            mean = mesh.vertices.mean(axis=0)
-
-            mesh.plot_vertices(f=lambda a: mesh.get_vertex_valence(mesh.table[a.tobytes()]),
+            mesh.plot_vertices(f=mesh.get_vertex_valence(),
                                index_row=1, index_col=2, show=False, plotter=plotter,
                                title='valance figure')
             plotter.subplot(2, 0)
-            max_dist = np.apply_along_axis(lambda a: np.linalg.norm(a - mean), 1, mesh.vertices).max()
-            mesh.plot_vertices(f=lambda a: np.linalg.norm(a - mean),
-                               #  L2 distance between the mean and the point
-                               index_row=2, index_col=0, show=False, plotter=plotter,
+            mean = mesh.vertices.mean(axis=0)
+            distance = np.linalg.norm(mesh.vertices - mean, axis=1)
+            # L2 distance between the mean and the point
+            max_dist = distance.max()
+            mesh.plot_vertices(f=distance, index_row=2, index_col=0, show=False, plotter=plotter,
                                title="distance from mean")
             plotter.add_mesh(mesh=pv.Sphere(center=mean, radius=size_of_black_sphere * max_dist), color='black')
 
             mesh.connected_component(plot=True, index_row=2, index_col=1, show=False, plotter=plotter,
                                      title="CC", cmap=['red', 'green', 'blue'])
             mesh.main_cords(plot=True, show=False, plotter=plotter, index_row=2, index_col=2,
-                            title="cords", font_color="white")
-            mesh.plot_faces(show=False, plotter=plotter, cmap=['black'], index_col=2, index_row=2)
+                            title="cords", font_color="white", scale=0.1)
+            mesh.plot_faces(f=np.ones(mesh.vertices.shape[0]),
+                            show=False, plotter=plotter, cmap=['black'], index_col=2, index_row=2)
             plotter.show(title=file)
 
     def test_camera_angle(self):
@@ -128,7 +130,6 @@ class TestMesh(unittest.TestCase):
         # front view: pos: (340, 1411, 400) focus: (151.5, 60.5, 321.5) viewup: (0.1, 0.5, 1)
         # side view: pos:(1540, -64, 235) focus: (151.5, 60.5, 321.5) viewup:(0.1,1, 0)
         # below view: pos:(132, -11, 941) focus: (151.5, 60.5, 321.5) viewup:(0, -1, -0.1)
-
 
         plotter.subplot(0, 0)
         plotter.set_position([122, 1063, -673])
@@ -176,9 +177,15 @@ class TestMesh(unittest.TestCase):
         plotter.subplot(2, 0)
         plotter.show()
         print(plotter.camera_position)
+
+    def test_Texture(self):
+        plotter = pv.Plotter(shape=(1, 2))
+        self.mesh.plot_faces(texture="data/textures/checkers.png", show=False, plotter=plotter, index_row=0,
+                             index_col=1, title="FEM")
+        mesh2 = Mesh("data/wing_off_files/convex_hull.off")
+        mesh2.plot_faces(texture="data/textures/checkers.png", show=False, plotter=plotter, index_row=0,index_col=0,
+                         title="CAD's convex hull")
+        plotter.show()
         pass
-
-
-
 if __name__ == '__main__':
     unittest.main()

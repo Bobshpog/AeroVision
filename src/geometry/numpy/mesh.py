@@ -143,7 +143,7 @@ class Mesh:
             plotter.show()
         return plotter
 
-    def plot_vertices(self, f=lambda a: 0, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
+    def plot_vertices(self, f=None, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
                       font_size=10,
                       font_color='black'):
         """
@@ -168,13 +168,13 @@ class Mesh:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
-        plotter.add_mesh(self.vertices, scalars=np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
+        plotter.add_mesh(self.vertices, scalars=f, cmap=cmap)
         if show:
             plotter.show()
         return plotter
 
-    def plot_faces(self, f=lambda a: 0, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
-                   font_size=10, font_color='black'):
+    def plot_faces(self, f=None, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
+                   font_size=10, font_color='black', texture=None):
         """
              plots the faces of the Mesh
 
@@ -188,6 +188,7 @@ class Mesh:
                   title: the title of the figure
                   font_size: the font size of the title
                   font_color: the color of the font for the title
+                  texture: the filename for the texture of the figure
 
              Returns:
                  the pyvista plotter
@@ -198,7 +199,12 @@ class Mesh:
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
-        plotter.add_mesh(pv_mesh, scalars=np.apply_along_axis(f, 1, self.vertices), cmap=cmap)
+        if texture is None:
+            plotter.add_mesh(pv_mesh, scalars=f, cmap=cmap, texture=texture)
+        else:
+            tex = pv.read_texture("data/textures/checkers.png")
+            pv_mesh.texture_map_to_plane(inplace=True)
+            plotter.add_mesh(pv_mesh, texture=tex)
         if show:
             plotter.show()
         return plotter
@@ -227,7 +233,8 @@ class Mesh:
         cc_num, labels = connected_components(csgraph=self.adj, directed=False, return_labels=True)
         if not plot:
             return cc_num, labels
-        self.plot_faces(f=lambda a: labels[self.table[a.tobytes()]], index_row=index_row, index_col=index_col,
+        # f=lambda a: labels[self.table[a.tobytes()]]
+        self.plot_faces(f=labels, index_row=index_row, index_col=index_col,
                         show=show,
                         plotter=plotter, cmap=cmap, title=title, font_size=font_size, font_color=font_color)
         return cc_num, labels
