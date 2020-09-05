@@ -2,6 +2,7 @@ import enum
 import logging
 import os
 import subprocess
+import sys
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
@@ -16,20 +17,20 @@ class Devices(enum.Enum):
 
 
 class Const:
-    device_name = 'cam0'
+    device_name = 'cam0' # 4 letters
     device_type = Devices.cam
     record_func_dict = {}  # initialized in main
     broker = "localhost"  # "server" ip
+    port = 1883
+    timeout = 300
     root_folder = os.path.expanduser('~/cam_script/')
     data_folder = root_folder + 'data/'
     folders = [root_folder, data_folder]
     time_format = "%Y_%m_%d_%H_%M_%S_%f"  # <Year>_<Month>_<Day>_<Hour>_<Minute>_<Sec>_<MilliSec>
-    port = 1883
-    timeout = 300
     sub_topics = ["broadcast/instructions", device_name + "/instructions"]
     pub_messages = device_name + "/feedback"
     pub_data = device_name + "/data"
-    delim = '||'
+    delim = ' '
 
 
 def record_camera(length):
@@ -43,6 +44,7 @@ def record_camera(length):
         filename: location of saved file
     """
     # TODO fix function with actual cam api
+    # TODO make sure files are deleted at some point
     start_time = datetime.now()
     filename = Const.data_folder + Const.device_name + Const.delim + start_time.strftime(Const.time_format) + '.mp4'
     file = open(filename, "w")
@@ -81,16 +83,18 @@ def on_message(client, userdata, msg):
     "PING": publishes a reply with device ip and system time
     "RECORD <time in seconds since epoch> <video length>":
         Begins a recording at provided time and publishes
-        "Record started at <start_time>, Saved at <filename>"
+        "RECORD <start_time>" to feedback channel
+        and
+        "RECORD <image>" to data channel
     "SAMPLE": Publishes a data sample
-    "SHUTDOWN": Publishes "Shutting Down..." and Shuts down gracefully
+    "SHUTDOWN": Publishes "SHUTDOWN" and Shuts down gracefully
     """
     message = msg.payload.decode("utf-8")
     logger.info(f"Received message: {message} from {msg.topic}")
     reply = "Unknown command"
     if message == "PING":
         ip = subprocess.check_output(["hostname", "-I"]).decode("utf-8")[:-2]
-        reply = ip + Const.delim + datetime.now().strftime(Const.time_format)
+        reply = "PONG" + Const.delim + ip + Const.delim + datetime.now().strftime(Const.time_format)
 
     elif message[:6] == "RECORD":
         record_fun = Const.record_func_dict[Const.device_type]
@@ -99,14 +103,16 @@ def on_message(client, userdata, msg):
         pause.until(start_recording)
         start_time, filename = record_fun(length)
         start_time = str(start_time)
-        reply = f"Record started at {start_time}, Saved at {filename}"
+        reply = f"RECORD" + Const.delim + start_time
+        image_content=open(filename,"rb").read()
+        client.publish(Const.pub_data,bytes(image_content)) # works only for files of size <256MB
 
     elif message == "SAMPLE":
         pass
     # TODO create sample image/imu data and send it
 
     elif message == "SHUTDOWN":
-        client.publish(Const.pub_messages, "Shutting Down...")
+        client.publish(Const.pub_messages, "SHUTDOWN")
         client.disconnect()
     else:
         logger.error(f"Unknown command: {message}")
@@ -115,9 +121,12 @@ def on_message(client, userdata, msg):
 
 
 def init_logger():
-    handler = logging.FileHandler(Const.root_folder + Const.device_name + ".log")
-    logger.addHandler(handler)
-    handler.setFormatter(logging.Formatter('%(asctime)s|%(levelname)s|%(message)s'))
+    handler_file = logging.FileHandler(Const.root_folder + Const.device_name + ".log")
+    handler_stdout = logging.StreamHandler(sys.stdout)
+    logger.addHandler(handler_stdout)
+    logger.addHandler(handler_file)
+    handler_file.setFormatter(logging.Formatter(Const.device_name + '|%(asctime)s|%(levelname)s|%(message)s'))
+    handler_stdout.setFormatter(logging.Formatter(Const.device_name + '|%(asctime)s|%(levelname)s|%(message)s'))
     logger.setLevel(logging.INFO)
     logger.info("Starting...")
 
