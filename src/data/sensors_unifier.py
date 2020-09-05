@@ -5,10 +5,8 @@
 # IR - Supplies CSV (Example in Onedrive), module should support both 120hz and 240 hz and provide datetime of start
 # IMU - Supplies txt with 6 Dimensions of movement in txt format with timestamps  (Example in Onedrive)
 # Cameras - video named <mac>_<datetime of start>.mp4
-# Manifest - CSV called /data/manifest.csv
 # 
 # Folder structure:
-#                  /data/manifest.csv - mapping between mac addresses of pis and names
 #                  /data/<lab or wind tunnel>/vid_<datetime>/manifest_vid_<datetime>
 #                  /data/lab/vid_<datetime>/ir.csv
 #                  /data/lab/vid_<datetime>/cam<id>/cam<id>_<frame_num>.png
