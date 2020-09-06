@@ -30,6 +30,7 @@ class Const:
     sub_topics = ["broadcast/instructions", device_name + "/instructions"]
     pub_messages = device_name + "/feedback"
     pub_data = device_name + "/data"
+    pub_sample=device_name + "/sample"
     delim = ' '
 
 

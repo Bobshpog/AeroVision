@@ -11,6 +11,8 @@ import cmd
 import logging
 import os
 import sys
+import threading
+from datetime import datetime
 
 import paho.mqtt.client as mqtt
 
@@ -31,17 +33,50 @@ class Const:
     devices = ['cam' + str(i) for i in range(num_cam)] + \
               ['imu' + str(i) for i in range(num_imu)]
     broadcast = 'broadcast/instructions'
-    sub_topics = [i + '/feedback' for i in devices] + [i + '/data' for i in devices]
+    sub_topics = [i + '/feedback' for i in devices] + [i + '/data' for i in devices] + [i + '/sample' for i in devices]
     time_format = "%Y_%m_%d_%H_%M_%S_%f"  # <Year>_<Month>_<Day>_<Hour>_<Minute>_<Sec>_<MilliSec>
     delim = ' '
 
 
 class Interface(cmd.Cmd):
+    ip_map = {}  # currently unused
+    samples = {}
+    data = {}
+    start_times = {}
+    client = None
+    messages_left = 0
+
     def do_ping(self, dev):
-        pass
+        success = False
+
+        def ping(d):
+            if d not in Const.devices:
+                logger.info("Bad device name")
+                return
+            self.ip_map.pop(d)
+            self.start_times.pop(d)
+            pub_topic = d + "/instructions"
+            self.client.publish(pub_topic, "PING")
+            logger.debug("SENT|" + d + "|PING")
+
+        if dev:
+            ping(dev)
+        else:
+            self.ip_map.clear()
+            self.start_times.clear()
+            threads = []
+            for d in Const.devices:
+                threads.append(threading.Thread(target=ping, args=(d,)))
+            self.messages_left = len(threads)
+            for t in threads:
+                t.start()
+            if (threading.Condition().wait_for(lambda: self.messages_left == 0, 10)):
+                logger.info("All Pings Successful")
+            else:
+                logger.info("Some Pings Failed")
 
     def do_record(self, dev):
-        #sets client.start_time
+        # sets client.start_time
         pass
 
     def do_sample(self, dev):
@@ -59,10 +94,11 @@ def init_logger():
     handler_file.setFormatter(logging.Formatter(Const.device_name + '|%(asctime)s|%(levelname)s|%(message)s'))
     handler_stdout.setFormatter(logging.Formatter(Const.device_name + '|%(asctime)s|%(levelname)s|%(message)s'))
     logger.setLevel(logging.INFO)
+    handler_file.setLevel(logging.DEBUG)
     logger.info("Starting...")
 
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, interface, flags, rc):
     """
     Runs when connection to broker is established
     """
@@ -72,7 +108,7 @@ def on_connect(client, userdata, flags, rc):
         logger.info("Successfully subscribed to " + i)
 
 
-def on_message(client, userdata, msg):
+def on_message(client, interface, msg):
     """
     Runs when message is received, supported messages are:
     "PING": publishes a reply with device ip and system time
@@ -80,26 +116,38 @@ def on_message(client, userdata, msg):
         Begins a recording at provided time and publishes
         "RECORD <start_time>" to feedback channel
         and
-        "RECORD <image>" to data channel
+        "<image>" to data channel
     "SAMPLE": Publishes a data sample
     "SHUTDOWN": Publishes "SHUTDOWN" and Shuts down gracefully
     """
-    message = msg.payload.decode("utf-8")# TODO remove this, odd behaviour for recieving data
-    logger.info(f"Received message: {message} from {msg.topic}")
-    reply = "Unknown command"
-    if message[:4] == "PONG":
-        pass
-    elif message[:6] == "RECORD":
-        pass # treats both data and feedback
+    message = msg.payload
+    msg_type = msg.topic.split("/")[-1]
+    sender = msg.topic.split("/")[0]
+    if msg_type == "feedback":
+        message = msg.decode("utf-8").split(Const.delim)
+        logger.debug(f"Received message: {message} from {msg.topic}")
+        reply = "Unknown command"
+        if message[0] == "PONG":
+            interface.ip_map[sender] = message[1]
+            interface.start_times[sender] = datetime.strptime(message[2], Const.time_format)
+            logger.info(sender + "|Connected|" + message[1] + "|" + str(interface.start_times[sender]))
+            interface.messages_left -= 1
+        elif message[0] == "RECORD":
+            pass  # treats both data and feedback
 
-    elif message == "SAMPLE":
-        pass
-    # TODO create sample image/imu data and send it
+        elif message[0] == "SAMPLE":
+            pass
+        # TODO create sample image/imu data and send it
 
-    elif message == "SHUTDOWN":
-        pass # print shutdown successful
-    else:
-        logger.error(f"Unknown command: {message}")
+        elif message[0] == "SHUTDOWN":
+            logger.info()
+            pass  # print shutdown successful
+        else:
+            logger.error(f"Unknown command: {message}")
+    if msg_type == "data":
+        pass
+    if msg_type == "sample":
+        pass
 
 
 def init_folder_struct():
@@ -111,12 +159,14 @@ def init_folder_struct():
 def main():
     init_folder_struct()
     init_logger()
-    client = mqtt.Client(Const.device_name)
+    interface = Interface()
+    client = mqtt.Client(Const.device_name, userdata=interface)
+    interface.client = client
     client.on_connect = on_connect
     client.on_message = on_message
     client.connect(Const.broker, Const.port, Const.timeout)
     client.loop_start()  # -non-blocking
-    Interface().cmdloop()
+    interface.cmdloop()
 
 
 if __name__ == "__main__":
