@@ -8,6 +8,8 @@ from datetime import datetime
 import paho.mqtt.client as mqtt
 import pause
 
+from src.data.lsm6 import LSM6
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,7 +19,7 @@ class Devices(enum.Enum):
 
 
 class Const:
-    device_name = 'cam0' # 4 letters
+    device_name = 'cam0'  # 4 letters
     device_type = Devices.cam
     record_func_dict = {}  # initialized in main
     broker = "localhost"  # "server" ip
@@ -30,7 +32,7 @@ class Const:
     sub_topics = ["broadcast/instructions", device_name + "/instructions"]
     pub_messages = device_name + "/feedback"
     pub_data = device_name + "/data"
-    pub_sample=device_name + "/sample"
+    pub_sample = device_name + "/sample"
     delim = ' '
 
 
@@ -64,8 +66,19 @@ def record_imu(length):
            start_time: datetime object of the record start
            filename: location of saved file
        """
-    # TODO: write function
-    return None, None
+    # TODO maybe better to initialize the connection before waiting for record start
+    with LSM6() as imu:
+        start_time = datetime.now()
+        filename = Const.data_folder + Const.device_name + Const.delim + start_time.strftime(Const.time_format) + '.txt'
+        with open(filename, "w") as file:
+            while (datetime.now() - start_time).seconds <= length:
+                begin_measure = datetime.now().strftime(Const.time_format)
+                gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z = imu.read_values()
+                end_measure = datetime.now().strftime(Const.time_format)
+                line = " ".join([begin_measure, end_measure, gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z])
+                file.write(line + "\n")
+
+    return start_time, filename
 
 
 def on_connect(client, userdata, flags, rc):
@@ -105,8 +118,8 @@ def on_message(client, userdata, msg):
         start_time, filename = record_fun(length)
         start_time = str(start_time)
         reply = f"RECORD" + Const.delim + start_time
-        image_content=open(filename,"rb").read()
-        client.publish(Const.pub_data,bytes(image_content)) # works only for files of size <256MB
+        image_content = open(filename, "rb").read()
+        client.publish(Const.pub_data, bytes(image_content))  # works only for files of size <256MB
 
     elif message == "SAMPLE":
         pass
