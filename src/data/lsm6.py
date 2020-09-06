@@ -100,7 +100,11 @@ class LSM6:
         value_list = self.bus.read_i2c_block_data(self.address, RegAddr['OUTX_L_G'],
                                                   RegAddr['OUTZ_H_XL'] - RegAddr['OUTX_L_G'])
         value_list = [(value_list[i], value_list[i + 1]) for i in range(0, len(value_list), 2)]
-        value_list = map(_calc_value, value_list)
+        value_list = list(map(_calc_value, value_list))
+        for i in range(3):
+            value_list[i] *= 4.375  # convert to MilliG
+        for i in range(3, 6):
+            value_list[i] *= 0.61  # convert to MilliDPS
         return tuple(value_list)
 
     def __enter__(self):
