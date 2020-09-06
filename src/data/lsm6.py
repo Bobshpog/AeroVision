@@ -66,7 +66,16 @@ class RegAddr(enum.Enum):
     MD2_CFG = 0x5F
 
 
+def _calc_value(data):
+    data = data[1] << 8 | data[0]  # TODO: unclear if data[0] and [1] are strings or int
+    return data - 65536 if data > 32768 else data
+
+
 class LSM6:
+    """
+    Usage is:
+            with LSM6() as imu:
+    """
     DS33_SA0_HIGH_ADDRESS = 0b1101011
     DS33_SA0_LOW_ADDRESS = 0b1101010
 
@@ -80,10 +89,6 @@ class LSM6:
         # Enable auto increment
         self.bus.write_byte_data(self.address, RegAddr['CTRL3_C'], 0x04)
 
-    def _calc_value(self, data):
-        data = data[1] << 8 | data[0]  # TODO: unclear if data[0] and [1] are strings or int
-        return data - 65536 if data > 32768 else data
-
     def read_values(self):
         """
         This function reads the IMUs measurements
@@ -95,7 +100,7 @@ class LSM6:
         value_list = self.bus.read_i2c_block_data(self.address, RegAddr['OUTX_L_G'],
                                                   RegAddr['OUTZ_H_XL'] - RegAddr['OUTX_L_G'])
         value_list = [(value_list[i], value_list[i + 1]) for i in range(0, len(value_list), 2)]
-        value_list = map(self._calc_value, value_list)
+        value_list = map(_calc_value, value_list)
         return tuple(value_list)
 
     def __enter__(self):

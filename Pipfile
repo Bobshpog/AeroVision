@@ -17,6 +17,7 @@ scikit-learn = "*"
 paho-mqtt = "*"
 pause = "*"
 trimesh = "*"
+smbus2 = "*"
 
 [requires]
 python_version = "3.8"
