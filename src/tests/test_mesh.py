@@ -180,7 +180,7 @@ class TestMesh(unittest.TestCase):
 
     def test_Texture(self):
         plotter = pv.Plotter()
-        mesh1 = Mesh("src/tests/temp/fem_tip_take3.off")
+        mesh1 = Mesh("data/wing_off_files/fem_tip.off")
         mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh2.plot_faces(plotter=plotter, show=False, texture="data/textures/checkers.png")
         mesh1.plot_faces(plotter=plotter, cmap=['white'], f=np.ones(mesh1.vertices.shape[0]))
