@@ -11,7 +11,7 @@ class TestMesh(unittest.TestCase):
     def setUp(self):
         #self.off_files = glob.glob('data/example_off_files/*.off')
         self.mesh = Mesh('data/wing_off_files/fem_wing_with_faces.off')
-        self.off_files = {'data/wing_off_files/opto_wing.off'}
+        self.off_files = {'src/tests/temp/fem_without_extra_points.off'}
 
     @profile
     def test_get_vertex_valence(self):
@@ -179,13 +179,27 @@ class TestMesh(unittest.TestCase):
         print(plotter.camera_position)
 
     def test_Texture(self):
-        plotter = pv.Plotter(shape=(1, 2))
-        self.mesh.plot_faces(texture="data/textures/checkers.png", show=False, plotter=plotter, index_row=0,
-                             index_col=1, title="FEM")
-        mesh2 = Mesh("data/wing_off_files/convex_hull.off")
-        mesh2.plot_faces(texture="data/textures/checkers.png", show=False, plotter=plotter, index_row=0,index_col=0,
-                         title="CAD's convex hull")
-        plotter.show()
-        pass
+        plotter = pv.Plotter()
+        mesh1 = Mesh("src/tests/temp/fem_tip_take3.off")
+        mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
+        mesh2.plot_faces(plotter=plotter, show=False, texture="data/textures/checkers.png")
+        mesh1.plot_faces(plotter=plotter, cmap=['white'], f=np.ones(mesh1.vertices.shape[0]))
+
+    def test_make_wing(self):
+        unwanted_points_axis = 0.095
+        labels = []
+        for ver in self.mesh.vertices:
+            if ver[1] >= 0.605:
+                labels.append(ver)
+        new_ver = []
+        for v in labels:
+
+            for i in range(30):
+                x = (0.008 * np.cos(np.pi * i / 15))
+                y = (0.008 * np.sin(np.pi * i / 15))
+                new_ver.append(v + (0, x, y))
+        write_off((np.array(new_ver), np.array([])), "src/tests/temp/fem_tip_take3.off")
+
+
 if __name__ == '__main__':
     unittest.main()
