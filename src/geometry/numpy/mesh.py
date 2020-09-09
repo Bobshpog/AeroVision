@@ -315,7 +315,7 @@ class Mesh:
             plotter.show()
         return plotter
 
-    def animate(self, movement, f=None, index_row=0, index_col=0, texture=None, cmap='jet',
+    def animate(self, movement, f=None, index_col=0, index_row=0,  texture=None, cmap='jet',
                 plotter=None, title='', font_size=10, font_color='black', gif_path=None):
         """
        animate the mash using f as movment metrix
@@ -341,6 +341,7 @@ class Mesh:
 
         if plotter is None:
             plotter = pv.Plotter()
+
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
@@ -530,3 +531,37 @@ class Mesh:
 
         # assemble into sparse matrix
         return coo_matrix((data, (row, col)), shape=shape, dtype=data.dtype)
+
+
+def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  texture=None, cmap='jet',
+                       plotter=None, title='', font_size=10, font_color='black', gif_path=None):
+    if num_of_plots == 1:
+        return mesh.animate(movement=movement,f=f,index_col=subplot[1], index_row=subplot[0], texture=texture,
+                            cmap=cmap, plotter=plotter, title=title, font_color=font_color, font_size=font_size,
+                            gif_path=gif_path)
+
+    if plotter is None:
+        plotter = pv.Plotter()
+    pv_mesh = []
+    for idx, plot in enumerate(subplot):
+        plotter.subplot(plot[0],plot[1])
+        plotter.add_text(title[idx], position="upper_edge", font_size=font_size[idx], color=font_color[idx])
+        pv_styled_faces = np.insert(mesh[idx].faces, 0, 3, axis=1)
+        pv_mesh.append(pv.PolyData(mesh[idx].vertices, pv_styled_faces))
+        if texture[idx] is None:
+            plotter.add_mesh(pv_mesh[idx], scalars=f[idx], cmap=cmap[idx], texture=texture[idx])
+        else:
+            tex = pv.read_texture(texture[idx])
+            pv_mesh[idx].texture_map_to_plane(inplace=True)
+            plotter.add_mesh(pv_mesh[idx], texture=tex)
+    plotter.show(auto_close=False)
+    if gif_path is not None:
+        plotter.open_gif(gif_path)
+    for frame, item in enumerate(movement[0]):
+        for plt_id, plot in enumerate(subplot):
+            plotter.update_coordinates(movement[plt_id][frame], mesh=pv_mesh[plt_id])
+        if gif_path is not None:
+            plotter.write_frame()
+
+    plotter.close()
+    pass

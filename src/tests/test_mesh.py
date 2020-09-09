@@ -203,18 +203,35 @@ class TestMesh(unittest.TestCase):
 
 
     def test_annimate(self):
+        fg =[]
+        g = []
         f = []
+        mesh2 = Mesh('data/wing_off_files/opto_wing.off')
         for phase in np.linspace(0, 4 * np.pi, 60):
             f.append(np.apply_along_axis(func, axis=1, arr=self.mesh.vertices, phase=phase))
+            g.append(np.apply_along_axis(func2, axis=1, arr=mesh2.vertices, phase=phase))
             # couldnt vectorise
 
-        print(np.array(f).shape)
-        self.mesh.animate(movement=f, texture="data/textures/checkers.png", gif_path="src/tests/temp/gif2_sin.gif")
+        fg.append(f)
+        fg.append(g)
+        cords = [(0,0),(0,1)]
+        plotter = pv.Plotter(shape=(1,2))
+        meshes = [self.mesh, mesh2]
+        #print(np.array(fg).shape)
+
+        animate_few_meshes(meshes,np.array(fg),[None,None],2,cords,["data/textures/checkers.png",None],["jet","jet"],
+                           plotter,["",""],[10,10],["black","black"], gif_path="src/tests/temp/combined_gif2.gif")
+        #self.mesh.animate(movement=f, texture="data/textures/checkers.png", gif_path="src/tests/temp/gif2_sin.gif")
 
 
 def func(a, phase):
-    b=a
-    b[2] = b[2] + 0.005 * np.sin( phase + 25* a[1])
+    b = a
+    b[2] = b[2] + a[1] * 0.005 * np.sin(phase + 25 * a[1])
+    return b
+
+def func2(a, phase):
+    b = a
+    b[1] = b[1] +b[2] /100 * np.sin(phase + 25 * a[2])
     return b
 
 if __name__ == '__main__':
