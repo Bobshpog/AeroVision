@@ -10,7 +10,7 @@ from src.util.timing import profile
 class TestMesh(unittest.TestCase):
     def setUp(self):
         #self.off_files = glob.glob('data/example_off_files/*.off')
-        self.mesh = Mesh('data/wing_off_files/fem_wing_with_faces.off')
+        self.mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         self.off_files = {'src/tests/temp/fem_without_extra_points.off'}
 
     @profile
@@ -200,6 +200,22 @@ class TestMesh(unittest.TestCase):
                 new_ver.append(v + (0, x, y))
         write_off((np.array(new_ver), np.array([])), "src/tests/temp/fem_tip_take3.off")
 
+
+
+    def test_annimate(self):
+        f = []
+        for phase in np.linspace(0, 4 * np.pi, 60):
+            f.append(np.apply_along_axis(func, axis=1, arr=self.mesh.vertices, phase=phase))
+            # couldnt vectorise
+
+        print(np.array(f).shape)
+        self.mesh.animate(movement=f, texture="data/textures/checkers.png", gif_path="src/tests/temp/gif2_sin.gif")
+
+
+def func(a, phase):
+    b=a
+    b[2] = b[2] + 0.005 * np.sin( phase + 25* a[1])
+    return b
 
 if __name__ == '__main__':
     unittest.main()

@@ -202,7 +202,7 @@ class Mesh:
         if texture is None:
             plotter.add_mesh(pv_mesh, scalars=f, cmap=cmap, texture=texture)
         else:
-            tex = pv.read_texture("data/textures/checkers.png")
+            tex = pv.read_texture(texture)
             pv_mesh.texture_map_to_plane(inplace=True)
             plotter.add_mesh(pv_mesh, texture=tex)
         if show:
@@ -278,7 +278,7 @@ class Mesh:
         return pca.components_ * scale
 
     def plot_projection(self, normal=(1, 1, 1), index_row=0, index_col=0, show=True,
-                          plotter=None, title='', font_size=10, font_color='black'):
+                        plotter=None, title='', font_size=10, font_color='black'):
         """
        plots the projection of the Mesh
 
@@ -314,6 +314,52 @@ class Mesh:
         if show:
             plotter.show()
         return plotter
+
+    def animate(self, movement, f=None, index_row=0, index_col=0, texture=None, cmap='jet',
+                plotter=None, title='', font_size=10, font_color='black', gif_path=None):
+        """
+       animate the mash using f as movment metrix
+
+       Args:
+           movement: iterable with V side vector as elements
+           f: map between (x,y,z) of vertex to scalar for the color map
+           index_row: chosen subplot row
+           index_col: chosen subplot column
+           show: should the function call imshow()
+           texture: the texture to use
+           cmap: the colormap to use
+           plotter: the pyvista plotter
+           title: the title of the figure
+           font_size: the font size of the title
+           font_color: the color of the font for the title
+           gif_path: gif path to create, None if no gif is needed
+
+
+        Returns:
+           the pyvista plotter
+        """
+
+        if plotter is None:
+            plotter = pv.Plotter()
+        plotter.subplot(index_column=index_col, index_row=index_row)
+        plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
+        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
+        pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
+        if texture is None:
+            plotter.add_mesh(pv_mesh, scalars=f, cmap=cmap, texture=texture)
+        else:
+            tex = pv.read_texture(texture)
+            pv_mesh.texture_map_to_plane(inplace=True)
+            plotter.add_mesh(pv_mesh, texture=tex)
+        plotter.show(auto_close=False)
+        if gif_path is not None:
+            plotter.open_gif(gif_path)
+        for item in movement:
+            plotter.update_coordinates(item, mesh=pv_mesh)
+            if gif_path is not None:
+                plotter.write_frame()
+
+        plotter.close()
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):
