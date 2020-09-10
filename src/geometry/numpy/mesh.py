@@ -325,14 +325,13 @@ class Mesh:
     def animate(self, movement, f=None, index_col=0, index_row=0,  texture=None, cmap='jet',
                 plotter=None, title='', font_size=10, font_color='black', gif_path=None):
         """
-       animate the mash using movement as movement metrix
+       animate the mash using movement as movement metrix press "q" after adjusting the frame to start the animation
 
        Args:
            movement: iterable with V side vector as elements
            f: map between (x,y,z) of vertex to scalar for the color map
            index_row: chosen subplot row
            index_col: chosen subplot column
-           show: should the function call imshow()
            texture: the texture to use
            cmap: the colormap to use
            plotter: the pyvista plotter
@@ -368,7 +367,6 @@ class Mesh:
                 plotter.write_frame()
 
         plotter.close()
-
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):
@@ -544,7 +542,7 @@ class Mesh:
 def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  texture=None, cmap='jet',
                        plotter=None, title='', font_size=10, font_color='black', gif_path=None):
     """
-   animate few mashes using f as movment metrix
+   animate few mashes using f as movment metrix. press "q" after adjusting the frame to start the animation
 
    Args:
        mesh: list of the meshes to plot

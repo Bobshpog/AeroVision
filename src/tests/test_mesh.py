@@ -203,55 +203,99 @@ class TestMesh(unittest.TestCase):
     def test_projection(self):
         self.mesh.plot_projection(texture="data/textures/checkers.png")
 
+    def test_connected(self):
+        plotter = pv.Plotter()
+        tip = Mesh('data/wing_off_files/fem_tip.off')
+        self.mesh.connected_component(plot=True,cmap=["white", "green", "blue"],
+                                      title="connected component", plotter=plotter, show=False)
+        tip.connected_component(plot=True, cmap=["black", "red"], plotter=plotter)
 
     def test_annimate(self):
         fg = []
-        # the movement of both mesh
-        g = []
-        f = []
-        mesh2 = Mesh('data/wing_off_files/fem_tip.off')
+        # the movement of all meshes
+        g1 = []
+        f1 = []
+        f2 = []
+        g2 = []
+        g3 = []
+        f3 = []
+        # we need to create 6 different meshes, three of tips and three for wing. Pyvista will not recognise the
+        # meshes as different otherwise.
+
+        tip1 = Mesh('data/wing_off_files/fem_tip.off')
+        tip2 = Mesh('data/wing_off_files/fem_tip.off')
+        tip3 = Mesh('data/wing_off_files/fem_tip.off')
+        mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
+        mesh3 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
+        meshes = [self.mesh, tip1, mesh2, tip2, mesh3, tip3]
+        # ^ define the order of each mesh
         frames = 60
         # number of frames of the gif, if no gif should be created this number should be around the 4000~ to make it
         # the same as 60~ with gif is created
         for phase in np.linspace(0, 4 * np.pi, frames+1):
-            f.append(np.apply_along_axis(func, axis=1, arr=self.mesh.vertices, phase=phase))
-            g.append(np.apply_along_axis(animate_tip, axis=1, arr=mesh2.vertices, phase=phase))
+            f1.append(np.apply_along_axis(func, axis=1, arr=self.mesh.vertices, phase=phase, wave_len=1))
+            g1.append(np.apply_along_axis(animate_tip, axis=1, arr=tip1.vertices, phase=phase, wave_len=1))
+
+            f2.append(np.apply_along_axis(func, axis=1, arr=mesh2.vertices, phase=phase, wave_len=25))
+            g2.append(np.apply_along_axis(animate_tip, axis=1, arr=tip2.vertices, phase=phase, wave_len=25))
+
+            f3.append(np.apply_along_axis(func2, axis=1, arr=mesh3.vertices, phase=phase, wave_len=25))
+            g3.append(np.apply_along_axis(animate_tip2, axis=1, arr=tip3.vertices, phase=phase, wave_len=25))
             # couldnt vectorise
-        fg.append(f)
-        fg.append(g)
-        cords = [(0, 0), (0, 0)]
+        fg.append(f1)
+        fg.append(g1)
+        fg.append(f2)
+        fg.append(g2)
+        fg.append(f3)
+        fg.append(g3)
+        cords = [(0, 0), (0, 0), (1, 0), (1,0), (2, 0), (2, 0)]
         # cords of the subplot, both mesh are in the same subplot so both needing to be the same
-        plotter = pv.Plotter()
-        meshes = [self.mesh, mesh2]
-        # meshes (order is important)
-        animate_few_meshes(mesh=meshes,movement=np.array(fg), f=[None,None], num_of_plots=2, subplot=cords,
-                           texture=["data/textures/checkers.png", None], cmap=["jet", "jet"], plotter=plotter,
-                           title=["", ""], font_size=[10, 10], font_color=["black", "black"],
-                           gif_path="src/tests/temp/combined_gif3.gif")
+        plotter = pv.Plotter(shape=(3,1))
+        self.mesh.main_cords(plot=True, index_row=0, index_col=0, scale=0.1, plotter=plotter, show=False)
+        self.mesh.main_cords(plot=True, index_row=1, index_col=0, scale=0.1, plotter=plotter, show=False)
+        self.mesh.main_cords(plot=True, index_row=2, index_col=0, scale=0.1, plotter=plotter, show=False)
+        scalars = [None,None,None,None,None,None]
+        textures = ["data/textures/checkers.png", None, "data/textures/checkers.png",
+                    None, "data/textures/checkers.png", None]
+        color_maps = ["jet", "jet", "jet", "jet", "jet", "jet"]
+        titles = ["big wave length", "","small wave length","","non decaying sin",""]
+        font_colors = ["black", "black","black", "black","black", "black"]
+        font_size = [10, 10, 10, 10, 10, 10]
+
+        animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=6, subplot=cords,
+                           texture=textures, cmap=color_maps, plotter=plotter,
+                           title=titles, font_size=font_size, font_color=font_colors,
+                           gif_path="src/tests/temp/three_wings.gif")
         # ^ every argument should be given as a list, the default args for this function is for a single mesh, not more
-        # self.mesh.animate(movement=f, texture="data/textures/checkers.png", gif_path="src/tests/temp/gif2_sin.gif")
+        #self.mesh.animate(movement=f, texture="data/textures/cat.jpg", gif_path="src/tests/temp/")
         # ^ would animate a single mesh in a single subplot
 
 
-def func(a, phase):
+def func(a, phase, wave_len):
     b = a
-    b[2] = b[2] + a[1] * 0.005 * np.sin(phase + 25 * a[1])
+    b[2] = b[2] + a[1] * 0.007 * np.sin(phase + wave_len * a[1])
     # normal decaing sine wave
     return b
 
 
-def func2(a, phase):
+def func2(a, phase, wave_len):
     b = a
-    b[1] = b[1] +b[2] /100 * np.sin(phase + 25 * a[2])
-    # decaing sine wave for the normal cad (it has different cord system then the FEM model)
+    b[2] = b[2] + 0.005 * np.sin(phase + wave_len * a[1])
+    # normal sine wave
     return b
 
 
-def animate_tip(a, phase):
+def animate_tip(a, phase, wave_len):
     b = a
-    b[2] = b[2] + 0.605 * 0.005 * np.sin(phase + 25 * a[1])
+    b[2] = b[2] + 0.605 * 0.007 * np.sin(phase + wave_len * 0.605)
     # wanted to tip to move together so removed the dependency on the second element
     return b
 
+
+def animate_tip2(a, phase, wave_len):
+    b = a
+    b[2] = b[2] + 0.005 * np.sin(phase + wave_len * 0.605)
+    # wanted to tip to move together so removed the dependency on the second element
+    return b
 if __name__ == '__main__':
     unittest.main()
