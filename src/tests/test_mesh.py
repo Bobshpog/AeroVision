@@ -114,7 +114,7 @@ class TestMesh(unittest.TestCase):
         self.mesh.plot_faces(index_row=0, index_col=1, show=False, plotter=plotter, title="side view")
         self.mesh.plot_faces(index_row=0, index_col=2, show=False, plotter=plotter, title="below view")
         main_c = self.mesh.main_cords(plot=True, show=False, plotter=plotter, index_row=0, index_col=0)
-        mesh2 = Mesh("data/baseless_wing.off")
+        mesh2 = Mesh("data/wing_off_files/convex_hull.off")
         mesh2.plot_faces(index_row=1, index_col=0, show=False, plotter=plotter)
         mesh2.plot_faces(index_row=1, index_col=1, show=False, plotter=plotter, title="baseless wing")
         mesh2.plot_faces(index_row=1, index_col=2, show=False, plotter=plotter)
@@ -200,38 +200,57 @@ class TestMesh(unittest.TestCase):
                 new_ver.append(v + (0, x, y))
         write_off((np.array(new_ver), np.array([])), "src/tests/temp/fem_tip_take3.off")
 
+    def test_projection(self):
+        self.mesh.plot_projection(texture="data/textures/checkers.png")
 
 
     def test_annimate(self):
-        fg =[]
+        fg = []
+        # the movement of both mesh
         g = []
         f = []
-        mesh2 = Mesh('data/wing_off_files/opto_wing.off')
-        for phase in np.linspace(0, 4 * np.pi, 60):
+        mesh2 = Mesh('data/wing_off_files/fem_tip.off')
+        frames = 60
+        # number of frames of the gif, if no gif should be created this number should be around the 4000~ to make it
+        # the same as 60~ with gif is created
+        for phase in np.linspace(0, 4 * np.pi, frames+1):
             f.append(np.apply_along_axis(func, axis=1, arr=self.mesh.vertices, phase=phase))
-            g.append(np.apply_along_axis(func2, axis=1, arr=mesh2.vertices, phase=phase))
+            g.append(np.apply_along_axis(animate_tip, axis=1, arr=mesh2.vertices, phase=phase))
             # couldnt vectorise
-
         fg.append(f)
         fg.append(g)
-        cords = [(0,0),(0,1)]
-        plotter = pv.Plotter(shape=(1,2))
+        cords = [(0, 0), (0, 0)]
+        # cords of the subplot, both mesh are in the same subplot so both needing to be the same
+        plotter = pv.Plotter()
         meshes = [self.mesh, mesh2]
-        #print(np.array(fg).shape)
-
-        animate_few_meshes(meshes,np.array(fg),[None,None],2,cords,["data/textures/checkers.png",None],["jet","jet"],
-                           plotter,["",""],[10,10],["black","black"], gif_path="src/tests/temp/combined_gif2.gif")
-        #self.mesh.animate(movement=f, texture="data/textures/checkers.png", gif_path="src/tests/temp/gif2_sin.gif")
+        # meshes (order is important)
+        animate_few_meshes(mesh=meshes,movement=np.array(fg), f=[None,None], num_of_plots=2, subplot=cords,
+                           texture=["data/textures/checkers.png", None], cmap=["jet", "jet"], plotter=plotter,
+                           title=["", ""], font_size=[10, 10], font_color=["black", "black"],
+                           gif_path="src/tests/temp/combined_gif3.gif")
+        # ^ every argument should be given as a list, the default args for this function is for a single mesh, not more
+        # self.mesh.animate(movement=f, texture="data/textures/checkers.png", gif_path="src/tests/temp/gif2_sin.gif")
+        # ^ would animate a single mesh in a single subplot
 
 
 def func(a, phase):
     b = a
     b[2] = b[2] + a[1] * 0.005 * np.sin(phase + 25 * a[1])
+    # normal decaing sine wave
     return b
+
 
 def func2(a, phase):
     b = a
     b[1] = b[1] +b[2] /100 * np.sin(phase + 25 * a[2])
+    # decaing sine wave for the normal cad (it has different cord system then the FEM model)
+    return b
+
+
+def animate_tip(a, phase):
+    b = a
+    b[2] = b[2] + 0.605 * 0.005 * np.sin(phase + 25 * a[1])
+    # wanted to tip to move together so removed the dependency on the second element
     return b
 
 if __name__ == '__main__':

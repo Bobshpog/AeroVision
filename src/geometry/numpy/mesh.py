@@ -233,7 +233,6 @@ class Mesh:
         cc_num, labels = connected_components(csgraph=self.adj, directed=False, return_labels=True)
         if not plot:
             return cc_num, labels
-        # f=lambda a: labels[self.table[a.tobytes()]]
         self.plot_faces(f=labels, index_row=index_row, index_col=index_col,
                         show=show,
                         plotter=plotter, cmap=cmap, title=title, font_size=font_size, font_color=font_color)
@@ -277,7 +276,7 @@ class Mesh:
             plotter.show()
         return pca.components_ * scale
 
-    def plot_projection(self, normal=(1, 1, 1), index_row=0, index_col=0, show=True,
+    def plot_projection(self, normal=(1, 1, 1), index_row=0, index_col=0, show=True, texture=None, cmap="jet", f=None,
                         plotter=None, title='', font_size=10, font_color='black'):
         """
        plots the projection of the Mesh
@@ -287,6 +286,9 @@ class Mesh:
            index_row: chosen subplot row
            index_col: chosen subplot column
            show: should the function call imshow()
+           texture: the texture to use
+           cmap: the color map to use
+           f: the color for each vertex or face.
            plotter: the pyvista plotter
            title: the title of the figure
            font_size: the font size of the title
@@ -302,15 +304,20 @@ class Mesh:
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
-        plotter.set_viewup([0, 0, 0])
+        tex = None
+        if texture is not None:
+            tex = pv.read_texture(texture)
+            pv_mesh.texture_map_to_plane(inplace=True)
+            plotter.add_mesh(pv_mesh, texture=tex)
         og = pv_mesh.center
         print(og)
 
         main_c = self.main_cords(plot=False)
         pos = plotter.camera_position
         projected = pv_mesh.project_points_to_plane(origin=og, normal=normal)
+        projected.texture_map_to_plane()
         #print(plotter.camera_position)
-        plotter.add_mesh(projected)
+        plotter.add_mesh(projected, texture=tex)
         if show:
             plotter.show()
         return plotter
@@ -318,7 +325,7 @@ class Mesh:
     def animate(self, movement, f=None, index_col=0, index_row=0,  texture=None, cmap='jet',
                 plotter=None, title='', font_size=10, font_color='black', gif_path=None):
         """
-       animate the mash using f as movment metrix
+       animate the mash using movement as movement metrix
 
        Args:
            movement: iterable with V side vector as elements
@@ -336,7 +343,7 @@ class Mesh:
 
 
         Returns:
-           the pyvista plotter
+           None
         """
 
         if plotter is None:
@@ -361,6 +368,7 @@ class Mesh:
                 plotter.write_frame()
 
         plotter.close()
+
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):
@@ -535,6 +543,27 @@ class Mesh:
 
 def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  texture=None, cmap='jet',
                        plotter=None, title='', font_size=10, font_color='black', gif_path=None):
+    """
+   animate few mashes using f as movment metrix
+
+   Args:
+       mesh: list of the meshes to plot
+       movement:  list of iterable with Vn side vector as elements for the num of vercies of the n-th mesh
+       f: list of function that map between id of vertex to scalar for the color map
+       num_of_plots: number of meshes to plot
+       subplot: list of subplots to use, each is a tuple in the form of: (row,col)
+       texture: list of the textures to use
+       cmap: list of the colormap to use
+       plotter: the pyvista plotter
+       title: the title of the figure
+       font_size: the font size of the title
+       font_color: the color of the font for the title
+       gif_path: gif path to create, None if no gif is needed
+
+
+    Returns:
+       None
+    """
     if num_of_plots == 1:
         return mesh.animate(movement=movement,f=f,index_col=subplot[1], index_row=subplot[0], texture=texture,
                             cmap=cmap, plotter=plotter, title=title, font_color=font_color, font_size=font_size,
@@ -543,6 +572,7 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  
     if plotter is None:
         plotter = pv.Plotter()
     pv_mesh = []
+    # adding mushes with textures
     for idx, plot in enumerate(subplot):
         plotter.subplot(plot[0],plot[1])
         plotter.add_text(title[idx], position="upper_edge", font_size=font_size[idx], color=font_color[idx])
@@ -554,6 +584,7 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  
             tex = pv.read_texture(texture[idx])
             pv_mesh[idx].texture_map_to_plane(inplace=True)
             plotter.add_mesh(pv_mesh[idx], texture=tex)
+    # starting the animation
     plotter.show(auto_close=False)
     if gif_path is not None:
         plotter.open_gif(gif_path)
