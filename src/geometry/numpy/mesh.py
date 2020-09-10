@@ -309,16 +309,10 @@ class Mesh:
             tex = pv.read_texture(texture)
             pv_mesh.texture_map_to_plane(inplace=True)
             #plotter.add_mesh(pv_mesh, texture=tex)
-        og = pv_mesh.center
-        ##########
-        #print(og)
 
-        #main_c = self.main_cords(plot=False)
-        #pos = plotter.camera_position
-        ########
+        og = pv_mesh.center
         projected = pv_mesh.project_points_to_plane(origin=og, normal=normal)
         projected.texture_map_to_plane()
-        #print(plotter.camera_position)
         plotter.add_mesh(projected, texture=tex)
         if show:
             plotter.show()

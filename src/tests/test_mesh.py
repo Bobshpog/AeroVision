@@ -276,32 +276,5 @@ class TestMesh(unittest.TestCase):
         #self.mesh.animate(movement=f, texture="data/textures/cat.jpg", gif_path="src/tests/temp/")
         # ^ would animate a single mesh in a single subplot
 
-
-def func(a, phase, wave_len):
-    b = a
-    b[2] = b[2] + a[1] * 0.007 * np.sin(phase + wave_len * a[1])
-    # normal decaing sine wave
-    return b
-
-
-def func2(a, phase, wave_len):
-    b = a
-    b[2] = b[2] + 0.005 * np.sin(phase + wave_len * a[1])
-    # normal sine wave
-    return b
-
-
-def animate_tip(a, phase, wave_len):
-    b = a
-    b[2] = b[2] + 0.605 * 0.007 * np.sin(phase + wave_len * 0.605)
-    # wanted to tip to move together so removed the dependency on the second element
-    return b
-
-
-def animate_tip2(a, phase, wave_len):
-    b = a
-    b[2] = b[2] + 0.005 * np.sin(phase + wave_len * 0.605)
-    # wanted to tip to move together so removed the dependency on the second element
-    return b
 if __name__ == '__main__':
     unittest.main()
