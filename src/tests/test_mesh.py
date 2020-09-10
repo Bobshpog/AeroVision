@@ -73,7 +73,8 @@ class TestMesh(unittest.TestCase):
 
             plotter = pv.Plotter(shape=(3, 3))
             mesh.plot_vertices(index_row=0, index_col=0, show=False, plotter=plotter, title="vertices")
-            mesh.plot_faces(index_row=0, index_col=1, show=False, plotter=plotter, title="faces")
+            mesh.plot_faces(index_row=0, index_col=1, show=False, plotter=plotter, title="faces",
+                            camera=[[0,0,0],[0,0,0],[0,0,0]])
             mesh.plot_wireframe(index_row=0, index_col=2, show=False, plotter=plotter, title="wireframe")
 
             faces_barycenter = mesh.get_face_barycenters()
@@ -105,8 +106,12 @@ class TestMesh(unittest.TestCase):
             mesh.main_cords(plot=True, show=False, plotter=plotter, index_row=2, index_col=2,
                             title="cords", font_color="white", scale=0.1)
             mesh.plot_faces(f=np.ones(mesh.vertices.shape[0]),
-                            show=False, plotter=plotter, cmap=['black'], index_col=2, index_row=2)
+                            show=False, plotter=plotter, cmap=['black'], index_col=2, index_row=2,
+                            camera=[(0.02799981444827157, -0.26680973255342705, 0.025137984515084248),
+                                (0.07281666028499603, 0.3045, 0.04545292178940773),
+                                (-0.1199204776635176, -0.025882670807957444, 0.9924460521301905)] )
             plotter.show(title=file)
+            print(plotter.camera_position)
 
     def test_camera_angle(self):
         plotter = pv.Plotter(shape=(3,3))

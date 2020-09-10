@@ -114,7 +114,7 @@ class Mesh:
     # ----------------------------Basic Visualizer----------------------------#
 
     def plot_wireframe(self, index_row=0, index_col=0, show=True, plotter=None, title='', font_size=10,
-                       font_color='black'):
+                       font_color='black', camera=None):
         """
        plots the wireframe of the Mesh
 
@@ -126,6 +126,7 @@ class Mesh:
            title: the title of the figure
            font_size: the font size of the title
            font_color: the color of the font for the title
+           camera: the [camera position , focal point, view up] each (x,y,z) tuple
 
         Returns:
             the pyvista plotter
@@ -134,20 +135,19 @@ class Mesh:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
+        if camera is not None:
+            plotter.set_position(camera[0])
+            plotter.set_focus(camera[1])
+            plotter.set_viewup(camera[2])
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
-        # og = pv_mesh.center
-        # og[-1] -= pv_mesh.length / 3.
-        # projected = pv_mesh.project_points_to_plane(origin=og, normal=[1, 1, 1])
-        # plotter.add_mesh(projected)
         plotter.add_mesh(pv_mesh, style='wireframe')
         if show:
             plotter.show()
         return plotter
 
     def plot_vertices(self, f=None, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
-                      font_size=10,
-                      font_color='black'):
+                      font_size=10, font_color='black', camera=None):
         """
             plots the vertices of the Mesh
 
@@ -161,6 +161,7 @@ class Mesh:
                 title: the title of the figure
                 font_size: the font size of the title
                 font_color: the color of the font for the title
+                camera: the [camera position , focal point, view up] each (x,y,z) tuple
 
              Returns:
                  the pyvista plotter
@@ -170,13 +171,17 @@ class Mesh:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
+        if camera is not None:
+            plotter.set_position(camera[0])
+            plotter.set_focus(camera[1])
+            plotter.set_viewup(camera[2])
         plotter.add_mesh(self.vertices, scalars=f, cmap=cmap)
         if show:
             plotter.show()
         return plotter
 
     def plot_faces(self, f=None, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
-                   font_size=10, font_color='black', texture=None):
+                   font_size=10, font_color='black', texture=None, camera=None):
         """
              plots the faces of the Mesh
 
@@ -191,6 +196,7 @@ class Mesh:
                   font_size: the font size of the title
                   font_color: the color of the font for the title
                   texture: the filename for the texture of the figure
+                  camera: the [camera position , focal point, view up] each (x,y,z) tuple
 
              Returns:
                  the pyvista plotter
@@ -199,6 +205,10 @@ class Mesh:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
+        if camera is not None:
+            plotter.set_position(camera[0])
+            plotter.set_focus(camera[1])
+            plotter.set_viewup(camera[2])
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         if texture is None:
@@ -214,7 +224,7 @@ class Mesh:
     # ----------------------------Advanced Visualizer----------------------------#
 
     def connected_component(self, plot=False, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
-                            font_size=10, font_color='black'):
+                            font_size=10, font_color='black', camera=None):
         """
              giving the connected components of the mesh
 
@@ -228,6 +238,7 @@ class Mesh:
                   title: the title of the figure
                   font_size: the font size of the title
                   font_color: the color of the font for the title
+                  camera: the [camera position , focal point, view up] each (x,y,z) tuple
 
              Returns:
                  (number of connected components, label for each vertex):(int, np.array)
@@ -236,8 +247,8 @@ class Mesh:
         if not plot:
             return cc_num, labels
         self.plot_faces(f=labels, index_row=index_row, index_col=index_col,
-                        show=show,
-                        plotter=plotter, cmap=cmap, title=title, font_size=font_size, font_color=font_color)
+                        show=show, plotter=plotter, cmap=cmap, title=title,
+                        font_size=font_size, font_color=font_color, camera=camera)
         return cc_num, labels
 
     def main_cords(self, num_of_cords=3, scale=100, plot=False, index_row=0, index_col=0,
@@ -321,7 +332,7 @@ class Mesh:
         return plotter
 
     def animate(self, movement, f=None, index_col=0, index_row=0,  texture=None, cmap='jet',
-                plotter=None, title='', font_size=10, font_color='black', gif_path=None):
+                plotter=None, title='', font_size=10, font_color='black', gif_path=None, camera=None):
         """
        animate the mash using movement as movement metrix press "q" after adjusting the frame to start the animation
 
@@ -337,6 +348,7 @@ class Mesh:
            font_size: the font size of the title
            font_color: the color of the font for the title
            gif_path: gif path to create, None if no gif is needed
+           camera: the [camera position , focal point, view up] each (x,y,z) tuple
 
 
         Returns:
@@ -348,6 +360,10 @@ class Mesh:
 
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
+        if camera is not None:
+            plotter.set_position(camera[0])
+            plotter.set_focus(camera[1])
+            plotter.set_viewup(camera[2])
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         if texture is None:
@@ -524,7 +540,6 @@ class Mesh:
         # Input checks:
         nv = self.vertices.shape[0]
         f = self.faces  # Convert to an ndarray or pass if already is one
-
         # Computation
         row = f.reshape(-1)  # Flatten indices
         col = np.tile(np.arange(len(f)).reshape((-1, 1)), (1, f.shape[1])).reshape(-1)  # Data for vertices
@@ -538,7 +553,7 @@ class Mesh:
 
 
 def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  texture=None, cmap='jet',
-                       plotter=None, title='', font_size=10, font_color='black', gif_path=None):
+                       plotter=None, title='', font_size=10, font_color='black', gif_path=None, camera=None):
     """
    animate few mashes using f as movment metrix. press "q" after adjusting the frame to start the animation
 
@@ -555,15 +570,16 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  
        font_size: the font size of the title
        font_color: the color of the font for the title
        gif_path: gif path to create, None if no gif is needed
+       camera: list of the [camera position , focal point, view up] each (x,y,z) tuple
 
 
     Returns:
        None
     """
     if num_of_plots == 1:
-        return mesh.animate(movement=movement,f=f,index_col=subplot[1], index_row=subplot[0], texture=texture,
+        return mesh.animate(movement=movement, f=f, index_col=subplot[1], index_row=subplot[0], texture=texture,
                             cmap=cmap, plotter=plotter, title=title, font_color=font_color, font_size=font_size,
-                            gif_path=gif_path)
+                            gif_path=gif_path, camera=camera)
 
     if plotter is None:
         plotter = pv.Plotter()
@@ -571,8 +587,12 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  
     # adding mushes with textures
 
     for idx in range(num_of_plots):
-        plotter.subplot(subplot[idx][0],subplot[idx][1])
+        plotter.subplot(subplot[idx][0], subplot[idx][1])
         plotter.add_text(title[idx], position="upper_edge", font_size=font_size[idx], color=font_color[idx])
+        if camera[idx] is not None:
+            plotter.set_position(camera[idx][0])
+            plotter.set_focus(camera[idx][1])
+            plotter.set_viewup(camera[idx][2])
         pv_styled_faces = np.insert(mesh[idx].faces, 0, 3, axis=1)
         pv_mesh.append(pv.PolyData(mesh[idx].vertices, pv_styled_faces))
         if texture[idx] is None:
