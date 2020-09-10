@@ -5,6 +5,8 @@ import pyvista as pv
 from scipy.sparse import csr_matrix, coo_matrix
 from scipy.sparse.csgraph import connected_components
 from sklearn.decomposition import PCA
+from PIL import Image, ImageDraw
+from itertools import cycle
 
 
 def read_off(path):
@@ -568,8 +570,8 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  
     pv_mesh = []
     # adding mushes with textures
 
-    for idx, plot in enumerate(subplot):
-        plotter.subplot(plot[0],plot[1])
+    for idx in range(num_of_plots):
+        plotter.subplot(subplot[idx][0],subplot[idx][1])
         plotter.add_text(title[idx], position="upper_edge", font_size=font_size[idx], color=font_color[idx])
         pv_styled_faces = np.insert(mesh[idx].faces, 0, 3, axis=1)
         pv_mesh.append(pv.PolyData(mesh[idx].vertices, pv_styled_faces))
@@ -585,10 +587,37 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  
         plotter.open_gif(gif_path)
         plotter.write_frame()
     for frame, item in enumerate(movement[0]):
-        for plt_id, plot in enumerate(subplot):
+        for plt_id in range(num_of_plots):
             plotter.update_coordinates(movement[plt_id][frame], mesh=pv_mesh[plt_id])
         if gif_path is not None:
             plotter.write_frame()
 
     plotter.close()
-    pass
+
+
+def draw_chessboard(n=8, pixel_width=500):
+    """
+    Draw an n x n chessboard using PIL.
+    """
+    def sq_start(i):
+        """
+        Return the square corners, suitable for use in PIL drawings
+        """
+        return i*pixel_width / n
+
+    def square(i, j):
+        """
+        Return the square corners, suitable for use in PIL drawing
+        """
+        return map(sq_start, [i, j, i+1, j+1])
+
+    image = Image.new("L", (pixel_width, pixel_width))
+    draw_square = ImageDraw.Draw(image).rectangle
+    squares = (square(i,j)
+               for i_start, j in zip(cycle((0, 1)), range(n))
+               for i in range(i_start, n, 2))
+
+    for sq in squares:
+        draw_square(sq, fill='white')
+        image.save("chessboard.png")
+

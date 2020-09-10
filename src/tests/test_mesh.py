@@ -11,7 +11,7 @@ class TestMesh(unittest.TestCase):
     def setUp(self):
         #self.off_files = glob.glob('data/example_off_files/*.off')
         self.mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        self.off_files = {'src/tests/temp/fem_without_extra_points.off'}
+        self.off_files = {'data/wing_off_files/finished_fem_without_tip.off'}
 
     @profile
     def test_get_vertex_valence(self):
@@ -182,7 +182,7 @@ class TestMesh(unittest.TestCase):
         plotter = pv.Plotter()
         mesh1 = Mesh("data/wing_off_files/fem_tip.off")
         mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        mesh2.plot_faces(plotter=plotter, show=False, texture="data/textures/checkers.png")
+        mesh2.plot_faces(plotter=plotter, show=False, texture="data/textures/checkers2.png")
         mesh1.plot_faces(plotter=plotter, cmap=['white'], f=np.ones(mesh1.vertices.shape[0]))
 
     def test_make_wing(self):
@@ -257,12 +257,13 @@ class TestMesh(unittest.TestCase):
         cords = [(0, 0), (0, 0), (1, 0), (1,0), (2, 0), (2, 0)]
         # cords of the subplot, both mesh are in the same subplot so both needing to be the same
         plotter = pv.Plotter(shape=(3,1))
+
         self.mesh.main_cords(plot=True, index_row=0, index_col=0, scale=0.1, plotter=plotter, show=False)
         mesh2.main_cords(plot=True, index_row=1, index_col=0, scale=0.1, plotter=plotter, show=False)
         mesh3.main_cords(plot=True, index_row=2, index_col=0, scale=0.1, plotter=plotter, show=False)
         scalars = [None,None,None,None,None,None]
-        textures = ["data/textures/checkers.png", None, "data/textures/checkers.png",
-                    None, "data/textures/checkers.png", None]
+        textures = ["data/textures/checkers2.png", None, "data/textures/checkers2.png",
+                    None, "data/textures/checkers2.png", None]
         color_maps = ["jet", "jet", "jet", "jet", "jet", "jet"]
         titles = ["big wave length", "","small wave length","","non decaying sin",""]
         font_colors = ["black", "black","black", "black","black", "black"]
@@ -271,10 +272,13 @@ class TestMesh(unittest.TestCase):
         animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=6, subplot=cords,
                            texture=textures, cmap=color_maps, plotter=plotter,
                            title=titles, font_size=font_size, font_color=font_colors,
-                           gif_path="src/tests/temp/three_wings.gif")
+                           gif_path="src/tests/temp/three_red_wings.gif")
         # ^ every argument should be given as a list, the default args for this function is for a single mesh, not more
         #self.mesh.animate(movement=f, texture="data/textures/cat.jpg", gif_path="src/tests/temp/")
         # ^ would animate a single mesh in a single subplot
+
+    def test_draw_chess_board(self):
+        draw_chessboard()
 
 if __name__ == '__main__':
     unittest.main()
