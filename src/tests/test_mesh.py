@@ -95,6 +95,7 @@ class TestMesh(unittest.TestCase):
             plotter.subplot(2, 0)
             mean = mesh.vertices.mean(axis=0)
             distance = np.linalg.norm(mesh.vertices - mean, axis=1)
+            print(mean)
             # L2 distance between the mean and the point
             max_dist = distance.max()
             mesh.plot_vertices(f=distance, index_row=2, index_col=0, show=False, plotter=plotter,
@@ -107,9 +108,9 @@ class TestMesh(unittest.TestCase):
                             title="cords", font_color="white", scale=0.1)
             mesh.plot_faces(f=np.ones(mesh.vertices.shape[0]),
                             show=False, plotter=plotter, cmap=['black'], index_col=2, index_row=2,
-                            camera=[(0.02799981444827157, -0.26680973255342705, 0.025137984515084248),
-                                (0.07281666028499603, 0.3045, 0.04545292178940773),
-                                (-0.1199204776635176, -0.025882670807957444, 0.9924460521301905)] )
+                            camera=[(0.005, -0.2, 0.01),
+                                (0.047,0.3,0),
+                                (0, 0, 1)])
             plotter.show(title=file)
             print(plotter.camera_position)
 
@@ -184,11 +185,21 @@ class TestMesh(unittest.TestCase):
         print(plotter.camera_position)
 
     def test_Texture(self):
-        plotter = pv.Plotter()
+        plotter = pv.Plotter(shape=(1,2))
+        cam = [(0.03958081920375257, -0.37509635774286926, 0.2899701977108278),
+                (0.047, 0.3, 0.0),
+                (0.02689824941858312, 0.3942663562302169, 0.9186024844965115)]
         mesh1 = Mesh("data/wing_off_files/fem_tip.off")
         mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        mesh2.plot_faces(plotter=plotter, show=False, texture="data/textures/checkers2.png")
-        mesh1.plot_faces(plotter=plotter, cmap=['white'], f=np.ones(mesh1.vertices.shape[0]))
+        mesh2.plot_faces(plotter=plotter, show=False,camera=cam, texture="data/textures/checkers2.png",
+                         title="without depth peeling")
+        mesh1.plot_faces(plotter=plotter,show=False, cmap=['white'], camera=cam, f=np.ones(mesh1.vertices.shape[0]))
+
+        mesh2.plot_faces(plotter=plotter, index_row=0, index_col=1, title="with depth peeling",
+                         show=False, texture="data/textures/checkers2.png", depth=True,camera=cam)
+        mesh1.plot_faces(plotter=plotter, cmap=['white'],index_row=0, index_col=1,
+                         f=np.ones(mesh1.vertices.shape[0]), depth=True, camera=cam)
+        print(plotter.camera_position)
 
     def test_make_wing(self):
         unwanted_points_axis = 0.095
@@ -273,11 +284,13 @@ class TestMesh(unittest.TestCase):
         titles = ["big wave length", "","small wave length","","non decaying sin",""]
         font_colors = ["black", "black","black", "black","black", "black"]
         font_size = [10, 10, 10, 10, 10, 10]
-
+        cam = [(0.005, -0.2, 0.01),(0.047,0.3,0),(0, 0, 1)]
         animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=6, subplot=cords,
                            texture=textures, cmap=color_maps, plotter=plotter,
                            title=titles, font_size=font_size, font_color=font_colors,
-                           gif_path="src/tests/temp/three_red_wings.gif")
+                           gif_path="src/tests/temp/three_red_wings.gif",
+                           camera=[cam,cam,cam,cam,cam,cam]
+                           )
         # ^ every argument should be given as a list, the default args for this function is for a single mesh, not more
         #self.mesh.animate(movement=f, texture="data/textures/cat.jpg", gif_path="src/tests/temp/")
         # ^ would animate a single mesh in a single subplot
