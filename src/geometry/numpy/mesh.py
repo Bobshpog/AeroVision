@@ -1,12 +1,12 @@
 from collections import defaultdict
+from itertools import cycle
 
 import numpy as np
 import pyvista as pv
+from PIL import Image, ImageDraw
 from scipy.sparse import csr_matrix, coo_matrix
 from scipy.sparse.csgraph import connected_components
 from sklearn.decomposition import PCA
-from PIL import Image, ImageDraw
-from itertools import cycle
 
 
 def read_off(path):
@@ -321,7 +321,7 @@ class Mesh:
         if texture is not None:
             tex = pv.read_texture(texture)
             pv_mesh.texture_map_to_plane(inplace=True)
-            #plotter.add_mesh(pv_mesh, texture=tex)
+            # plotter.add_mesh(pv_mesh, texture=tex)
 
         og = pv_mesh.center
         projected = pv_mesh.project_points_to_plane(origin=og, normal=normal)
@@ -331,7 +331,7 @@ class Mesh:
             plotter.show()
         return plotter
 
-    def animate(self, movement, f=None, index_col=0, index_row=0,  texture=None, cmap='jet',
+    def animate(self, movement, f=None, index_col=0, index_row=0, texture=None, cmap='jet',
                 plotter=None, title='', font_size=10, font_color='black', gif_path=None, camera=None):
         """
        animate the mash using movement as movement metrix press "q" after adjusting the frame to start the animation
@@ -381,6 +381,24 @@ class Mesh:
                 plotter.write_frame()
 
         plotter.close()
+
+    def get_photo(self, movement, f=None, texture=None, cmap='jet',
+                  plotter=None, camera=None):
+        """
+       animate the mash using movement as movement metrix press "q" after adjusting the frame to start the animation
+
+       Args:
+           movement: V side vector
+           f: map between (x,y,z) of vertex to scalar for the color map
+           texture: the texture to use
+           cmap: the colormap to use
+           plotter: the pyvista plotter
+           camera: the [camera position , focal point, view up] each (x,y,z) tuple
+
+        Returns:
+           An image shot from camera of the mesh
+        """
+        pass
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):
@@ -552,7 +570,7 @@ class Mesh:
         return coo_matrix((data, (row, col)), shape=shape, dtype=data.dtype)
 
 
-def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  texture=None, cmap='jet',
+def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0), texture=None, cmap='jet',
                        plotter=None, title='', font_size=10, font_color='black', gif_path=None, camera=None):
     """
    animate few mashes using f as movment metrix. press "q" after adjusting the frame to start the animation
@@ -619,25 +637,25 @@ def draw_chessboard(n=8, pixel_width=500):
     """
     Draw an n x n chessboard using PIL.
     """
+
     def sq_start(i):
         """
         Return the square corners, suitable for use in PIL drawings
         """
-        return i*pixel_width / n
+        return i * pixel_width / n
 
     def square(i, j):
         """
         Return the square corners, suitable for use in PIL drawing
         """
-        return map(sq_start, [i, j, i+1, j+1])
+        return map(sq_start, [i, j, i + 1, j + 1])
 
     image = Image.new("L", (pixel_width, pixel_width))
     draw_square = ImageDraw.Draw(image).rectangle
-    squares = (square(i,j)
+    squares = (square(i, j)
                for i_start, j in zip(cycle((0, 1)), range(n))
                for i in range(i_start, n, 2))
 
     for sq in squares:
         draw_square(sq, fill='white')
         image.save("chessboard.png")
-
