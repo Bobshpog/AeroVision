@@ -385,7 +385,7 @@ class Mesh:
     def get_photo(self, movement, f=None, texture=None, cmap='jet',
                   plotter=None, camera=None):
         """
-       animate the mash using movement as movement metrix press "q" after adjusting the frame to start the animation
+        Take a photo of the mesh in a cerain position
 
        Args:
            movement: V side vector
