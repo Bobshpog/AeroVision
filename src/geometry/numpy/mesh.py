@@ -308,12 +308,14 @@ class Mesh:
         if texture is not None:
             tex = pv.read_texture(texture)
             pv_mesh.texture_map_to_plane(inplace=True)
-            plotter.add_mesh(pv_mesh, texture=tex)
+            #plotter.add_mesh(pv_mesh, texture=tex)
         og = pv_mesh.center
-        print(og)
+        ##########
+        #print(og)
 
-        main_c = self.main_cords(plot=False)
-        pos = plotter.camera_position
+        #main_c = self.main_cords(plot=False)
+        #pos = plotter.camera_position
+        ########
         projected = pv_mesh.project_points_to_plane(origin=og, normal=normal)
         projected.texture_map_to_plane()
         #print(plotter.camera_position)
@@ -571,6 +573,7 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  
         plotter = pv.Plotter()
     pv_mesh = []
     # adding mushes with textures
+
     for idx, plot in enumerate(subplot):
         plotter.subplot(plot[0],plot[1])
         plotter.add_text(title[idx], position="upper_edge", font_size=font_size[idx], color=font_color[idx])
@@ -586,6 +589,7 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0),  
     plotter.show(auto_close=False)
     if gif_path is not None:
         plotter.open_gif(gif_path)
+        plotter.write_frame()
     for frame, item in enumerate(movement[0]):
         for plt_id, plot in enumerate(subplot):
             plotter.update_coordinates(movement[plt_id][frame], mesh=pv_mesh[plt_id])

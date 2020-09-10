@@ -2,7 +2,7 @@ import glob
 import os
 import unittest
 import trimesh
-
+from src.geometry.numpy.transforms import *
 from src.geometry.numpy.mesh import *
 from src.util.timing import profile
 
@@ -221,7 +221,6 @@ class TestMesh(unittest.TestCase):
         f3 = []
         # we need to create 6 different meshes, three of tips and three for wing. Pyvista will not recognise the
         # meshes as different otherwise.
-
         tip1 = Mesh('data/wing_off_files/fem_tip.off')
         tip2 = Mesh('data/wing_off_files/fem_tip.off')
         tip3 = Mesh('data/wing_off_files/fem_tip.off')
@@ -233,14 +232,21 @@ class TestMesh(unittest.TestCase):
         # number of frames of the gif, if no gif should be created this number should be around the 4000~ to make it
         # the same as 60~ with gif is created
         for phase in np.linspace(0, 4 * np.pi, frames+1):
-            f1.append(np.apply_along_axis(func, axis=1, arr=self.mesh.vertices, phase=phase, wave_len=1))
-            g1.append(np.apply_along_axis(animate_tip, axis=1, arr=tip1.vertices, phase=phase, wave_len=1))
+            f1.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
+                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
+            g1.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
+                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
 
-            f2.append(np.apply_along_axis(func, axis=1, arr=mesh2.vertices, phase=phase, wave_len=25))
-            g2.append(np.apply_along_axis(animate_tip, axis=1, arr=tip2.vertices, phase=phase, wave_len=25))
+            f2.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh2.vertices,
+                                          freq_t=1, freq_s=25, amp=0.2, t=phase))
+            g2.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip2.vertices,
+                                          freq_t=1, freq_s=25, amp=0.2, t=phase))
 
-            f3.append(np.apply_along_axis(func2, axis=1, arr=mesh3.vertices, phase=phase, wave_len=25))
-            g3.append(np.apply_along_axis(animate_tip2, axis=1, arr=tip3.vertices, phase=phase, wave_len=25))
+            f3.append(np.apply_along_axis(fem_wing_normal_sine, axis=1, arr=mesh3.vertices,
+                                          freq_t=1, freq_s=25, amp=0.2, t=phase))
+
+            g3.append(np.apply_along_axis(fem_tip_normal_sine, axis=1, arr=tip3.vertices,
+                                          freq_t=1, freq_s=25, amp=0.2, t=phase))
             # couldnt vectorise
         fg.append(f1)
         fg.append(g1)
@@ -252,8 +258,8 @@ class TestMesh(unittest.TestCase):
         # cords of the subplot, both mesh are in the same subplot so both needing to be the same
         plotter = pv.Plotter(shape=(3,1))
         self.mesh.main_cords(plot=True, index_row=0, index_col=0, scale=0.1, plotter=plotter, show=False)
-        self.mesh.main_cords(plot=True, index_row=1, index_col=0, scale=0.1, plotter=plotter, show=False)
-        self.mesh.main_cords(plot=True, index_row=2, index_col=0, scale=0.1, plotter=plotter, show=False)
+        mesh2.main_cords(plot=True, index_row=1, index_col=0, scale=0.1, plotter=plotter, show=False)
+        mesh3.main_cords(plot=True, index_row=2, index_col=0, scale=0.1, plotter=plotter, show=False)
         scalars = [None,None,None,None,None,None]
         textures = ["data/textures/checkers.png", None, "data/textures/checkers.png",
                     None, "data/textures/checkers.png", None]
