@@ -5,6 +5,7 @@ import trimesh
 from src.geometry.numpy.transforms import *
 from src.geometry.numpy.mesh import *
 from src.util.timing import profile
+from src.geometry.numpy.wing_models_properties import *
 
 
 class TestMesh(unittest.TestCase):
@@ -107,10 +108,7 @@ class TestMesh(unittest.TestCase):
             mesh.main_cords(plot=True, show=False, plotter=plotter, index_row=2, index_col=2,
                             title="cords", font_color="white", scale=0.1)
             mesh.plot_faces(f=np.ones(mesh.vertices.shape[0]),
-                            show=False, plotter=plotter, cmap=['black'], index_col=2, index_row=2,
-                            camera=[(0.005, -0.2, 0.01),
-                                (0.047,0.3,0),
-                                (0, 0, 1)])
+                            show=False, plotter=plotter, cmap=['white'], index_col=2, index_row=2)
             plotter.show(title=file)
             print(plotter.camera_position)
 
@@ -186,17 +184,23 @@ class TestMesh(unittest.TestCase):
 
     def test_Texture(self):
         plotter = pv.Plotter(shape=(1,2))
-        cam = [(0.03958081920375257, -0.37509635774286926, 0.2899701977108278),
-                (0.047, 0.3, 0.0),
-                (0.02689824941858312, 0.3942663562302169, 0.9186024844965115)]
+        cam = [(0.11460619078012961, -0.04553696541254279, 0.038810512823530784),
+                (0.05, 0.3, 0.02),
+                (0, 0.16643488101070833, 1)]
+        dis = np.array(FemNoTip.camera_pos["up_middle"]  - FemNoTip.camera_pos["up_right"]).tolist()
+        cam = np.array(FemNoTip.camera_pos["up_middle"] + dis).tolist()
         mesh1 = Mesh("data/wing_off_files/fem_tip.off")
         mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        mesh2.plot_faces(plotter=plotter, show=False,camera=cam, texture="data/textures/checkers2.png",
+
+        mesh2.main_cords(plot=True,show=False, plotter=plotter, scale=0.1)
+        mesh2.main_cords(plot=True, show=False, plotter=plotter, index_row=0, index_col=1, scale=0.1)
+
+        mesh2.plot_faces(plotter=plotter, show=False, camera=cam, texture="data/textures/checkers2.png",
                          title="without depth peeling")
-        mesh1.plot_faces(plotter=plotter,show=False, cmap=['white'], camera=cam, f=np.ones(mesh1.vertices.shape[0]))
+        mesh1.plot_faces(plotter=plotter, show=False, cmap=['white'], camera=cam, f=np.ones(mesh1.vertices.shape[0]))
 
         mesh2.plot_faces(plotter=plotter, index_row=0, index_col=1, title="with depth peeling",
-                         show=False, texture="data/textures/checkers2.png", depth=True,camera=cam)
+                         show=False, texture="data/textures/checkers2.png", depth=True, camera=cam)
         mesh1.plot_faces(plotter=plotter, cmap=['white'],index_row=0, index_col=1,
                          f=np.ones(mesh1.vertices.shape[0]), depth=True, camera=cam)
         print(plotter.camera_position)
@@ -225,6 +229,15 @@ class TestMesh(unittest.TestCase):
         self.mesh.connected_component(plot=True,cmap=["white", "green", "blue"],
                                       title="connected component", plotter=plotter, show=False)
         tip.connected_component(plot=True, cmap=["black", "red"], plotter=plotter)
+
+    def test_merge_wing(self):
+        mesh2 = Mesh("data/wing_off_files/fem_tip.off")
+        new_ver = np.append(self.mesh.vertices, mesh2.vertices, axis=0)
+        num_of_ver = 7724
+        increase = np.array([num_of_ver,num_of_ver,num_of_ver])
+        new_tip_f = mesh2.faces + increase
+        new_faces = np.append(self.mesh.faces, new_tip_f , axis=0)
+        #write_off((new_ver,new_faces), "src/tests/temp/combined_wing.off")
 
     def test_annimate(self):
         fg = []
@@ -288,8 +301,8 @@ class TestMesh(unittest.TestCase):
         animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=6, subplot=cords,
                            texture=textures, cmap=color_maps, plotter=plotter,
                            title=titles, font_size=font_size, font_color=font_colors,
-                           gif_path="src/tests/temp/three_red_wings.gif",
-                           camera=[cam,cam,cam,cam,cam,cam]
+                           gif_path="src/tests/temp/three_red_wings2.gif",
+                           camera=[cam,cam,cam,cam,cam,cam], depth=False
                            )
         # ^ every argument should be given as a list, the default args for this function is for a single mesh, not more
         #self.mesh.animate(movement=f, texture="data/textures/cat.jpg", gif_path="src/tests/temp/")

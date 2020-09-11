@@ -1,0 +1,24 @@
+<!DOCTYPE MeshLabDocument>
+<MeshLabProject>
+ <MeshGroup>
+  <MLMesh filename="../../../data/wing_off_files/finished_fem_without_tip.off" label="finished_fem_without_tip.off" visible="1">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption boxColor="234 234 234 255" pointColor="131 149 69 255" pointSize="3" wireWidth="1" solidColor="192 192 192 255" wireColor="64 64 64 255">100001000000000000000000000001010100000010100000000100111011110000001001</RenderingOption>
+  </MLMesh>
+  <MLMesh filename="../../../data/wing_off_files/fem_tip.off" label="fem_tip.off" visible="1">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption boxColor="234 234 234 255" pointColor="131 149 69 255" pointSize="3" wireWidth="1" solidColor="192 192 192 255" wireColor="64 64 64 255">100001000000000000000000000001010100000010100000000100111011110000001001</RenderingOption>
+  </MLMesh>
+ </MeshGroup>
+ <RasterGroup/>
+</MeshLabProject>

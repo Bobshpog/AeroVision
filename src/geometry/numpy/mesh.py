@@ -605,7 +605,8 @@ class Mesh:
 
 
 def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0), texture=None, cmap='jet',
-                       plotter=None, title='', font_size=10, font_color='black', gif_path=None, camera=None):
+                       plotter=None, title='', font_size=10, font_color='black', gif_path=None, camera=None,
+                       depth=False):
     """
    animate few mashes using f as movment metrix. press "q" after adjusting the frame to start the animation
 
@@ -640,6 +641,8 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0), t
 
     for idx in range(num_of_plots):
         plotter.subplot(subplot[idx][0], subplot[idx][1])
+        if depth:
+            plotter.enable_depth_peeling(0)
         plotter.add_text(title[idx], position="upper_edge", font_size=font_size[idx], color=font_color[idx])
         if camera[idx] is not None:
             plotter.set_position(camera[idx][0])
