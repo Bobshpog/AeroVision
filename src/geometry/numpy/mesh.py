@@ -94,6 +94,7 @@ class Mesh:
         self.faces = data[1]
         self.table = data[2]
         adj_set = set()
+        self.pv_mesh = None
 
         for face in self.faces:
             for a, b in zip(face[:-1], face[1:]):
@@ -143,9 +144,7 @@ class Mesh:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
-        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
-        pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
-        plotter.add_mesh(pv_mesh, style='wireframe')
+        plotter.add_mesh(self.pv_mesh, style='wireframe')
         if show:
             plotter.show()
         return plotter
@@ -215,14 +214,17 @@ class Mesh:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
-        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
-        pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
+
         if texture is None:
-            plotter.add_mesh(pv_mesh, scalars=f, cmap=cmap, texture=texture)
+            plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture)
         else:
             tex = pv.read_texture(texture)
-            pv_mesh.texture_map_to_plane(inplace=True)
-            plotter.add_mesh(pv_mesh, texture=tex)
+            #pv_mesh.texture_map_to_plane(inplace=True)
+            #pv_mesh.texture_map_to_plane(origin=(0,0.000699,0.004268),
+             #                            point_u=(0,0.92679,0.001032),
+              #                           point_v=(0.0015,0.6,0.004277))
+            self.pv_mesh.texture_map_to_plane(inplace=True)
+            plotter.add_mesh(self.pv_mesh, texture=tex)
         if show:
             plotter.show()
         return plotter
@@ -321,16 +323,14 @@ class Mesh:
         plotter.subplot(index_column=index_col, index_row=index_row)
 
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
-        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
-        pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         tex = None
         if texture is not None:
             tex = pv.read_texture(texture)
-            pv_mesh.texture_map_to_plane(inplace=True)
+            self.pv_mesh.texture_map_to_plane(inplace=True)
             # plotter.add_mesh(pv_mesh, texture=tex)
 
-        og = pv_mesh.center
-        projected = pv_mesh.project_points_to_plane(origin=og, normal=normal)
+        og = self.pv_mesh.center
+        projected = self.pv_mesh.project_points_to_plane(origin=og, normal=normal)
         projected.texture_map_to_plane()
         plotter.add_mesh(projected, texture=tex)
         if show:
@@ -370,19 +370,17 @@ class Mesh:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
-        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
-        pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         if texture is None:
-            plotter.add_mesh(pv_mesh, scalars=f, cmap=cmap, texture=texture)
+            plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture)
         else:
             tex = pv.read_texture(texture)
-            pv_mesh.texture_map_to_plane(inplace=True)
-            plotter.add_mesh(pv_mesh, texture=tex)
+            self.pv_mesh.texture_map_to_plane(inplace=True)
+            plotter.add_mesh(self.pv_mesh, texture=tex)
         plotter.show(auto_close=False)
         if gif_path is not None:
             plotter.open_gif(gif_path)
         for item in movement:
-            plotter.update_coordinates(item, mesh=pv_mesh)
+            plotter.update_coordinates(item, mesh=self.pv_mesh)
             if gif_path is not None:
                 plotter.write_frame()
 
@@ -421,7 +419,8 @@ class Mesh:
             self.pv_mesh.texture_map_to_plane(inplace=True)
             plotter.add_mesh(self.pv_mesh, texture=tex, name='get_photo')
         plotter.update_coordinates(movement)
-        return plotter.screenshot(window_size=resolution)
+        depth = plotter.get_image_depth(fill_value=-1)
+        return np.append(plotter.screenshot(window_size=resolution), depth)
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):
@@ -648,8 +647,7 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0), t
             plotter.set_position(camera[idx][0])
             plotter.set_focus(camera[idx][1])
             plotter.set_viewup(camera[idx][2])
-        pv_styled_faces = np.insert(mesh[idx].faces, 0, 3, axis=1)
-        pv_mesh.append(pv.PolyData(mesh[idx].vertices, pv_styled_faces))
+        pv_mesh.append(mesh[idx].pv_mesh)
         if texture[idx] is None:
             plotter.add_mesh(pv_mesh[idx], scalars=f[idx], cmap=cmap[idx], texture=texture[idx])
         else:
