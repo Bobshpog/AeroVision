@@ -111,6 +111,10 @@ class Mesh:
                 self.corners[v].add(idx)
         self.corners = {k: np.fromiter(v, int, len(v)) for (k, v) in self.corners.items()}
 
+        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
+        # mesh in pyvista format
+        self.pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
+
     # ----------------------------Basic Visualizer----------------------------#
 
     def plot_wireframe(self, index_row=0, index_col=0, show=True, plotter=None, title='', font_size=10,
@@ -391,32 +395,31 @@ class Mesh:
 
        Args:
            movement: V side vector
-           f: map between (x,y,z) of vertex to scalar for the color map
+           f: map between (x,y,z) of vertex to scalar for the color map, used only if texture is not supplied
            texture: the texture to use
-           cmap: the colormap to use
-           plotter: the pyvista plotter
-           camera: the [camera position , focal point, view up] each (x,y,z) tuple
+           cmap: the colormap to use, used only if texture is not supplied
+           plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
+           camera: the [camera position , focal point, view up] each (x,y,z) tuple, used only if plotter is supplied
            resolution: the image resolution [w,h]
 
         Returns:
            An image shot from camera of the mesh
         """
         if resolution is None:
-            resolution =[640, 480]
-        plotter = pv.Plotter()
-        if camera is not None:
-            plotter.set_position(camera[0])
-            plotter.set_focus(camera[1])
-            plotter.set_viewup(camera[2])
+            resolution = [640, 480]
+        if plotter is None:
+            plotter = pv.Plotter()
+            if camera:
+                plotter.set_position(camera[0])
+                plotter.set_focus(camera[1])
+                plotter.set_viewup(camera[2])
 
-        pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
-        pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
         if texture is None:
-            plotter.add_mesh(pv_mesh, scalars=f, cmap=cmap, texture=texture)
+            plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture, name='get_photo')
         else:
             tex = pv.read_texture(texture)
-            pv_mesh.texture_map_to_plane(inplace=True)
-            plotter.add_mesh(pv_mesh, texture=tex)
+            self.pv_mesh.texture_map_to_plane(inplace=True)
+            plotter.add_mesh(self.pv_mesh, texture=tex, name='get_photo')
         plotter.update_coordinates(movement)
         return plotter.screenshot(window_size=resolution)
 
