@@ -187,8 +187,7 @@ class TestMesh(unittest.TestCase):
         cam = [(-0.019770941905445285, -0.06082136750543311, -0.038694507832388224),
                 (0.05, 0.3, 0.02),
                 (0.041, 0.0438, -1)]
-        dis = np.array(FemNoTip.camera_pos["up_middle"]) - np.array(FemNoTip.camera_pos["up_right"])
-        #cam = (np.array(FemNoTip.camera_pos["up_middle"]) + dis).tolist()
+        cam = FemNoTip.camera_pos['down_middle']
         mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh1 = Mesh('data/wing_off_files/fem_tip.off')
         #cam = FemNoTip.camera_pos["up_middle"]
@@ -238,14 +237,13 @@ class TestMesh(unittest.TestCase):
         #write_off((new_ver,new_faces), "src/tests/temp/combined_wing.off")
 
     def test_annimate_three(self):
-        fg = []
         # the movement of all meshes
         g1 = []
         f1 = []
         f2 = []
         g2 = []
-        g3 = []
         f3 = []
+        g3 = []
         # we need to create 6 different meshes, three of tips and three for wing. Pyvista will not recognise the
         # meshes as different otherwise.
         tip1 = Mesh('data/wing_off_files/fem_tip.off')
@@ -275,25 +273,20 @@ class TestMesh(unittest.TestCase):
             g3.append(np.apply_along_axis(fem_tip_normal_sine, axis=1, arr=tip3.vertices,
                                           freq_t=1, freq_s=25, amp=0.2, t=phase))
             # couldnt vectorise
-        fg.append(f1)
-        fg.append(g1)
-        fg.append(f2)
-        fg.append(g2)
-        fg.append(f3)
-        fg.append(g3)
-        cords = [(0, 0), (0, 0), (1, 0), (1,0), (2, 0), (2, 0)]
+
+        fg = [f1, g1, f2, g2, f3, g3]
+        cords = [(0, 0), (0, 0), (1, 0), (1, 0), (2, 0), (2, 0)]
         # cords of the subplot, both mesh are in the same subplot so both needing to be the same
-        plotter = pv.Plotter(shape=(3,1))
+        plotter = pv.Plotter(shape=(3, 1))
 
         self.mesh.main_cords(plot=True, index_row=0, index_col=0, scale=0.1, plotter=plotter, show=False)
         mesh2.main_cords(plot=True, index_row=1, index_col=0, scale=0.1, plotter=plotter, show=False)
         mesh3.main_cords(plot=True, index_row=2, index_col=0, scale=0.1, plotter=plotter, show=False)
-        scalars = [None,None,None,None,None,None]
-        textures = ["data/textures/checkers2.png", None, "data/textures/checkers2.png",
-                    None, "data/textures/checkers2.png", None]
-        color_maps = ["jet", "jet", "jet", "jet", "jet", "jet"]
+        scalars = [None] * 6
+        textures = ["data/textures/checkers2.png", None] * 3
+        color_maps = ["jet"] * 6
         titles = ["big wave length", "","small wave length","","non decaying sin",""]
-        font_colors = ["black", "black","black", "black","black", "black"]
+        font_colors = ["black"] * 6
         font_size = [10, 10, 10, 10, 10, 10]
         cam = [(0.005, -0.2, 0.01),(0.047,0.3,0),(0, 0, 1)]
         animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=6, subplot=cords,
@@ -306,28 +299,27 @@ class TestMesh(unittest.TestCase):
         #self.mesh.animate(movement=f, texture="data/textures/cat.jpg", gif_path="src/tests/temp/")
         # ^ would animate a single mesh in a single subplot
 
-
-
+    @profile
     def test_annimate_six(self):
-        fg = []
-        # the movement of all meshes
+        # the movement for each of the meshes
         g1 = []
         f1 = []
         f2 = []
         g2 = []
-        g3 = []
         f3 = []
-        g4 = []
+        g3 = []
         f4 = []
+        g4 = []
         f5 = []
         g5 = []
-        g6 = []
         f6 = []
+        g6 = []
         # we need to create 6 different meshes, three of tips and three for wing. Pyvista will not recognise the
         # meshes as different otherwise.
         tip1 = Mesh('data/wing_off_files/fem_tip.off')
         tip2 = Mesh('data/wing_off_files/fem_tip.off')
         tip3 = Mesh('data/wing_off_files/fem_tip.off')
+        mesh1 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh3 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         tip4 = Mesh('data/wing_off_files/fem_tip.off')
@@ -336,71 +328,55 @@ class TestMesh(unittest.TestCase):
         mesh4 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh5 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh6 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        meshes = [self.mesh, tip1, mesh2, tip2, mesh3, tip3, mesh4, tip4, mesh5, tip5, mesh6, tip6]
+        meshes = [mesh1, tip1, mesh2, tip2, mesh3, tip3, mesh4, tip4, mesh5, tip5, mesh6, tip6]
         # ^ define the order of each mesh
         frames = 40
         # number of frames of the gif, if no gif should be created this number should be around the 4000~ to make it
         # the same as 60~ with gif is created
         for phase in np.linspace(0, 4 * np.pi, frames+1):
-            f1.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
+            f1.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh1.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
             g1.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
 
-            f2.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
+            f2.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh2.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
-            g2.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
-                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
-
-            f3.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
-                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
-            g3.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
+            g2.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip2.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
 
-            f4.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
+            f3.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh3.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
-            g4.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
-                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
-
-            f5.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
-                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
-            g5.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
+            g3.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip3.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
 
-            f6.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
+            f4.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh4.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
-            g6.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
+            g4.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip4.vertices,
+                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
+
+            f5.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh5.vertices,
+                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
+            g5.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip5.vertices,
+                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
+
+            f6.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh6.vertices,
+                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
+            g6.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip6.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
             # couldnt vectorise
-        fg.append(f1)
-        fg.append(g1)
-        fg.append(f2)
-        fg.append(g2)
-        fg.append(f3)
-        fg.append(g3)
-        fg.append(f4)
-        fg.append(g4)
-        fg.append(f5)
-        fg.append(g5)
-        fg.append(f6)
-        fg.append(g6)
+        # the movement list
+        fg = [f1, g1, f2, g2, f3, g3, f4, g4, f5, g5, f6, g6]
         cords = [(0, 0), (0, 0), (0, 1), (0,1), (0, 2), (0, 2), (1, 0), (1, 0), (1, 1), (1, 1), (1, 2), (1, 2)]
         # cords of the subplot, both mesh are in the same subplot so both needing to be the same
-        plotter = pv.Plotter(shape=(2,3))
-        scalars = [None,None,None,None,None,None,None,None,None,None,None,None]
-
-        textures = ["data/textures/checkers2.png", None, "data/textures/checkers2.png",
-                    None, "data/textures/checkers2.png", None,"data/textures/checkers2.png",
-                    None, "data/textures/checkers2.png",
-                    None, "data/textures/checkers2.png", None]
-
-        color_maps = ["jet", "jet", "jet", "jet", "jet", "jet","jet", "jet", "jet", "jet", "jet", "jet"]
-        titles = ["up left", "","up middle","","up right","","down left", "","down middle","","down right",""]
-        font_colors = ["black", "black","black", "black","black", "black","black", "black","black", "black","black",
-                       "black"]
-        font_size = [10, 10, 10, 10, 10, 10,10, 10, 10, 10, 10, 10]
-        cam = [FemNoTip.camera_pos["up_left"],FemNoTip.camera_pos["up_left"],FemNoTip.camera_pos["up_middle"],
-               FemNoTip.camera_pos["up_middle"],FemNoTip.camera_pos["up_right"],FemNoTip.camera_pos["up_right"],
+        plotter = pv.Plotter(shape=(2, 3))
+        scalars = [None] * 12
+        textures = ["data/textures/checkers2.png", None] * 6
+        color_maps = ["jet"] * 12
+        titles = ["up left", "", "up middle", "", "up right", "", "down left", "","down middle","","down right",""]
+        font_colors = ["black"] * 12
+        font_size = [10] * 12
+        cam = [FemNoTip.camera_pos["up_left"], FemNoTip.camera_pos["up_left"], FemNoTip.camera_pos["up_middle"],
+               FemNoTip.camera_pos["up_middle"], FemNoTip.camera_pos["up_right"], FemNoTip.camera_pos["up_right"],
                FemNoTip.camera_pos["down_left"], FemNoTip.camera_pos["down_left"], FemNoTip.camera_pos["down_middle"],
                FemNoTip.camera_pos["down_middle"], FemNoTip.camera_pos["down_right"], FemNoTip.camera_pos["down_right"]
                ]
