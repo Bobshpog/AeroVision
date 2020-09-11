@@ -573,6 +573,17 @@ class Mesh:
             vertex_normal = matrix.dot(fn)
             return vertex_normal / np.linalg.norm(vertex_normal) if norm else vertex_normal
 
+    def get_movement_reconstructed(self, movement):
+        """
+        Finds the movement matrix of the reconstructed wing from the movement of the FE model
+        Args:
+            movement: movement matrix of FE model
+
+        Returns:
+            movement matrix of reconstructed model
+        """
+        pass
+
     def _get_vertex_face_adjacency(self, data=None):
         """
         Return a sparse matrix for which vertices are contained in which faces.
