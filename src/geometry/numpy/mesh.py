@@ -384,7 +384,7 @@ class Mesh:
 
         plotter.close()
 
-    def get_photo(self, movement, f=None, texture=None, cmap='jet',
+    def get_photo(self, movement, resolution=None, f=None, texture=None, cmap='jet',
                   plotter=None, camera=None):
         """
         Take a photo of the mesh in a cerain position
@@ -396,10 +396,13 @@ class Mesh:
            cmap: the colormap to use
            plotter: the pyvista plotter
            camera: the [camera position , focal point, view up] each (x,y,z) tuple
+           resolution: the image resolution [w,h]
 
         Returns:
            An image shot from camera of the mesh
         """
+        if resolution is None:
+            resolution =[640, 480]
         plotter = pv.Plotter()
         if camera is not None:
             plotter.set_position(camera[0])
@@ -415,7 +418,7 @@ class Mesh:
             pv_mesh.texture_map_to_plane(inplace=True)
             plotter.add_mesh(pv_mesh, texture=tex)
         plotter.update_coordinates(movement)
-        return plotter.screenshot()
+        return plotter.screenshot(window_size=resolution)
 
     # ----------------------------Basic Properties----------------------------#
     def get_vertex_valence(self, idx=-1):
