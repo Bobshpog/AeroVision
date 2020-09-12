@@ -581,7 +581,7 @@ class Mesh:
         Returns:
             Tuple of movement matrix of reconstructed model, (hull_matrix, tail_matrix)
         """
-        pass
+        pass #TODO implement
 
     def get_ir_coords(self, movement):
         """
@@ -590,9 +590,10 @@ class Mesh:
             movement:
 
         Returns:
+            returns an nparray of the vertices associates with the ir coordinates
 
         """
-        pass
+        pass #TODO implement
 
     def _get_vertex_face_adjacency(self, data=None):
         """
