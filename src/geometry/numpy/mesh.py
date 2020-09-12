@@ -343,7 +343,7 @@ class Mesh:
        animate the mash using movement as movement metrix press "q" after adjusting the frame to start the animation
 
        Args:
-           movement: iterable with V side vector as elements
+           movement: tuple of  V side vector as elements, (hull_movement,tip_movement)
            f: map between (x,y,z) of vertex to scalar for the color map
            index_row: chosen subplot row
            index_col: chosen subplot column
@@ -579,7 +579,18 @@ class Mesh:
             movement: movement matrix of FE model
 
         Returns:
-            movement matrix of reconstructed model
+            Tuple of movement matrix of reconstructed model, (hull_matrix, tail_matrix)
+        """
+        pass
+
+    def get_ir_coords(self, movement):
+        """
+        Retrieves a np.array of the coordiantes related to the movement
+        Args:
+            movement:
+
+        Returns:
+
         """
         pass
 
