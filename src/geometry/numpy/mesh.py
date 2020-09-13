@@ -386,12 +386,14 @@ class Mesh:
 
         plotter.close()
 
-    def get_photo(self, movement, resolution=None, f=None, texture=None, cmap='jet',
+    @staticmethod
+    def get_photo(mesh, movement, resolution=None, f=None, texture=None, cmap='jet',
                   plotter=None, camera=None, num_of_mesh=1):
         """
         Take a photo of the mesh in a cerain position
 
        Args:
+           mesh: the mesh to use
            movement: V side vector
            f: map between (x,y,z) of vertex to scalar for the color map, used only if texture is not supplied
            texture: the texture to use
@@ -405,7 +407,6 @@ class Mesh:
         Returns:
            An image shot from camera of the mesh
         """
-        # TODO make it work for more then one mesh
         if resolution is None:
             resolution = [640, 480]
         if plotter is None:
@@ -414,13 +415,19 @@ class Mesh:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
+        if num_of_mesh == 1:
+            movement = [movement]
+            texture = [texture]
+            f = [f]
+            cmap = [cmap]
+        for i in range(num_of_mesh):
+            if texture[i] is None:
+                plotter.add_mesh(mesh[i].pv_mesh, scalars=f[i], cmap=cmap[i], texture=texture[i], name='get_photo_'+i)
+            else:
+                tex = pv.read_texture(texture[i])
+                mesh[i].pv_mesh.texture_map_to_plane(inplace=True)
+                plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_'+i)
 
-        if texture is None:
-            plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture, name='get_photo')
-        else:
-            tex = pv.read_texture(texture)
-            self.pv_mesh.texture_map_to_plane(inplace=True)
-            plotter.add_mesh(self.pv_mesh, texture=tex, name='get_photo')
         plotter.update_coordinates(movement)
         depth = plotter.get_image_depth(fill_value=-1)
         return np.append(plotter.screenshot(window_size=resolution), depth)

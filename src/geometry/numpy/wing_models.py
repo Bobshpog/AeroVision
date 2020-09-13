@@ -6,6 +6,7 @@ class FemWing:
     num_of_vertices_tip = 930
     wing_path = "data/wing_off_files/finished_fem_without_tip.off"
     tip_path = "data/wing_off_files/fem_tip.off"
+    texture_path = "data/textures/checkers2"
     camera_pos = {
         'up_middle': [(0.047, -0.053320266561896174, 0.026735639600027315),
                       (0.05, 0.3, 0.02),
@@ -47,6 +48,18 @@ class FemWing:
             used for movement vector
 
         """
+        wing_table = read_off(FemWing.wing_path)[2]
+        tip_table = read_off(FemWing.tip_path)[2]
+        new_tip_displacement = np.zeros(FemWing.num_of_vertices_tip, 3)
+        new_wing_displacement = np.zeros(FemWing.num_of_vertices_wing, 3)
+        for idx, cord in enumerate(coordinates):
+            if cord[idx][0] < 0.095 or cord[idx][1] >= 0.605:
+                if cord[idx][1] >= 0.605:
+                    #new_tip_displacement[tip_table[cord.toyetes()]] = displacement[idx]
+                    pass
+                else:
+                    new_wing_displacement[wing_table[cord.toyetes()]] = displacement[idx]
+            pass
         # TODO alex
         pass
 
@@ -57,13 +70,18 @@ class FemWing:
         Args:
             coordinates: np array of the coordinates, size N*3
             displacement: np array of the displacement for each row size N*3
-            ir_id: nparray of the id we search for
+            ir_id: nparray of the ids we search for
 
         Returns:
             returns an nparray of the coordinates of the vertices associates with the ir coordinates
 
         """
-        pass
+        ir_data = np.zeros(len(ir_id),3)
+        for i in range(len(ir_id)):
+            ir_data[i] = coordinates[ir_id[i]] + displacement[ir_id[id]]
+            # not vectorize because |ir_id| << |coordinates|
+
+        return ir_data
 
     @staticmethod
     def get_wing_photo(movement=None, texture=None, camera=None, f=None, cmap="jet", resolution=None,
@@ -84,19 +102,28 @@ class FemWing:
            An image shot from camera of the wing and tip
         """
 
-        pass
+        wing = Mesh(FemWing.wing_path)
+        tip = Mesh(FemWing.tip_path)
+        return Mesh.get_photo([wing, tip], movement=movement, resolution=resolution, f=[f, None], plotter=plotter,
+                              texture=[texture, None], cmap=[cmap, None], camera=camera, num_of_mesh=2)
+
+
 
     @staticmethod
-    def from_cvs_to_picture(displacement, coordinates, ir_id):
+    def from_cvs_to_picture(coordinates, displacement,  ir_id, camera):
         """
         Retrieves a np.array of the coordinates related to the movement
         Args:
             coordinates: np array of the coordinates, size N*3
             displacement: np array of the displacement for each row size N*3
             ir_id: nparray of the ir id we search for
+            camera: the camera setting to use
 
         Returns:
             returns a tuple (picture,ir) TODO make sure on format
 
         """
-        pass
+        movement = FemWing.translate_displacement_from_data(coordinates, displacement)
+        ir = FemWing.get_ir_coords(coordinates,displacement,ir_id)
+        photo = FemWing.get_wing_photo(movement=movement, texture=FemWing.texture_path, camera=camera)
+        return photo, ir
