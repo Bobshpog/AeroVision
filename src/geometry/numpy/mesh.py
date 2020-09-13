@@ -9,6 +9,10 @@ from scipy.sparse.csgraph import connected_components
 from sklearn.decomposition import PCA
 
 
+def cord2index(cord):
+    return (cord[0]*(10 ^ 6)), (cord[1]*(10 ^ 6)), (cord[2]*(10 ^ 6))
+
+
 def read_off(path):
     """
     .off file reader
@@ -36,7 +40,7 @@ def read_off(path):
                     continue
                 if indexing_vertices:
                     vertices.append(list(map(float, line.split()[:3])))
-                    table[np.asarray(vertices[idx]).tobytes()] = idx
+                    table[cord2index(vertices[idx])] = idx
                     idx += 1
                     if idx >= num_vertices:
                         indexing_vertices = False
@@ -219,10 +223,6 @@ class Mesh:
             plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture)
         else:
             tex = pv.read_texture(texture)
-            #pv_mesh.texture_map_to_plane(inplace=True)
-            #pv_mesh.texture_map_to_plane(origin=(0,0.000699,0.004268),
-             #                            point_u=(0,0.92679,0.001032),
-              #                           point_v=(0.0015,0.6,0.004277))
             self.pv_mesh.texture_map_to_plane(inplace=True)
             plotter.add_mesh(self.pv_mesh, texture=tex)
         if show:
@@ -388,9 +388,10 @@ class Mesh:
 
     @staticmethod
     def get_photo(mesh, movement, resolution=None, f=None, texture=None, cmap='jet',
-                  plotter=None, camera=None, num_of_mesh=1):
+                  plotter=None, camera=None):
         """
         Take a photo of the mesh in a cerain position
+        all args in case for more then one mesh should be in list
 
        Args:
            mesh: the mesh to use
@@ -401,12 +402,11 @@ class Mesh:
            plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
            camera: the [camera position , focal point, view up] each (x,y,z) tuple
            resolution: the image resolution [w,h]
-           num_of_mesh: the number of meshes to use in total for the picture, deafult for one and if more then one
-                        all other parameters should be supplied as a list
 
         Returns:
            An image shot from camera of the mesh
         """
+        num_of_mesh = len(mesh)
         if resolution is None:
             resolution = [640, 480]
         if plotter is None:
@@ -422,11 +422,12 @@ class Mesh:
             cmap = [cmap]
         for i in range(num_of_mesh):
             if texture[i] is None:
-                plotter.add_mesh(mesh[i].pv_mesh, scalars=f[i], cmap=cmap[i], texture=texture[i], name='get_photo_'+i)
+                plotter.add_mesh(mesh[i].pv_mesh, scalars=f[i], cmap=cmap[i], texture=texture[i],
+                                 name='get_photo_'+str(i))
             else:
                 tex = pv.read_texture(texture[i])
                 mesh[i].pv_mesh.texture_map_to_plane(inplace=True)
-                plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_'+i)
+                plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_'+str(i))
 
         plotter.update_coordinates(movement)
         depth = plotter.get_image_depth(fill_value=-1)
@@ -606,7 +607,7 @@ class Mesh:
         return coo_matrix((data, (row, col)), shape=shape, dtype=data.dtype)
 
 
-def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0), texture=None, cmap='jet',
+def animate_few_meshes(mesh, movement, f=None, subplot=(0, 0), texture=None, cmap='jet',
                        plotter=None, title='', font_size=10, font_color='black', gif_path=None, camera=None,
                        depth=False):
     """
@@ -616,7 +617,6 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0), t
        mesh: list of the meshes to plot
        movement:  list of iterable with Vn side vector as elements for the num of vercies of the n-th mesh
        f: list of function that map between id of vertex to scalar for the color map
-       num_of_plots: number of meshes to plot
        subplot: list of subplots to use, each is a tuple in the form of: (row,col)
        texture: list of the textures to use
        cmap: list of the colormap to use
@@ -631,6 +631,7 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0), t
     Returns:
        None
     """
+    num_of_plots = len(mesh)
     if num_of_plots == 1:
         return mesh.animate(movement=movement, f=f, index_col=subplot[1], index_row=subplot[0], texture=texture,
                             cmap=cmap, plotter=plotter, title=title, font_color=font_color, font_size=font_size,
