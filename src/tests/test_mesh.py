@@ -5,7 +5,7 @@ import trimesh
 from src.geometry.numpy.transforms import *
 from src.geometry.numpy.mesh import *
 from src.util.timing import profile
-from src.geometry.numpy.wing_models_properties import *
+from src.geometry.numpy.wing_models import *
 
 
 class TestMesh(unittest.TestCase):
@@ -187,7 +187,7 @@ class TestMesh(unittest.TestCase):
         cam = [(-0.019770941905445285, -0.06082136750543311, -0.038694507832388224),
                 (0.05, 0.3, 0.02),
                 (0.041, 0.0438, -1)]
-        cam = FemNoTip.camera_pos['down_middle']
+        cam = FemWing.camera_pos['down_middle']
         mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh1 = Mesh('data/wing_off_files/fem_tip.off')
         #cam = FemNoTip.camera_pos["up_middle"]
@@ -378,13 +378,13 @@ class TestMesh(unittest.TestCase):
         # cords of the subplot, both mesh are in the same subplot so both needing to be the same
         plotter = pv.Plotter(shape=(3, 3))
         for i in range(3):
-            plotter.subplot(2,i)
-            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["up_right"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["up_left"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["up_middle"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["down_right"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["down_left"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["down_middle"][0], radius=0.01), color='black')
+            plotter.subplot(2, i)
+            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["up_right"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["up_left"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["up_middle"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["down_right"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["down_left"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["down_middle"][0], radius=0.01), color='black')
 
         mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=0, texture="data/textures/checkers2.png")
         mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=2, texture="data/textures/checkers2.png")
@@ -398,10 +398,10 @@ class TestMesh(unittest.TestCase):
                   " camera view", ""]
         font_colors = ["black"] * 14
         font_size = [10] * 14
-        cam = [FemNoTip.camera_pos["up_left"], FemNoTip.camera_pos["up_left"], FemNoTip.camera_pos["up_middle"],
-               FemNoTip.camera_pos["up_middle"], FemNoTip.camera_pos["up_right"], FemNoTip.camera_pos["up_right"],
-               FemNoTip.camera_pos["down_left"], FemNoTip.camera_pos["down_left"], FemNoTip.camera_pos["down_middle"],
-               FemNoTip.camera_pos["down_middle"], FemNoTip.camera_pos["down_right"], FemNoTip.camera_pos["down_right"],
+        cam = [FemWing.camera_pos["up_left"], FemWing.camera_pos["up_left"], FemWing.camera_pos["up_middle"],
+               FemWing.camera_pos["up_middle"], FemWing.camera_pos["up_right"], FemWing.camera_pos["up_right"],
+               FemWing.camera_pos["down_left"], FemWing.camera_pos["down_left"], FemWing.camera_pos["down_middle"],
+               FemWing.camera_pos["down_middle"], FemWing.camera_pos["down_right"], FemWing.camera_pos["down_right"],
                None, None
                ]
         animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=14, subplot=cords,

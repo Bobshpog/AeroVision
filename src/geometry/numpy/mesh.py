@@ -140,7 +140,7 @@ class Mesh:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
-        if camera is not None:
+        if camera:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
@@ -174,7 +174,7 @@ class Mesh:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
-        if camera is not None:
+        if camera:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
@@ -210,7 +210,7 @@ class Mesh:
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
         if depth:
             plotter.enable_depth_peeling(0)
-        if camera is not None:
+        if camera:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
@@ -324,7 +324,7 @@ class Mesh:
 
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
         tex = None
-        if texture is not None:
+        if texture:
             tex = pv.read_texture(texture)
             self.pv_mesh.texture_map_to_plane(inplace=True)
             # plotter.add_mesh(pv_mesh, texture=tex)
@@ -366,7 +366,7 @@ class Mesh:
 
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
-        if camera is not None:
+        if camera:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
@@ -377,17 +377,17 @@ class Mesh:
             self.pv_mesh.texture_map_to_plane(inplace=True)
             plotter.add_mesh(self.pv_mesh, texture=tex)
         plotter.show(auto_close=False)
-        if gif_path is not None:
+        if gif_path:
             plotter.open_gif(gif_path)
         for item in movement:
             plotter.update_coordinates(item, mesh=self.pv_mesh)
-            if gif_path is not None:
+            if gif_path:
                 plotter.write_frame()
 
         plotter.close()
 
     def get_photo(self, movement, resolution=None, f=None, texture=None, cmap='jet',
-                  plotter=None, camera=None):
+                  plotter=None, camera=None, num_of_mesh=1):
         """
         Take a photo of the mesh in a cerain position
 
@@ -397,20 +397,23 @@ class Mesh:
            texture: the texture to use
            cmap: the colormap to use, used only if texture is not supplied
            plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
-           camera: the [camera position , focal point, view up] each (x,y,z) tuple, used only if plotter is supplied
+           camera: the [camera position , focal point, view up] each (x,y,z) tuple
            resolution: the image resolution [w,h]
+           num_of_mesh: the number of meshes to use in total for the picture, deafult for one and if more then one
+                        all other parameters should be supplied as a list
 
         Returns:
            An image shot from camera of the mesh
         """
+        # TODO make it work for more then one mesh
         if resolution is None:
             resolution = [640, 480]
         if plotter is None:
             plotter = pv.Plotter()
-            if camera:
-                plotter.set_position(camera[0])
-                plotter.set_focus(camera[1])
-                plotter.set_viewup(camera[2])
+        if camera:
+            plotter.set_position(camera[0])
+            plotter.set_focus(camera[1])
+            plotter.set_viewup(camera[2])
 
         if texture is None:
             plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture, name='get_photo')
@@ -572,28 +575,6 @@ class Mesh:
             vertex_normal = matrix.dot(fn)
             return vertex_normal / np.linalg.norm(vertex_normal) if norm else vertex_normal
 
-    def get_movement_reconstructed(self, movement):
-        """
-        Finds the movement matrix of the reconstructed wing from the movement of the FE model
-        Args:
-            movement: movement matrix of FE model
-
-        Returns:
-            Tuple of movement matrix of reconstructed model, (hull_matrix, tail_matrix)
-        """
-        pass #TODO implement
-
-    def get_ir_coords(self, movement):
-        """
-        Retrieves a np.array of the coordiantes related to the movement
-        Args:
-            movement:
-
-        Returns:
-            returns an nparray of the vertices associates with the ir coordinates
-
-        """
-        pass #TODO implement
 
     def _get_vertex_face_adjacency(self, data=None):
         """
@@ -655,7 +636,7 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0), t
         if depth:
             plotter.enable_depth_peeling(0)
         plotter.add_text(title[idx], position="upper_edge", font_size=font_size[idx], color=font_color[idx])
-        if camera[idx] is not None:
+        if camera[idx]:
             plotter.set_position(camera[idx][0])
             plotter.set_focus(camera[idx][1])
             plotter.set_viewup(camera[idx][2])
@@ -668,13 +649,13 @@ def animate_few_meshes(mesh, movement, f=None, num_of_plots=1, subplot=(0, 0), t
             plotter.add_mesh(pv_mesh[idx], texture=tex)
     # starting the animation
     plotter.show(auto_close=False)
-    if gif_path is not None:
+    if gif_path:
         plotter.open_gif(gif_path)
         plotter.write_frame()
     for frame, item in enumerate(movement[0]):
         for plt_id in range(num_of_plots):
             plotter.update_coordinates(movement[plt_id][frame], mesh=pv_mesh[plt_id])
-        if gif_path is not None:
+        if gif_path:
             plotter.write_frame()
 
     plotter.close()
