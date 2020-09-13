@@ -314,6 +314,8 @@ class TestMesh(unittest.TestCase):
         g5 = []
         f6 = []
         g6 = []
+        f7 = []
+        g7 = []
         # we need to create 6 different meshes, three of tips and three for wing. Pyvista will not recognise the
         # meshes as different otherwise.
         tip1 = Mesh('data/wing_off_files/fem_tip.off')
@@ -328,7 +330,9 @@ class TestMesh(unittest.TestCase):
         mesh4 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh5 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh6 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        meshes = [mesh1, tip1, mesh2, tip2, mesh3, tip3, mesh4, tip4, mesh5, tip5, mesh6, tip6]
+        tip7 = Mesh('data/wing_off_files/fem_tip.off')
+        mesh7 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
+        meshes = [mesh1, tip1, mesh2, tip2, mesh3, tip3, mesh4, tip4, mesh5, tip5, mesh6, tip6, mesh7, tip7]
         # ^ define the order of each mesh
         frames = 40
         # number of frames of the gif, if no gif should be created this number should be around the 4000~ to make it
@@ -363,32 +367,61 @@ class TestMesh(unittest.TestCase):
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
             g6.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip6.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
+            f7.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh7.vertices,
+                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
+            g7.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip7.vertices,
+                                          freq_t=1, freq_s=1, amp=0.2, t=phase))
             # couldnt vectorise
         # the movement list
-        fg = [f1, g1, f2, g2, f3, g3, f4, g4, f5, g5, f6, g6]
-        cords = [(0, 0), (0, 0), (0, 1), (0,1), (0, 2), (0, 2), (1, 0), (1, 0), (1, 1), (1, 1), (1, 2), (1, 2)]
+        fg = [f1, g1, f2, g2, f3, g3, f4, g4, f5, g5, f6, g6, f7, g7]
+        cords = [(0, 0), (0, 0), (0, 1), (0,1), (0, 2), (0, 2), (1, 0), (1, 0), (1, 1), (1, 1), (1, 2), (1, 2), (2, 1),(2,1)]
         # cords of the subplot, both mesh are in the same subplot so both needing to be the same
-        plotter = pv.Plotter(shape=(2, 3))
-        scalars = [None] * 12
-        textures = ["data/textures/checkers2.png", None] * 6
-        color_maps = ["jet"] * 12
-        titles = ["up left", "", "up middle", "", "up right", "", "down left", "","down middle","","down right",""]
-        font_colors = ["black"] * 12
-        font_size = [10] * 12
+        plotter = pv.Plotter(shape=(3, 3))
+        for i in range(3):
+            plotter.subplot(2,i)
+            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["up_right"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["up_left"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["up_middle"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["down_right"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["down_left"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=FemNoTip.camera_pos["down_middle"][0], radius=0.01), color='black')
+
+        mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=0, texture="data/textures/checkers2.png")
+        mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=2, texture="data/textures/checkers2.png")
+        tip1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=0)
+        tip1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=2)
+
+        scalars = [None] * 14
+        textures = ["data/textures/checkers2.png", None] * 7
+        color_maps = ["jet"] * 14
+        titles = ["up left", "", "up middle", "", "up right", "", "down left", "","down middle","","down right","",
+                  " camera view", ""]
+        font_colors = ["black"] * 14
+        font_size = [10] * 14
         cam = [FemNoTip.camera_pos["up_left"], FemNoTip.camera_pos["up_left"], FemNoTip.camera_pos["up_middle"],
                FemNoTip.camera_pos["up_middle"], FemNoTip.camera_pos["up_right"], FemNoTip.camera_pos["up_right"],
                FemNoTip.camera_pos["down_left"], FemNoTip.camera_pos["down_left"], FemNoTip.camera_pos["down_middle"],
-               FemNoTip.camera_pos["down_middle"], FemNoTip.camera_pos["down_right"], FemNoTip.camera_pos["down_right"]
+               FemNoTip.camera_pos["down_middle"], FemNoTip.camera_pos["down_right"], FemNoTip.camera_pos["down_right"],
+               None, None
                ]
-        animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=12, subplot=cords,
+        animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=14, subplot=cords,
                            texture=textures, cmap=color_maps, plotter=plotter,
                            title=titles, font_size=font_size, font_color=font_colors,
                            gif_path="src/tests/temp/camera_positions.gif",
                            camera=cam, depth=False
                            )
 
-    def test_draw_chess_board(self):
-        draw_chessboard()
+
+def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0, 0.8, 0.8)):
+    mult_h = np.ceil(h / tile_size)
+    mult_w = np.ceil(w / tile_size)
+    zero_one_grid = ((np.arange(mult_w)[:, None] + np.arange(mult_h)[:, None].T) % 2).astype(bool)
+    B = np.kron(zero_one_grid, np.ones((tile_size, tile_size), dtype=bool))
+    B = B[:h, :w, None]
+    return B * np.reshape(rgb1, (1, 1, 3)) + (~B) * np.reshape(rgb2, (1, 1, 3))
+    #plt.imshow(colored_checkerboard(tile_size=10))
+    #plt.show()
+
 
 if __name__ == '__main__':
     unittest.main()
