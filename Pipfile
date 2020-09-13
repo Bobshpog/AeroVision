@@ -18,6 +18,7 @@ paho-mqtt = "*"
 pause = "*"
 trimesh = "*"
 smbus2 = "*"
+h5py = "*"
 
 [requires]
 python_version = "3.8"
