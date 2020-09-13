@@ -433,6 +433,9 @@ class Mesh:
         return np.append(plotter.screenshot(window_size=resolution), depth)
 
     # ----------------------------Basic Properties----------------------------#
+    def __len__(self):
+        return 1
+
     def get_vertex_valence(self, idx=-1):
         """
         Calculates valence for a vertex or for all vertexes if idx<0
