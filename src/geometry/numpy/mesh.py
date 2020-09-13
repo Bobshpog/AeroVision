@@ -7,6 +7,7 @@ from PIL import Image, ImageDraw
 from scipy.sparse import csr_matrix, coo_matrix
 from scipy.sparse.csgraph import connected_components
 from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 
 def cord2index(cord):
@@ -387,7 +388,7 @@ class Mesh:
         plotter.close()
 
     @staticmethod
-    def get_photo(mesh, movement, resolution=None, f=None, texture=None, cmap='jet',
+    def get_photo(mesh, movement, resolution=None, f=None, texture=None, cmap='jet', fill_value=-1,
                   plotter=None, camera=None):
         """
         Take a photo of the mesh in a cerain position
@@ -399,9 +400,11 @@ class Mesh:
            f: map between (x,y,z) of vertex to scalar for the color map, used only if texture is not supplied
            texture: the texture to use
            cmap: the colormap to use, used only if texture is not supplied
+           fill_value: which value to fill for the depth map
            plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
            camera: the [camera position , focal point, view up] each (x,y,z) tuple
            resolution: the image resolution [w,h]
+
 
         Returns:
            An image shot from camera of the mesh
@@ -410,13 +413,13 @@ class Mesh:
         if resolution is None:
             resolution = [640, 480]
         if plotter is None:
-            plotter = pv.Plotter()
+            plotter = pv.Plotter(off_screen=True)
         if camera:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
         if num_of_mesh == 1:
-            movement = [movement]
+            mesh = [mesh]
             texture = [texture]
             f = [f]
             cmap = [cmap]
@@ -430,8 +433,12 @@ class Mesh:
                 plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_'+str(i))
 
         plotter.update_coordinates(movement)
-        depth = plotter.get_image_depth(fill_value=-1)
-        return np.append(plotter.screenshot(window_size=resolution), depth)
+
+        plotter.show(auto_close=False, window_size=resolution)
+        depth = plotter.get_image_depth(fill_value=fill_value)
+        screen = plotter.screenshot(window_size=resolution)
+        plotter.close()
+        return screen, depth
 
     # ----------------------------Basic Properties----------------------------#
     def __len__(self):

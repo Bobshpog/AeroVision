@@ -143,15 +143,15 @@ class SPOD(BaseEstimator, TransformerMixin):
 
         # --> List to store the various SPOD modes.
         Psi, modal_energy = list(), list()
-
+        print(np.array(X_blk).shape, len(freqs))
         # --> Loop through the frequencies.
         for i in range(len(freqs)):
             # --> Get the ensemble of Fourier realization for frequency i.
             Q = X_blk[:, :, i]
 
             # --> Compute the SPOD modes.
-            U, S, _ = svd(Q, full_matrices=False)
-
+            #U, S, _ = svd(Q, full_matrices=False)
+            U, S, _ = np.linalg.svd(Q, full_matrices=False)
             # --> Store the desired SPOD modes.
             Psi.append(U[:, :self.n_components])
             modal_energy.append(S[:self.n_components]**2)
@@ -185,7 +185,7 @@ class SPOD(BaseEstimator, TransformerMixin):
 
         X = X - self.mean_
 
-        return pinv(U) @ X
+        return np.linalg.pinv(U) @ X
 
     def inverse_transform(self, X):
         """Transform the data back to its original space.

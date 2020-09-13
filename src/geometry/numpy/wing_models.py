@@ -112,7 +112,7 @@ class FemWing:
         wing = Mesh(FemWing.wing_path)
         tip = Mesh(FemWing.tip_path)
         return Mesh.get_photo([wing, tip], movement=movement, resolution=resolution, f=[f, None], plotter=plotter,
-                              texture=[texture, None], cmap=[cmap, None], camera=camera)
+                              texture=[texture, None], cmap=[cmap, None], camera=camera, fill_value=-0.7)
 
     def from_cvs_to_picture(self, displacement,  ir_id, camera):
         """
@@ -123,10 +123,10 @@ class FemWing:
             camera: the camera setting to use
 
         Returns:
-            returns a tuple (picture,ir) TODO make sure on format
+            returns a tuple (picture, depth, ir) TODO make sure on format
 
         """
         movement = self.translate_displacement_from_data(displacement)
         ir = self.get_ir_coords(displacement, ir_id)
-        photo = FemWing.get_wing_photo(movement=movement, texture=self.texture, camera=camera)
-        return photo, ir
+        photo, depth = FemWing.get_wing_photo(movement=movement, texture=self.texture, camera=camera)
+        return photo, depth, ir

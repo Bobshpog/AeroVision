@@ -6,12 +6,14 @@ from src.geometry.numpy.transforms import *
 from src.geometry.numpy.mesh import *
 from src.util.timing import profile
 from src.geometry.numpy.wing_models import *
-
+from PIL import Image
+from src.geometry.spod import *
+import matplotlib.pyplot as plt
 
 class TestMesh(unittest.TestCase):
     def setUp(self):
         #self.off_files = glob.glob('data/example_off_files/*.off')
-        self.mesh = Mesh('data/wing_off_files/combined_wing.off')
+        self.mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         self.off_files = {'data/wing_off_files/combined_wing.off'}
 
     @profile
@@ -289,7 +291,7 @@ class TestMesh(unittest.TestCase):
         font_colors = ["black"] * 6
         font_size = [10, 10, 10, 10, 10, 10]
         cam = [(0.005, -0.2, 0.01),(0.047,0.3,0),(0, 0, 1)]
-        animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=6, subplot=cords,
+        animate_few_meshes(mesh=meshes, movement=fg, f=scalars, subplot=cords,
                            texture=textures, cmap=color_maps, plotter=plotter,
                            title=titles, font_size=font_size, font_color=font_colors,
                            gif_path="src/tests/temp/three_red_wings2.gif",
@@ -298,6 +300,8 @@ class TestMesh(unittest.TestCase):
         # ^ every argument should be given as a list, the default args for this function is for a single mesh, not more
         #self.mesh.animate(movement=f, texture="data/textures/cat.jpg", gif_path="src/tests/temp/")
         # ^ would animate a single mesh in a single subplot
+
+
 
     @profile
     def test_annimate_six(self):
@@ -404,13 +408,32 @@ class TestMesh(unittest.TestCase):
                FemWing.camera_pos["down_middle"], FemWing.camera_pos["down_right"], FemWing.camera_pos["down_right"],
                None, None
                ]
-        animate_few_meshes(mesh=meshes, movement=fg, f=scalars, num_of_plots=14, subplot=cords,
+        animate_few_meshes(mesh=meshes, movement=fg, f=scalars, subplot=cords,
                            texture=textures, cmap=color_maps, plotter=plotter,
                            title=titles, font_size=font_size, font_color=font_colors,
                            gif_path="src/tests/temp/camera_positions.gif",
                            camera=cam, depth=False
                            )
 
+    def test_depth_screenshot(self):
+
+        f1 = np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
+                                          freq_t=1, freq_s=1, amp=0.2, t=np.pi/4)
+        photo, depth = Mesh.get_photo(self.mesh, f1, texture="data/textures/checkers2.png", fill_value=-0.7,
+                                    camera=FemWing.camera_pos["up_left"])
+        print(np.max(depth))
+        depth2 = (depth / 0.6) * 255 + 300
+        img = Image.fromarray(depth2)
+        img.show()
+        img = Image.fromarray(photo, "RGB")
+        img.show()
+
+    def test_spod(self):
+        spod = SPOD(n_components=3)
+        spod.fit(self.mesh.vertices)
+        x = spod.transform(self.mesh.vertices)
+        print(x.shape)
+        pass
 
 def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0, 0.8, 0.8)):
     mult_h = np.ceil(h / tile_size)
