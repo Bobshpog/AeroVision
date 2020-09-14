@@ -436,8 +436,9 @@ class Mesh:
 
         plotter.show(auto_close=False, window_size=resolution)
         depth = plotter.get_image_depth(fill_value=fill_value)
-
-        screen = plotter.screenshot(window_size=resolution)/255.0
+        depth=np.abs(depth)
+        screen = plotter.screenshot(window_size=resolution)
+        screen=screen/255.0
         plotter.close()
         return np.append(screen,depth.reshape(resolution[1],resolution[0],1),axis=-1)
 

@@ -419,12 +419,12 @@ class TestMesh(unittest.TestCase):
 
         f1 = np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=np.pi/4)
-        photo_rgbd = Mesh.get_photo(self.mesh, f1, texture="data/textures/checkers2.png", fill_value=0,
+        photo_rgbd = Mesh.get_photo(self.mesh, f1, texture="data/textures/checkers2.png", fill_value=None,
                                     camera=FemWing.camera_pos["up_left"])
         photo=photo_rgbd[:,:,:-1]
         depth=photo_rgbd[:,:,-1]
         print(np.max(depth))
-        depth2 = (((depth / depth.min())-depth.max()) * 255).astype('int8')
+        depth2 = (((depth / depth.max())+depth.min()) * 255).astype('int8')
         img = Image.fromarray(depth2)
         img.show()
         photo2=(255*(photo/photo.max()+photo.min())).astype('int8')
