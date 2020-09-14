@@ -432,15 +432,13 @@ class Mesh:
                 mesh[i].pv_mesh.texture_map_to_plane(inplace=True)
                 plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_'+str(i))
 
-        plotter.update_coordinates(movement)
+            plotter.update_coordinates(movement[i])
 
         plotter.show(auto_close=False, window_size=resolution)
         depth = plotter.get_image_depth(fill_value=fill_value)
         depth=np.abs(depth)
         screen = plotter.screenshot(window_size=resolution)
-        screen=screen/255.0
-        plotter.close()
-        return np.append(screen,depth.reshape(resolution[1],resolution[0],1),axis=-1)
+        return np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
 
     # ----------------------------Basic Properties----------------------------#
     def __len__(self):

@@ -1,6 +1,7 @@
 import glob
 import os
 import unittest
+import cv2
 import trimesh
 from src.geometry.numpy.transforms import *
 from src.geometry.numpy.mesh import *
@@ -416,20 +417,40 @@ class TestMesh(unittest.TestCase):
                            )
 
     def test_depth_screenshot(self):
+        mesh2 = Mesh("data/wing_off_files/fem_tip.off")
+        plotter = pv.Plotter(off_screen=True)
+        frames = 40
+        url = "src/tests/temp/video_frames/"
+        i=0
+        im_frames=[]
+        for phase in np.linspace(0, 4 * np.pi, frames ):
+            i=i+1
+            f1 = np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
+                                     freq_t=1, freq_s=1, amp=0.2, t=phase)
+            g1 = np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=mesh2.vertices,
+                                     freq_t=1, freq_s=1, amp=0.2, t=phase)
 
-        f1 = np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
-                                          freq_t=1, freq_s=1, amp=0.2, t=np.pi/4)
-        photo_rgbd = Mesh.get_photo(self.mesh, f1, texture="data/textures/checkers2.png", fill_value=None,
-                                    camera=FemWing.camera_pos["up_left"])
-        photo=photo_rgbd[:,:,:-1]
-        depth=photo_rgbd[:,:,-1]
-        print(np.max(depth))
-        depth2 = (((depth-depth.min()) / depth.max()) * 255).astype('uint8')
-        img = Image.fromarray(depth2)
-        img.show()
-        photo2=(255*(photo-photo.min())/photo.max()).astype('uint8')
-        img = Image.fromarray(photo2, mode='RGB')
-        img.show()
+            photo = Mesh.get_photo([self.mesh,mesh2], [f1,g1], f=[None,None], plotter=plotter,
+                                          texture=["data/textures/checkers2.png",None],
+                                          cmap=[None, None], camera=FemWing.camera_pos["up_left"])
+            depth = photo[:, :, -1]
+            depth2 = (((depth - depth.min()) / depth.max()) * 255).astype('uint8')
+            cv2.imshow("frame", depth2)
+            cv2.imwrite(url + "depth_frame" + str(i)+".jpg", depth2)
+            img = cv2.imread(url + "depth_frame" + str(i)+".jpg")
+            im_frames.append(img)
+            # cv2 does not support making video from np array...
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        out = cv2.VideoWriter("src/tests/temp/depth_video.mp4", cv2.VideoWriter_fourcc(*'DIVX'), 15, (640, 480))
+        for i in range(len(im_frames)):
+            out.write(im_frames[i])
+        out.release()
+        for f in glob.glob(url+'*.jpg'):
+            os.remove(f)
+        cv2.destroyAllWindows()
+
 
     def test_spod(self):
         spod = SPOD(n_components=3)

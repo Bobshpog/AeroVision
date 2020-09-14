@@ -19,6 +19,7 @@ pause = "*"
 trimesh = "*"
 smbus2 = "*"
 h5py = "*"
+opencv-python = "*"
 
 [requires]
 python_version = "3.8"
