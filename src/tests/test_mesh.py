@@ -424,10 +424,10 @@ class TestMesh(unittest.TestCase):
         photo=photo_rgbd[:,:,:-1]
         depth=photo_rgbd[:,:,-1]
         print(np.max(depth))
-        depth2 = (((depth / depth.max())+depth.min()) * 255).astype('int8')
+        depth2 = (((depth-depth.min()) / depth.max()) * 255).astype('uint8')
         img = Image.fromarray(depth2)
         img.show()
-        photo2=(255*(photo/photo.max()+photo.min())).astype('int8')
+        photo2=(255*(photo-photo.min())/photo.max()).astype('uint8')
         img = Image.fromarray(photo2, mode='RGB')
         img.show()
 
