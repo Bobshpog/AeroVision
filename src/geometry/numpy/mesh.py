@@ -388,7 +388,7 @@ class Mesh:
         plotter.close()
 
     @staticmethod
-    def get_photo(mesh, movement, resolution=None, f=None, texture=None, cmap='jet', fill_value=-1,
+    def get_photo(mesh, movement, resolution=None, f=None, texture=None, cmap='jet', fill_value=None,
                   plotter=None, camera=None):
         """
         Take a photo of the mesh in a cerain position
