@@ -124,8 +124,8 @@ class DatabaseBuilder:
             texture_name = Path(Config.texture).stem
             mesh_wing_name = Path(Config.mesh_wing_path).stem
             mesh_tip_name = Path(Config.mesh_tip_path).stem
-            db_name = self.db_folder / f"{str(datetime.now())}||{mesh_wing_name}||"\
-                                           f"{mesh_tip_name}||{texture_name}.hdf5"
+            db_name = self.db_folder / f"{str(datetime.now())}__{mesh_wing_name}__"\
+                                           f"{mesh_tip_name}__{texture_name}.hdf5"
         size = len(list(self._csv_pair_generator()))
         with h5py.File(db_name, 'w') as hf:
             hf.attrs['cameras'] = Config.cameras
