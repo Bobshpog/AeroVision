@@ -1,12 +1,14 @@
 import csv
 import functools
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
 import h5py
 import numpy as np
 import pyvista as pv
+from tqdm import tqdm
 
 from geometry.numpy.wing_models import FiniteElementWingModel
 
@@ -153,8 +155,9 @@ class DatabaseBuilder:
             wing_model = FiniteElementWingModel(cords, Config.ir_list, Config.texture, Config.mesh_wing_path,
                                                 Config.mesh_tip_path, Config.cameras, Config.num_of_vertices_wing,
                                                 Config.num_of_vertices_tip, plotter, Config.resolution, Config.cmap)
-            for idx, (points_path, scales_path) in enumerate(self._csv_pair_generator()):
-                print(idx, points_path, scales_path)
+            progress_bar=tqdm(enumerate(self._csv_pair_generator()), desc='Building Database', total=size, file=sys.stdout)
+            for idx, (points_path, scales_path) in progress_bar:
+                # print(idx, points_path, scales_path)
                 dset_displacement[idx], dset_scales[idx] = process_csv_pair(points_path, scales_path)
                 dset_images[idx], dset_ir[idx] = wing_model(dset_displacement[idx])
                 dset_video_names[idx] = f"{points_path.name}||{scales_path.name}"
