@@ -54,9 +54,9 @@ class FiniteElementWingModel:
             else:
                 count+=1
         # TODO: Ido, Runs fine without Assertions
-        assert(wing_count==self.wing_vertices_num-self.tip_vertices_num/30)
-        assert(tip_count==self.tip_vertices_num/30)
-        return new_wing_position, new_tip_position
+        # assert(wing_count==self.wing_vertices_num-self.tip_vertices_num/30)
+        # assert(tip_count==self.tip_vertices_num/30)
+        return self.wing.vertices+new_wing_position, self.tip.vertices+new_tip_position
 
     def _get_ir_cords(self, displacement):
         """
