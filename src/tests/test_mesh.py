@@ -1,19 +1,48 @@
 import glob
 import os
 import unittest
+
 import cv2
-import trimesh
+
 from src.geometry.numpy.transforms import *
-from src.geometry.numpy.mesh import *
-from src.util.timing import profile
 from src.geometry.numpy.wing_models import *
-from PIL import Image
 from src.geometry.spod import *
-import matplotlib.pyplot as plt
+from src.util.timing import profile
+
 
 class TestMesh(unittest.TestCase):
+    class Config:
+        num_of_vertices_wing = 7724
+        num_of_vertices_tip = 930
+        wing_path = "data/wing_off_files/finished_fem_without_tip.off"
+        tip_path = "data/wing_off_files/fem_tip.off"
+        camera_pos = {
+            'up_middle': [(0.047, -0.053320266561896174, 0.026735639600027315),
+                          (0.05, 0.3, 0.02),
+                          (0, 0, 1)],
+
+            'down_middle': [(0.04581499400545182, -0.04477050005202985, -0.028567355483893577),
+                            (0.05, 0.3, 0.02),
+                            (0.001212842435223535, 0.13947688005070646, -1)],
+
+            "up_right": [(0.11460619078012961, -0.04553696541254279, 0.038810512823530784),
+                         (0.05, 0.3, 0.02),
+                         (0, 0.16643488101070833, 1)],
+
+            'down_right': [(0.11460619078012961, -0.04553696541254279, -0.038810512823530784),
+                           (0.05, 0.3, 0.02),
+                           (0, 0.16643488101070833, -1)],
+            'up_left': [(-0.019770941905445285, -0.06082136750543311, 0.038694507832388224),
+                        (0.05, 0.3, 0.02),
+                        (0.041, 0.0438, 1)],
+
+            'down_left': [(-0.019770941905445285, -0.06082136750543311, -0.038694507832388224),
+                          (0.05, 0.3, 0.02),
+                          (0.041, 0.0438, -1)]
+        }
+
     def setUp(self):
-        #self.off_files = glob.glob('data/example_off_files/*.off')
+        # self.off_files = glob.glob('data/example_off_files/*.off')
         self.mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         self.off_files = {'data/wing_off_files/combined_wing.off'}
 
@@ -69,7 +98,6 @@ class TestMesh(unittest.TestCase):
                 path:  path for the .off file
         """
         for file in self.off_files:
-
             mesh = Mesh(file)
 
             # hyper parameter that decide the rate between the longest distance to the sphere to the size of the sphere
@@ -78,7 +106,7 @@ class TestMesh(unittest.TestCase):
             plotter = pv.Plotter(shape=(3, 3))
             mesh.plot_vertices(index_row=0, index_col=0, show=False, plotter=plotter, title="vertices")
             mesh.plot_faces(index_row=0, index_col=1, show=False, plotter=plotter, title="faces",
-                            camera=[[0,0,0],[0,0,0],[0,0,0]])
+                            camera=[[0, 0, 0], [0, 0, 0], [0, 0, 0]])
             mesh.plot_wireframe(index_row=0, index_col=2, show=False, plotter=plotter, title="wireframe")
 
             faces_barycenter = mesh.get_face_barycenters()
@@ -116,7 +144,7 @@ class TestMesh(unittest.TestCase):
             print(plotter.camera_position)
 
     def test_camera_angle(self):
-        plotter = pv.Plotter(shape=(3,3))
+        plotter = pv.Plotter(shape=(3, 3))
         self.mesh.plot_faces(show=False, plotter=plotter, title="front view")
         self.mesh.plot_faces(index_row=0, index_col=1, show=False, plotter=plotter, title="side view")
         self.mesh.plot_faces(index_row=0, index_col=2, show=False, plotter=plotter, title="below view")
@@ -174,7 +202,7 @@ class TestMesh(unittest.TestCase):
         plotter.subplot(2, 1)
         plotter.set_position([1540, -64, 235])
         plotter.set_focus([151.5, 60.5, 321.5])
-        plotter.set_viewup([0.1,1, 0])
+        plotter.set_viewup([0.1, 1, 0])
 
         plotter.subplot(2, 2)
         plotter.set_position([132, -11, 941])
@@ -186,22 +214,22 @@ class TestMesh(unittest.TestCase):
         print(plotter.camera_position)
 
     def test_Texture(self):
-        plotter = pv.Plotter(shape=(1,2))
+        plotter = pv.Plotter(shape=(1, 2))
         cam = [(-0.019770941905445285, -0.06082136750543311, -0.038694507832388224),
-                (0.05, 0.3, 0.02),
-                (0.041, 0.0438, -1)]
-        cam = FemWing.camera_pos['down_middle']
+               (0.05, 0.3, 0.02),
+               (0.041, 0.0438, -1)]
+        cam = self.Config.camera_pos['down_middle']
         mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh1 = Mesh('data/wing_off_files/fem_tip.off')
-        #cam = FemNoTip.camera_pos["up_middle"]
-        mesh2.main_cords(plot=True,show=False, plotter=plotter, scale=0.1)
+        # cam = FemNoTip.camera_pos["up_middle"]
+        mesh2.main_cords(plot=True, show=False, plotter=plotter, scale=0.1)
         mesh2.main_cords(plot=True, show=False, plotter=plotter, index_row=0, index_col=1, scale=0.1)
         mesh2.plot_faces(plotter=plotter, show=False, camera=cam, texture="data/textures/checkers2.png",
                          title="without parallel projection")
-        mesh1.plot_faces(plotter=plotter, show=False,index_row=0, index_col=0)
+        mesh1.plot_faces(plotter=plotter, show=False, index_row=0, index_col=0)
         mesh1.plot_faces(plotter=plotter, show=False, index_row=0, index_col=1)
         mesh2.plot_faces(plotter=plotter, index_row=0, index_col=1, title="with parallel projection",
-                          texture="data/textures/checkers2.png", camera=cam, show=False, depth=True)
+                         texture="data/textures/checkers2.png", camera=cam, show=False, depth=True)
         plotter.show()
         print(plotter.camera_position)
 
@@ -226,7 +254,7 @@ class TestMesh(unittest.TestCase):
     def test_connected(self):
         plotter = pv.Plotter()
         tip = Mesh('data/wing_off_files/fem_tip.off')
-        self.mesh.connected_component(plot=True,cmap=["white", "green", "blue"],
+        self.mesh.connected_component(plot=True, cmap=["white", "green", "blue"],
                                       title="connected component", plotter=plotter, show=False)
         tip.connected_component(plot=True, cmap=["black", "red"], plotter=plotter)
 
@@ -234,10 +262,10 @@ class TestMesh(unittest.TestCase):
         mesh2 = Mesh("data/wing_off_files/fem_tip.off")
         new_ver = np.append(self.mesh.vertices, mesh2.vertices, axis=0)
         num_of_ver = 7724
-        increase = np.array([num_of_ver,num_of_ver,num_of_ver])
+        increase = np.array([num_of_ver, num_of_ver, num_of_ver])
         new_tip_f = mesh2.faces + increase
-        new_faces = np.append(self.mesh.faces, new_tip_f , axis=0)
-        #write_off((new_ver,new_faces), "src/tests/temp/combined_wing.off")
+        new_faces = np.append(self.mesh.faces, new_tip_f, axis=0)
+        # write_off((new_ver,new_faces), "src/tests/temp/combined_wing.off")
 
     def test_annimate_three(self):
         # the movement of all meshes
@@ -259,7 +287,7 @@ class TestMesh(unittest.TestCase):
         frames = 60
         # number of frames of the gif, if no gif should be created this number should be around the 4000~ to make it
         # the same as 60~ with gif is created
-        for phase in np.linspace(0, 4 * np.pi, frames+1):
+        for phase in np.linspace(0, 4 * np.pi, frames + 1):
             f1.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
             g1.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
@@ -288,21 +316,19 @@ class TestMesh(unittest.TestCase):
         scalars = [None] * 6
         textures = ["data/textures/checkers2.png", None] * 3
         color_maps = ["jet"] * 6
-        titles = ["big wave length", "","small wave length","","non decaying sin",""]
+        titles = ["big wave length", "", "small wave length", "", "non decaying sin", ""]
         font_colors = ["black"] * 6
         font_size = [10, 10, 10, 10, 10, 10]
-        cam = [(0.005, -0.2, 0.01),(0.047,0.3,0),(0, 0, 1)]
+        cam = [(0.005, -0.2, 0.01), (0.047, 0.3, 0), (0, 0, 1)]
         animate_few_meshes(mesh=meshes, movement=fg, f=scalars, subplot=cords,
                            texture=textures, cmap=color_maps, plotter=plotter,
                            title=titles, font_size=font_size, font_color=font_colors,
                            gif_path="src/tests/temp/three_red_wings2.gif",
-                           camera=[cam,cam,cam,cam,cam,cam], depth=False
+                           camera=[cam, cam, cam, cam, cam, cam], depth=False
                            )
         # ^ every argument should be given as a list, the default args for this function is for a single mesh, not more
-        #self.mesh.animate(movement=f, texture="data/textures/cat.jpg", gif_path="src/tests/temp/")
+        # self.mesh.animate(movement=f, texture="data/textures/cat.jpg", gif_path="src/tests/temp/")
         # ^ would animate a single mesh in a single subplot
-
-
 
     @profile
     def test_annimate_six(self):
@@ -342,7 +368,7 @@ class TestMesh(unittest.TestCase):
         frames = 40
         # number of frames of the gif, if no gif should be created this number should be around the 4000~ to make it
         # the same as 60~ with gif is created
-        for phase in np.linspace(0, 4 * np.pi, frames+1):
+        for phase in np.linspace(0, 4 * np.pi, frames + 1):
             f1.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh1.vertices,
                                           freq_t=1, freq_s=1, amp=0.2, t=phase))
             g1.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
@@ -379,17 +405,24 @@ class TestMesh(unittest.TestCase):
             # couldnt vectorise
         # the movement list
         fg = [f1, g1, f2, g2, f3, g3, f4, g4, f5, g5, f6, g6, f7, g7]
-        cords = [(0, 0), (0, 0), (0, 1), (0,1), (0, 2), (0, 2), (1, 0), (1, 0), (1, 1), (1, 1), (1, 2), (1, 2), (2, 1),(2,1)]
+        cords = [(0, 0), (0, 0), (0, 1), (0, 1), (0, 2), (0, 2), (1, 0), (1, 0), (1, 1), (1, 1), (1, 2), (1, 2), (2, 1),
+                 (2, 1)]
         # cords of the subplot, both mesh are in the same subplot so both needing to be the same
         plotter = pv.Plotter(shape=(3, 3))
         for i in range(3):
             plotter.subplot(2, i)
-            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["up_right"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["up_left"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["up_middle"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["down_right"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["down_left"][0], radius=0.01), color='black')
-            plotter.add_mesh(mesh=pv.Sphere(center=FemWing.camera_pos["down_middle"][0], radius=0.01), color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=self.Config.camera_pos["up_right"][0], radius=0.01),
+                             color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=self.Config.camera_pos["up_left"][0], radius=0.01),
+                             color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=self.Config.camera_pos["up_middle"][0], radius=0.01),
+                             color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=self.Config.camera_pos["down_right"][0], radius=0.01),
+                             color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=self.Config.camera_pos["down_left"][0], radius=0.01),
+                             color='black')
+            plotter.add_mesh(mesh=pv.Sphere(center=self.Config.camera_pos["down_middle"][0], radius=0.01),
+                             color='black')
 
         mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=0, texture="data/textures/checkers2.png")
         mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=2, texture="data/textures/checkers2.png")
@@ -399,14 +432,18 @@ class TestMesh(unittest.TestCase):
         scalars = [None] * 14
         textures = ["data/textures/checkers2.png", None] * 7
         color_maps = ["jet"] * 14
-        titles = ["up left", "", "up middle", "", "up right", "", "down left", "","down middle","","down right","",
+        titles = ["up left", "", "up middle", "", "up right", "", "down left", "", "down middle", "", "down right", "",
                   " camera view", ""]
         font_colors = ["black"] * 14
         font_size = [10] * 14
-        cam = [FemWing.camera_pos["up_left"], FemWing.camera_pos["up_left"], FemWing.camera_pos["up_middle"],
-               FemWing.camera_pos["up_middle"], FemWing.camera_pos["up_right"], FemWing.camera_pos["up_right"],
-               FemWing.camera_pos["down_left"], FemWing.camera_pos["down_left"], FemWing.camera_pos["down_middle"],
-               FemWing.camera_pos["down_middle"], FemWing.camera_pos["down_right"], FemWing.camera_pos["down_right"],
+        cam = [self.Config.camera_pos["up_left"], self.Config.camera_pos["up_left"],
+               self.Config.camera_pos["up_middle"],
+               self.Config.camera_pos["up_middle"], self.Config.camera_pos["up_right"],
+               self.Config.camera_pos["up_right"],
+               self.Config.camera_pos["down_left"], self.Config.camera_pos["down_left"],
+               self.Config.camera_pos["down_middle"],
+               self.Config.camera_pos["down_middle"], self.Config.camera_pos["down_right"],
+               self.Config.camera_pos["down_right"],
                None, None
                ]
         animate_few_meshes(mesh=meshes, movement=fg, f=scalars, subplot=cords,
@@ -421,23 +458,23 @@ class TestMesh(unittest.TestCase):
         plotter = pv.Plotter(off_screen=True)
         frames = 40
         url = "src/tests/temp/video_frames/"
-        i=0
-        im_frames=[]
-        for phase in np.linspace(0, 4 * np.pi, frames ):
-            i=i+1
+        i = 0
+        im_frames = []
+        for phase in np.linspace(0, 4 * np.pi, frames):
+            i = i + 1
             f1 = np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=self.mesh.vertices,
                                      freq_t=1, freq_s=1, amp=0.2, t=phase)
             g1 = np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=mesh2.vertices,
                                      freq_t=1, freq_s=1, amp=0.2, t=phase)
 
-            photo = Mesh.get_photo([self.mesh,mesh2], [f1,g1], f=[None,None], plotter=plotter,
-                                          texture=["data/textures/checkers2.png",None],
-                                          cmap=[None, None], camera=FemWing.camera_pos["up_left"])
+            photo = Mesh.get_photo([self.mesh, mesh2], [f1, g1], plotter=plotter,
+                                   texture=["data/textures/checkers2.png", None],
+                                   cmap=[None, None], camera=self.Config.camera_pos["up_left"], resolution=[640, 480])
             depth = photo[:, :, -1]
             depth2 = (((depth - depth.min()) / depth.max()) * 255).astype('uint8')
             cv2.imshow("frame", depth2)
-            cv2.imwrite(url + "depth_frame" + str(i)+".jpg", depth2)
-            img = cv2.imread(url + "depth_frame" + str(i)+".jpg")
+            cv2.imwrite(url + "depth_frame" + str(i) + ".jpg", depth2)
+            img = cv2.imread(url + "depth_frame" + str(i) + ".jpg")
             im_frames.append(img)
             # cv2 does not support making video from np array...
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -447,10 +484,9 @@ class TestMesh(unittest.TestCase):
         for i in range(len(im_frames)):
             out.write(im_frames[i])
         out.release()
-        for f in glob.glob(url+'*.jpg'):
+        for f in glob.glob(url + '*.jpg'):
             os.remove(f)
         cv2.destroyAllWindows()
-
 
     def test_spod(self):
         spod = SPOD(n_components=3)
@@ -459,6 +495,7 @@ class TestMesh(unittest.TestCase):
         print(x.shape)
         pass
 
+
 def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0, 0.8, 0.8)):
     mult_h = np.ceil(h / tile_size)
     mult_w = np.ceil(w / tile_size)
@@ -466,8 +503,8 @@ def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0,
     B = np.kron(zero_one_grid, np.ones((tile_size, tile_size), dtype=bool))
     B = B[:h, :w, None]
     return B * np.reshape(rgb1, (1, 1, 3)) + (~B) * np.reshape(rgb2, (1, 1, 3))
-    #plt.imshow(colored_checkerboard(tile_size=10))
-    #plt.show()
+    # plt.imshow(colored_checkerboard(tile_size=10))
+    # plt.show()
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 from collections import defaultdict
 from itertools import cycle
+from time import sleep
 
 import numpy as np
 import pyvista as pv
@@ -11,7 +12,8 @@ import matplotlib.pyplot as plt
 
 
 def cord2index(cord):
-    return (cord[0]*(10 ^ 6)), (cord[1]*(10 ^ 6)), (cord[2]*(10 ^ 6))
+    #TODO Doesnt work at all with any number of digits
+    return round(cord[0],6),round(cord[1],6),round(cord[2],6)
 
 
 def read_off(path):
@@ -388,8 +390,8 @@ class Mesh:
         plotter.close()
 
     @staticmethod
-    def get_photo(mesh, movement, resolution=None, f=None, texture=None, cmap='jet', fill_value=None,
-                  plotter=None, camera=None):
+    def get_photo(mesh, movement, resolution, texture, cmap,
+                  plotter, camera):
         """
         Take a photo of the mesh in a cerain position
         all args in case for more then one mesh should be in list
@@ -397,10 +399,8 @@ class Mesh:
        Args:
            mesh: the mesh to use
            movement: V side vector
-           f: map between (x,y,z) of vertex to scalar for the color map, used only if texture is not supplied
            texture: the texture to use
            cmap: the colormap to use, used only if texture is not supplied
-           fill_value: which value to fill for the depth map
            plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
            camera: the [camera position , focal point, view up] each (x,y,z) tuple
            resolution: the image resolution [w,h]
@@ -410,32 +410,25 @@ class Mesh:
            An image shot from camera of the mesh
         """
         num_of_mesh = len(mesh)
-        if resolution is None:
-            resolution = [640, 480]
-        if plotter is None:
-            plotter = pv.Plotter(off_screen=True)
-        if camera:
-            plotter.set_position(camera[0])
-            plotter.set_focus(camera[1])
-            plotter.set_viewup(camera[2])
+        plotter.set_position(camera[0])
+        plotter.set_focus(camera[1])
+        plotter.set_viewup(camera[2])
         if num_of_mesh == 1:
             mesh = [mesh]
             texture = [texture]
-            f = [f]
-            cmap = [cmap]
         for i in range(num_of_mesh):
             if texture[i] is None:
-                plotter.add_mesh(mesh[i].pv_mesh, scalars=f[i], cmap=cmap[i], texture=texture[i],
+                plotter.add_mesh(mesh[i].pv_mesh, cmap=cmap, texture=texture[i],
                                  name='get_photo_'+str(i))
             else:
                 tex = pv.read_texture(texture[i])
                 mesh[i].pv_mesh.texture_map_to_plane(inplace=True)
-                plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_'+str(i))
+                plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_'+str(i))
 
             plotter.update_coordinates(movement[i])
 
         plotter.show(auto_close=False, window_size=resolution)
-        depth = plotter.get_image_depth(fill_value=fill_value)
+        depth = plotter.get_image_depth()
         depth=np.abs(depth)
         screen = plotter.screenshot(window_size=resolution)
         return np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
