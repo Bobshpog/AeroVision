@@ -42,18 +42,20 @@ class FiniteElementWingModel:
         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE,endpoint=False)
         x = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         y = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
-        count,tip,wing=0,0,0
+        count,tip_count,wing_count=0,0,0
         for idx, cord in enumerate(self.coordinates):
             if cord[1]>=0.605:
                 for i in range(30):
                     new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
-                tip+=1
+                tip_count+=1
             elif cord2index(cord) in wing_table:
                 new_wing_position[wing_table[cord2index(cord)]] = displacement[idx]
-                wing+=1
+                wing_count+=1
             else:
                 count+=1
-        #TODO assert wing==7724-31
+        # TODO: Ido, Runs fine without Assertions
+        assert(wing_count==self.wing_vertices_num-self.tip_vertices_num/30)
+        assert(tip_count==self.tip_vertices_num/30)
         return new_wing_position, new_tip_position
 
     def _get_ir_cords(self, displacement):
