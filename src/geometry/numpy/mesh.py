@@ -17,6 +17,24 @@ def cord2index(cord,digits=4):
     return round(cord[0],digits),round(cord[1],digits),round(cord[2],digits)
 
 
+def read_off_size(path):
+    """
+    Finds the number of vertices and faces in file
+    Args:
+        path: path to off file
+
+    Returns:
+        (num of vertices, num of faces)
+    """
+    try:
+        with open(path, 'r') as file:
+            lines = file.readlines()
+            if lines[0] != 'OFF\n':
+                print(path, 'Error: is not an .off file')
+            num_vertices, num_faces = tuple(lines[1].split()[:2])
+            return num_vertices, num_faces
+    except IOError:
+        print('Error: Failed reading file:', path)
 def read_off(path):
     """
     .off file reader
@@ -429,6 +447,7 @@ class Mesh:
             plotter.update_coordinates(movement[i])
 
         plotter.show(auto_close=False, window_size=resolution)
+        # print(plotter.camera_position)
         depth = plotter.get_image_depth()
         depth=np.abs(depth)
         screen = plotter.screenshot(window_size=resolution)
