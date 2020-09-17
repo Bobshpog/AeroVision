@@ -9,11 +9,12 @@ from scipy.sparse import csr_matrix, coo_matrix
 from scipy.sparse.csgraph import connected_components
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+def new_round(x,y):
+    return int(x*(10**y))
 
-
-def cord2index(cord):
+def cord2index(cord,digits=4):
     #TODO Doesnt work at all with any number of digits
-    return round(cord[0],6),round(cord[1],6),round(cord[2],6)
+    return round(cord[0],digits),round(cord[1],digits),round(cord[2],digits)
 
 
 def read_off(path):
