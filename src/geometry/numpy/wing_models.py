@@ -46,10 +46,10 @@ class FiniteElementWingModel:
         for idx, cord in enumerate(self.coordinates):
             if cord[1]>=0.605:
                 for i in range(30):
-                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
+                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = 0*cord + displacement[idx]
                 tip_count+=1
             elif cord2index(cord) in wing_table:
-                new_wing_position[wing_table[cord2index(cord)]] = displacement[idx]
+                new_wing_position[wing_table[cord2index(cord)]] = 0*cord + displacement[idx]
                 wing_count+=1
             else:
                 count+=1

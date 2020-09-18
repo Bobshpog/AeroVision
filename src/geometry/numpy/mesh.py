@@ -391,7 +391,7 @@ class Mesh:
 
     @staticmethod
     def get_photo(mesh, movement, resolution, texture, cmap,
-                  plotter, camera):
+                  plotter, camera, title=""):
         """
         Take a photo of the mesh in a cerain position
         all args in case for more then one mesh should be in list
@@ -404,6 +404,7 @@ class Mesh:
            plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
            camera: the [camera position , focal point, view up] each (x,y,z) tuple
            resolution: the image resolution [w,h]
+           title: the title of the photo, for visualisation purposes only
 
 
         Returns:
@@ -426,12 +427,16 @@ class Mesh:
                 plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_'+str(i))
 
             plotter.update_coordinates(movement[i])
-
+        plotter.add_text(title, position="upper_edge", font_size=10, color="black", name="title")
         plotter.show(auto_close=False, window_size=resolution)
-        depth = plotter.get_image_depth()
-        depth=np.abs(depth)
+        depth = plotter.get_image_depth(fill_value=None)
+        depth = np.abs(depth)
         screen = plotter.screenshot(window_size=resolution)
-        return np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
+        plotter.remove_actor("title")
+        #return np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1), screen
+        #  the tupled screen work for the picture and  using the append we can get the depth, not the colored img
+        #  while with the insert we can get the colored img and not the depth.
+        return np.insert(screen, 3, depth.astype(np.float64), axis=-1)
 
     # ----------------------------Basic Properties----------------------------#
     def __len__(self):

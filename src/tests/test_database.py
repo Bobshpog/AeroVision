@@ -17,6 +17,7 @@ class TestDatabaseBuilder(TestCase):
     def test__csv_pair_generator(self):
         print(list(db.DatabaseBuilder('data')._csv_pair_generator()))
         pass
+
     @profile
     def test___call__(self):
         database=db.DatabaseBuilder('data')
