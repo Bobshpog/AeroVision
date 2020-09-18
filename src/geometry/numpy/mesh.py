@@ -32,7 +32,7 @@ def read_off_size(path):
             if lines[0] != 'OFF\n':
                 print(path, 'Error: is not an .off file')
             num_vertices, num_faces = tuple(lines[1].split()[:2])
-            return num_vertices, num_faces
+            return int(num_vertices), int(num_faces)
     except IOError:
         print('Error: Failed reading file:', path)
 def read_off(path):
