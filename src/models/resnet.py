@@ -8,8 +8,7 @@ import torchvision.models as models
 NUM_EPOCHS = 50
 BATCH_SIZE = 128
 
-
-class Autoencoder(pl.LightningModule):
+class CustomInputResnet(pl.LightningModule):
     def __init__(self, num_input_layers, num_outputs,loss_func, learning_rate=1e-3):
         super().__init__()
         # TODO consider removing pretrained
