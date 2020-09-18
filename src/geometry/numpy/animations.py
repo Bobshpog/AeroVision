@@ -73,38 +73,38 @@ def annimate_six_wings():
     # the same as 60~ with gif is created
     for phase in np.linspace(0, 4 * np.pi, frames + 1):
         f1.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh1.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         g1.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
 
         f2.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh2.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         g2.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip2.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
 
         f3.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh3.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         g3.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip3.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
 
         f4.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh4.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         g4.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip4.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
 
         f5.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh5.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         g5.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip5.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
 
         f6.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh6.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         g6.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip6.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         f7.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh7.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         g7.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip7.vertices,
-                                      freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         # couldnt vectorise
     # the movement list
     fg = [f1, g1, f2, g2, f3, g3, f4, g4, f5, g5, f6, g6, f7, g7]
@@ -175,20 +175,20 @@ def annimate_three_wings():
     # the same as 60~ with gif is created
     for phase in np.linspace(0, 4 * np.pi, frames + 1):
         f1.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh1.vertices,
-                                     freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                     freq_t=1, freq_s=1, amp=0.05, t=phase,decay_rate_s=5))
         g1.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
-                                    freq_t=1, freq_s=1, amp=0.2, t=phase))
+                                    freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
 
         f2.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh2.vertices,
-                                          freq_t=1, freq_s=25, amp=0.2, t=phase))
+                                          freq_t=1, freq_s=25, amp=0.05, t=phase, decay_rate_s=5))
         g2.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip2.vertices,
-                                          freq_t=1, freq_s=25, amp=0.2, t=phase))
+                                          freq_t=1, freq_s=25, amp=0.05, t=phase, decay_rate_s=5))
 
         f3.append(np.apply_along_axis(fem_wing_normal_sine, axis=1, arr=mesh3.vertices,
-                                          freq_t=1, freq_s=25, amp=0.2, t=phase))
+                                          freq_t=1, freq_s=25, amp=0.05, t=phase, decay_rate_s=5))
 
         g3.append(np.apply_along_axis(fem_tip_normal_sine, axis=1, arr=tip3.vertices,
-                                          freq_t=1, freq_s=25, amp=0.2, t=phase))
+                                          freq_t=1, freq_s=25, amp=0.05, t=phase, decay_rate_s=5))
         # couldnt vectorise
 
     fg = [f1, g1, f2, g2, f3, g3]
@@ -364,7 +364,6 @@ def normal_video():
         # cv2 does not support making video from np array...
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-    print(img_f.shape)
     out = cv2.VideoWriter("src/tests/temp/depth_video2.mp4", cv2.VideoWriter_fourcc(*'DIVX'), 15, (1440, 960))
     for i in range(len(im_frames)):
         out.write(im_frames[i])
