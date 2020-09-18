@@ -20,7 +20,7 @@ class SyntheticCSVGenerator(data_gen.DataGenerator):
     mesh_wing_path: Union[Path, str]
     mesh_tip_path: Union[Path, str]
 
-    ir_list: list = field(repr=False)  # [(x,y,z)]
+    ir_list: list = field(repr=False)  # list of ids of points in mesh
     resolution: list  # [Width, Height]
     # cameras in pyvista format
     cameras: list = field(repr=False)
