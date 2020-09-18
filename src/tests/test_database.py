@@ -65,5 +65,5 @@ class TestDatabaseBuilder(TestCase):
         database = db.DatabaseBuilder(data_generator, 'data/databases')
         data_file_path = database()
         with h5py.File(data_file_path, 'r') as f:
-            print(list(f['video_names']))
+            print(list(f['data']['video_names']))
             pass
