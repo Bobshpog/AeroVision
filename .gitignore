@@ -176,3 +176,4 @@ octave-workspace
 # Pycharm Settings
 .idea/
 /src/tests/temp/
+/data/databases/
