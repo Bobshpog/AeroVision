@@ -9,13 +9,32 @@ from scipy.sparse import csr_matrix, coo_matrix
 from scipy.sparse.csgraph import connected_components
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+def new_round(x,y):
+    return int(x*(10**y))
 
-
-def cord2index(cord):
+def cord2index(cord,digits=4):
     #TODO Doesnt work at all with any number of digits
-    return round(cord[0],6),round(cord[1],6),round(cord[2],6)
+    return round(cord[0],digits),round(cord[1],digits),round(cord[2],digits)
 
 
+def read_off_size(path):
+    """
+    Finds the number of vertices and faces in file
+    Args:
+        path: path to off file
+
+    Returns:
+        (num of vertices, num of faces)
+    """
+    try:
+        with open(path, 'r') as file:
+            lines = file.readlines()
+            if lines[0] != 'OFF\n':
+                print(path, 'Error: is not an .off file')
+            num_vertices, num_faces = tuple(lines[1].split()[:2])
+            return int(num_vertices), int(num_faces)
+    except IOError:
+        print('Error: Failed reading file:', path)
 def read_off(path):
     """
     .off file reader
@@ -404,7 +423,6 @@ class Mesh:
            plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
            camera: the [camera position , focal point, view up] each (x,y,z) tuple
            resolution: the image resolution [w,h]
-           title: the title of the photo, for visualisation purposes only
 
 
         Returns:
