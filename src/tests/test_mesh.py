@@ -195,7 +195,8 @@ class TestMesh(unittest.TestCase):
         cv2.imshow("frame", color_photo)
         cv2.waitKey()
 
-
+    def test_xyz(self):
+        annimate_six_wings()
 def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0, 0.8, 0.8)):
     mult_h = np.ceil(h / tile_size)
     mult_w = np.ceil(w / tile_size)
