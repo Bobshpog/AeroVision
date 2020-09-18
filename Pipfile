@@ -20,6 +20,7 @@ trimesh = "*"
 smbus2 = "*"
 h5py = "*"
 opencv-python = "*"
+memoization = "*"
 
 [requires]
 python_version = "3.8"
