@@ -450,11 +450,9 @@ class Mesh:
         depth = plotter.get_image_depth(fill_value=None)
         depth = np.abs(depth)
         screen = plotter.screenshot(window_size=resolution)
+        screen = screen/255
         plotter.remove_actor("title")
-        #return np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1), screen
-        #  the tupled screen work for the picture and  using the append we can get the depth, not the colored img
-        #  while with the insert we can get the colored img and not the depth.
-        return np.insert(screen, 3, depth.astype(np.float64), axis=-1)
+        return np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
 
     # ----------------------------Basic Properties----------------------------#
     def __len__(self):
