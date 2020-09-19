@@ -195,6 +195,25 @@ class TestMesh(unittest.TestCase):
         cv2.imshow("frame", color_photo)
         cv2.waitKey()
 
+    def test_colored_depth_screenshot(self):
+        plotter = pv.Plotter(off_screen=True)
+        res = [480, 480]
+        mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
+        mesh2 = Mesh('data/wing_off_files/fem_tip.off')
+        photo = Mesh.get_photo([mesh, mesh2], [mesh.vertices, mesh2.vertices], plotter=plotter,
+                               texture=["data/textures/checkers2.png", None],
+                               cmap=[None, None], camera=camera_pos["down_middle"], resolution=res, title="up left")
+
+        depth =photo[:,:,-1]
+        depth_min,depth_max=depth.min(),depth.max()
+        wing_max=depth[depth<depth_max].max()
+        plt.imshow(depth,cmap='afmhot')
+        cbar=plt.colorbar(boundaries=np.linspace(depth_min,wing_max))
+        cbar.set_label(label='Depth (m)',size=14)
+
+        plt.clim(depth_min,depth_max)
+        # plt.clim(depth_min,depth[depth<depth_max].max())
+        plt.show()
     def test_xyz(self):
         annimate_six_wings()
 def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0, 0.8, 0.8)):
