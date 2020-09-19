@@ -9,7 +9,9 @@ from src.geometry.numpy.wing_models import *
 from src.geometry.spod import *
 from src.util.timing import profile
 from src.geometry.numpy.animations import  *
-
+import matplotlib as mpl
+from matplotlib import cm
+from matplotlib.colors import ListedColormap
 class TestMesh(unittest.TestCase):
     class Config:
         num_of_vertices_wing = 7724
@@ -177,7 +179,7 @@ class TestMesh(unittest.TestCase):
 
     def test_depth_screenshot(self):
         plotter = pv.Plotter(off_screen=True)
-        res = [480, 480]
+        res = [640, 480]
         mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh2 = Mesh('data/wing_off_files/fem_tip.off')
         photo = Mesh.get_photo([mesh, mesh2], [mesh.vertices, mesh2.vertices], plotter=plotter,
@@ -207,7 +209,10 @@ class TestMesh(unittest.TestCase):
         depth =photo[:,:,-1]
         depth_min,depth_max=depth.min(),depth.max()
         wing_max=depth[depth<depth_max].max()
-        plt.imshow(depth,cmap='afmhot')
+        new_jet_table=cm.get_cmap('jet',1024)(np.linspace(0,1,1024))
+        new_jet_table[-250:]=[1,1,1,1]
+        new_jet=ListedColormap(new_jet_table)
+        plt.imshow(depth,cmap=new_jet)
         cbar=plt.colorbar(boundaries=np.linspace(depth_min,wing_max))
         cbar.set_label(label='Depth (m)',size=14)
 
