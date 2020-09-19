@@ -82,23 +82,25 @@ class DatabaseBuilder:
         if db_name is None:
             db_name = self.db_folder / f"{str(datetime.now())}__{self.data_generator}.hdf5"
         num_datapoints = len(self.data_generator)
-        num_vertices_input, num_scales, image_shape, num_ir = self.data_generator.get_data_sizes()
+        num_scales, image_shape, num_ir = self.data_generator.get_data_sizes()
 
         with h5py.File(db_name.absolute(), 'w') as hf:
 
             self.data_generator.save_metadata(hf, 'generator metadata')
-            data_grp=hf.create_group('data')
+            data_grp = hf.create_group('data')
             dset_images = data_grp.create_dataset('images',
-                                            shape=(num_datapoints, *image_shape),
-                                            compression=self.compression,
-                                            dtype=np.float)
-            dset_scales = data_grp.create_dataset('scales', shape=(num_datapoints, num_scales), compression=self.compression,
-                                            dtype=np.float)
-            dset_video_names = data_grp.create_dataset('video_names', shape=(num_datapoints,), compression=self.compression,
-                                                 dtype=h5py.string_dtype(encoding='ascii'))
+                                                  shape=(num_datapoints, *image_shape),
+                                                  compression=self.compression,
+                                                  dtype=np.float)
+            dset_scales = data_grp.create_dataset('scales', shape=(num_datapoints, num_scales),
+                                                  compression=self.compression,
+                                                  dtype=np.float)
+            dset_video_names = data_grp.create_dataset('video_names', shape=(num_datapoints,),
+                                                       compression=self.compression,
+                                                       dtype=h5py.string_dtype(encoding='ascii'))
             dset_ir = data_grp.create_dataset('ir', shape=(num_datapoints, num_ir, 3),
-                                        compression=self.compression,
-                                        dtype=np.float)
+                                              compression=self.compression,
+                                              dtype=np.float)
 
             progress_bar = tqdm(enumerate(self.data_generator), desc='Building Database', total=num_datapoints,
                                 file=sys.stdout)

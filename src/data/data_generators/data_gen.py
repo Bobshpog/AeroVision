@@ -44,7 +44,7 @@ class DataGenerator(ABC):
         """
 
         Returns:
-            (num_vertices_input, num_scales,image_shape, num_ir)
+            (num_scales,image_shape, num_ir)
         """
         pass
 
