@@ -106,7 +106,8 @@ class SyntheticCSVGenerator(data_gen.DataGenerator):
 
     def save_metadata(self, hdf5: h5py.File, group_name: str) -> None:
         group = hdf5.create_group(group_name)
-        num_vertices_input, num_scales, _, _ = self.get_data_sizes()
+        num_scales, _, _ = self.get_data_sizes()
+        num_vertices_input=len(self._get_base_cords())
         group.create_dataset('cords', (num_vertices_input, 3), dtype=np.float, data=self.cords)
         dset_scale_names = group.create_dataset('scale names', shape=(num_scales,),
                                                 dtype=h5py.string_dtype(encoding='ascii'))
