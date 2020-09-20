@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Union
 
 import h5py
+import h5py_cache as h5c
 import numpy as np
 from tqdm import tqdm
 
@@ -80,11 +81,11 @@ class DatabaseBuilder:
             path to the newly created database
         """
         if db_name is None:
-            db_name = self.db_folder / f"{str(datetime.now())}__{self.data_generator}.hdf5"
+            db_name = self.db_folder / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}__{self.data_generator}.hdf5"
         num_datapoints = len(self.data_generator)
         num_scales, image_shape, num_ir = self.data_generator.get_data_sizes()
 
-        with h5py.File(db_name.absolute(), 'w') as hf:
+        with h5c.File(str(db_name.absolute()), 'w', chunk_cache_mem_size=500 * 1024 ** 2) as hf:
 
             self.data_generator.save_metadata(hf, 'generator metadata')
             data_grp = hf.create_group('data')
@@ -107,6 +108,5 @@ class DatabaseBuilder:
             for idx, datapoint in progress_bar:
                 # datapoint =(video_name, image, ir, scales)
                 # print(idx, points_path, scales_path)
-
                 dset_video_names[idx], dset_images[idx], dset_ir[idx], dset_scales[idx] = datapoint
             return db_name

@@ -21,6 +21,7 @@ smbus2 = "*"
 h5py = "*"
 opencv-python = "*"
 memoization = "*"
+h5py-cache = "*"
 
 [requires]
 python_version = "3.8"
