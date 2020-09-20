@@ -226,6 +226,8 @@ class TestMesh(unittest.TestCase):
         mesh = Mesh('data/wing_off_files/combined_wing.off')
         mesh3 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
         mesh2 = Mesh('data/wing_off_files/fem_tip.off')
+        width = 0.15
+        color="39FF14"
         cam = [camera_pos["up_left"][0], camera_pos["up_middle"][0], camera_pos["up_right"][0],
                camera_pos["rotated_down_left"][0], camera_pos["down_middle"][0], camera_pos["down_right"][0]]
         ids = [753, 9, 23, 120, 108, 38, 169, 1084, 53, 393, 1416, 68, 378, 1748, 83, 143, 3416, 3434,
@@ -237,53 +239,53 @@ class TestMesh(unittest.TestCase):
                  camera_pos["rotated_down_left"], camera_pos["rotated_down_middle"], camera_pos["rotated_down_right"]]
         for i in range(6):
             distance.append(np.linalg.norm(mesh.vertices - cam[i], axis=1))
-        plotter = pv.Plotter(shape=(2,3))
+        plotter = pv.Plotter(shape=(2,3))       # ir
         plotter.set_background("white")
-        plotter2 = pv.Plotter(shape=(2,3))
+        plotter2 = pv.Plotter(shape=(2,3))      # depth
         plotter2.set_background("white")
-        plotter3 = pv.Plotter(shape=(2,3), off_screen=True)
+        plotter3 = pv.Plotter(shape=(2,3), off_screen=True)     #rgb
         plotter3.set_background("white")
         for id2, tip_id in enumerate(tip_ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color=color)
         for id, v_id in enumerate(ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color=color)
 
         plotter.subplot(0,1)
         for id2, tip_id in enumerate(tip_ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color=color)
         for id, v_id in enumerate(ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color=color)
 
         plotter.subplot(0,2)
         for id2, tip_id in enumerate(tip_ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color=color)
         for id, v_id in enumerate(ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color=color)
 
         plotter.subplot(1, 0)
         for id2, tip_id in enumerate(tip_ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color=color)
         for id, v_id in enumerate(ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color=color)
 
         plotter.subplot(1, 1)
         for id2, tip_id in enumerate(tip_ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color=color)
         for id, v_id in enumerate(ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color=color)
 
         plotter.subplot(1, 2)
         for id2, tip_id in enumerate(tip_ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh2.vertices[tip_id], radius=0.003), color=color)
         for id, v_id in enumerate(ids):
-            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color='pink')
+            plotter.add_mesh(mesh=pv.Sphere(center=mesh3.vertices[v_id], radius=0.003), color=color)
 
         for i in range(6):
             plotter2.subplot(subplots[i][0],subplots[i][1])
             plotter2.set_position(angle[i][0])
             plotter2.set_focus(angle[i][1])
             plotter2.set_viewup(angle[i][2])
-            plotter2.add_mesh(mesh.pv_mesh,scalars=distance[i],clim=[0,0.6],cmap="jet")
+            plotter2.add_mesh(mesh.pv_mesh,scalars=distance[i],cmap="binary_r")
 
             plotter3.subplot(subplots[i][0],subplots[i][1])
             plotter3.set_position(angle[i][0])
@@ -307,30 +309,35 @@ class TestMesh(unittest.TestCase):
         screen[:,:,0] += noise
         screen[:, :, 1] += noise
         screen[:, :, 2] += noise
-        cv2.imshow("frame",screen)
-        cv2.waitKey()
-        mesh2.plot_wireframe(plotter=plotter, camera=camera_pos["up_left"], show=False)
-        mesh3.plot_wireframe(plotter=plotter, camera=camera_pos["up_left"], show=False)
+        #cv2.imshow("frame",screen)
+        #cv2.waitKey()
+        mesh2.plot_wireframe(line_width=width, plotter=plotter, camera=camera_pos["up_left"], show=False)
+        mesh3.plot_wireframe(line_width=width,plotter=plotter, camera=camera_pos["up_left"], show=False)
 
-        mesh2.plot_wireframe(plotter=plotter, camera=camera_pos["up_middle"], show=False, index_col=1,index_row=0)
-        mesh3.plot_wireframe(plotter=plotter, camera=camera_pos["up_middle"], show=False,index_col=1,index_row=0)
+        mesh2.plot_wireframe(line_width=width,plotter=plotter, camera=camera_pos["up_middle"], show=False, index_col=1,index_row=0)
+        mesh3.plot_wireframe(plotter=plotter,line_width=width, camera=camera_pos["up_middle"], show=False,index_col=1,index_row=0)
 
-        mesh2.plot_wireframe(plotter=plotter, camera=camera_pos["up_right"], show=False,index_col=2,index_row=0)
-        mesh3.plot_wireframe(plotter=plotter, camera=camera_pos["up_right"], show=False,index_col=2,index_row=0,)
+        mesh2.plot_wireframe(plotter=plotter,line_width=width, camera=camera_pos["up_right"], show=False,index_col=2,index_row=0)
+        mesh3.plot_wireframe(plotter=plotter,line_width=width, camera=camera_pos["up_right"], show=False,index_col=2,index_row=0,)
 
-        mesh2.plot_wireframe(plotter=plotter, camera=camera_pos["rotated_down_left"], show=False, index_col=0,index_row=1)
-        mesh3.plot_wireframe(plotter=plotter, camera=camera_pos["rotated_down_left"], show=False,index_col=0,index_row=1)
+        mesh2.plot_wireframe(plotter=plotter, line_width=width,camera=camera_pos["rotated_down_left"], show=False, index_col=0,index_row=1)
+        mesh3.plot_wireframe(plotter=plotter,line_width=width, camera=camera_pos["rotated_down_left"], show=False,index_col=0,index_row=1)
 
-        mesh2.plot_wireframe(plotter=plotter, camera=camera_pos["rotated_down_middle"], show=False,index_col=1,index_row=1)
-        mesh3.plot_wireframe(plotter=plotter, camera=camera_pos["rotated_down_middle"], show=False, index_col=1,index_row=1)
+        mesh2.plot_wireframe(plotter=plotter,line_width=width, camera=camera_pos["rotated_down_middle"], show=False,index_col=1,index_row=1)
+        mesh3.plot_wireframe(plotter=plotter,line_width=width, camera=camera_pos["rotated_down_middle"], show=False, index_col=1,index_row=1)
 
-        mesh2.plot_wireframe(plotter=plotter, camera=camera_pos["rotated_down_right"], show=False, index_col=2,index_row=1)
-        mesh3.plot_wireframe(plotter=plotter, camera=camera_pos["rotated_down_right"], show=False, index_col=2,index_row=1)
+        mesh2.plot_wireframe(plotter=plotter, line_width=width, camera=camera_pos["rotated_down_right"], show=False, index_col=2,index_row=1)
+        mesh3.plot_wireframe(plotter=plotter,line_width=width, camera=camera_pos["rotated_down_right"], show=False, index_col=2,index_row=1)
 
         plotter.subplot(0,1)
         plotter3.close()
+        plotter2.show()
         #plotter.show()
 
+
+    def test_xyz(self):
+        #annimate_six_wings()
+        print(len([[1,1,1],[2,2,2]]))
 
 def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0, 0.8, 0.8)):
     mult_h = np.ceil(h / tile_size)

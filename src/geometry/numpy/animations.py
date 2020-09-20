@@ -84,38 +84,39 @@ def annimate_six_wings():
     # the same as 60~ with gif is created
     for phase in np.linspace(0, 4 * np.pi, frames + 1):
         f1.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh1.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=3, amp=0.05, t=phase, decay_rate_s=5))
         g1.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=3, amp=0.05, t=phase))
 
         f2.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh2.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=0, amp=0.05, t=phase, decay_rate_s=5))
         g2.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip2.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=0, amp=0.05, t=phase))
 
         f3.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh3.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=1, amp=0.02, t=phase, decay_rate_s=5))
         g3.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip3.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=1, amp=0.02, t=phase))
 
         f4.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh4.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=1, amp=0.07, t=phase, decay_rate_s=5))
         g4.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip4.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=1, amp=0.07, t=phase))
 
         f5.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh5.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=3))
         g5.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip5.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase))
 
         f6.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh6.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=7))
         g6.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip6.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase))
+
         f7.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh7.vertices,
                                       freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
         g7.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip7.vertices,
-                                      freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=1, amp=0.05, t=phase))
         # couldnt vectorise
     # the movement list
     fg = [f1, g1, f2, g2, f3, g3, f4, g4, f5, g5, f6, g6, f7, g7]
@@ -146,8 +147,8 @@ def annimate_six_wings():
     scalars = [None] * 14
     textures = ["data/textures/checkers2.png", None] * 7
     color_maps = ["jet"] * 14
-    titles = ["up left", "", "up middle", "", "up right", "", "down left", "", "down middle", "", "down right", "",
-              " camera view", ""]
+    titles = ["high freq", "", "low freq", "", "low emp", "", "high emp", "", "low decay", "", "high decay", "",
+              " normal", ""]
     font_colors = ["black"] * 14
     font_size = [10] * 14
     cam = [camera_pos["up_left"], camera_pos["up_left"], camera_pos["up_middle"],camera_pos["up_middle"],
