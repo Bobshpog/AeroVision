@@ -151,7 +151,7 @@ class SyntheticCSVGenerator(data_gen.DataGenerator):
         point_file, scale_file = self.get_first_file_pair_path()
         resolution = tuple(self.resolution[::-1])
         image_shape = (len(self.cameras), *resolution, 4)
-        return self._get_csv_len(point_file), self._get_csv_len(scale_file), image_shape, len(self.ir_list)
+        return self._get_csv_len(scale_file), image_shape, len(self.ir_list)
 
     def __iter__(self) -> (str, np.array, np.array, np.array):
         """

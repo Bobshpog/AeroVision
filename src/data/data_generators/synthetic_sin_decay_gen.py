@@ -67,9 +67,9 @@ class SyntheticSineDecayingGen(DataGenerator):
 
     def __iter__(self):
         for i in range(self.num_videos):
-            amp = np.random.uniform(0.01, 0.5)
-            decay = np.random.uniform(0.001, 0.3)
-            freq_s = np.random.uniform(0.2, 1)
+            amp = np.random.uniform(0.01, 0.07)
+            decay = np.random.uniform(3, 7)
+            freq_s = np.random.uniform(0.5, 3)
             vid_name = f"{i} {amp} {decay} {freq_s}"
             for phase in np.linspace(0, 2 * np.pi, self.num_frames_per_video):
                 wing_movement = np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1,
