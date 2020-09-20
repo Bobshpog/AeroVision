@@ -446,6 +446,7 @@ class Mesh:
 
             plotter.update_coordinates(movement[i])
         plotter.add_text(title, position="upper_edge", font_size=10, color="black", name="title")
+        plotter.set_background(color="white")
         plotter.show(auto_close=False, window_size=resolution)
         depth = plotter.get_image_depth(fill_value=None)
         depth = np.abs(depth)
