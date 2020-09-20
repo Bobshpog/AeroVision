@@ -81,12 +81,8 @@ class FiniteElementWingModel:
            An image shot from camera of the wing and tip
         """
         cameras = self.cameras
-        im_width, im_height = tuple(self.resolution)
-        photos = np.zeros((len(cameras), im_height, im_width, 4), dtype=np.float)
-        for idx, cam in enumerate(cameras):
-            #TODO UPDATE WITH NEW FUNC
-            photos[idx] = Mesh.get_photo((self.wing, self.tip),
-                                         movement=movement, resolution=self.resolution, camera=cam,
+        photos = Mesh.get_photo((self.wing, self.tip),
+                                         movement=movement, resolution=self.resolution, camera=cameras,
                                          cmap=self.cmap,
                                          texture=[self.texture, None], plotter=self.plotter)
         return photos

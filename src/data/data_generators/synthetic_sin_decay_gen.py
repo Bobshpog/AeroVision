@@ -79,12 +79,8 @@ class SyntheticSineDecayingGen(DataGenerator):
                                                     freq_t=1, freq_s=freq_s, amp=amp, t=phase, decay_rate_s=decay)
                 tip_movement = np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=self.tip_mesh.vertices,
                                                    freq_t=1, freq_s=freq_s, amp=amp, t=phase)
-                image_shape = self.get_data_sizes()[1]
-                image = np.zeros(image_shape, dtype=np.float)
-                for j, cam in enumerate(self.cameras):
-                    #TODO update with new func
-                    image[j]= Mesh.get_photo([self.wing_mesh, self.tip_mesh], [wing_movement, tip_movement],
-                                              self.resolution, [self.texture_path,None], 'jet', self.plotter, cam)
+                image = Mesh.get_many_photos([self.wing_mesh, self.tip_mesh], [wing_movement, tip_movement],
+                                          self.resolution, [self.texture_path, None], 'jet', self.plotter, self.cameras)
                 yield vid_name, image, wing_movement[self.ir_list], np.array([amp, decay, freq_s])
 
     def __repr__(self):
