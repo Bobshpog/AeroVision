@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Union
 
@@ -9,6 +10,7 @@ import pyvista as pv
 from data.data_generators.data_gen import DataGenerator
 from geometry.numpy.mesh import Mesh
 from geometry.numpy.transforms import fem_wing_sine_decaying_in_space, fem_tip_sine_decaying_in_space
+from util.timing import profile
 
 
 @dataclass(repr=False)
@@ -76,14 +78,16 @@ class SyntheticSineDecayingGen(DataGenerator):
                                                     arr=self.wing_mesh.vertices,
                                                     freq_t=1, freq_s=freq_s, amp=amp, t=phase, decay_rate_s=decay)
                 tip_movement = np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=self.tip_mesh.vertices,
-                                                   freq_t=1, freq_s=freq_s, amp=amp, t=phase, decay_rate_s=decay)
+                                                   freq_t=1, freq_s=freq_s, amp=amp, t=phase)
                 image_shape = self.get_data_sizes()[1]
-                image = np.array(image_shape, dtype=np.float)
+                image = np.zeros(image_shape, dtype=np.float)
                 for j, cam in enumerate(self.cameras):
-                    image[j] = Mesh.get_photo([self.wing_mesh, self.tip_mesh], [wing_movement, tip_movement],
-                                              self.resolution, self.texture_path, 'jet', self.plotter, cam)
-                yield vid_name, image, wing_movement[self.ir_list], np.array(amp, decay, freq_s)
+                    #TODO update with new func
+                    image[j]= Mesh.get_photo([self.wing_mesh, self.tip_mesh], [wing_movement, tip_movement],
+                                              self.resolution, [self.texture_path,None], 'jet', self.plotter, cam)
+                yield vid_name, image, wing_movement[self.ir_list], np.array([amp, decay, freq_s])
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(mesh_wing='{self.mesh_wing_path.name}', mesh_tip='{self.mesh_tip_path.name}'" \
+        string=f"{self.__class__.__name__}(mesh_wing='{self.mesh_wing_path.stem}', mesh_tip='{self.mesh_tip_path.stem}'" \
                f", resolution={self.resolution}, texture_path='{self.texture_path.name}'"
+        return  string

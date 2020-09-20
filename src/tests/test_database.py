@@ -4,6 +4,7 @@ import h5py
 
 import src.data.database as db
 from data.data_generators.synthetic_csv_gen import SyntheticCSVGenerator
+from data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayingGen
 from util.timing import profile
 
 
@@ -59,10 +60,14 @@ class TestDatabaseBuilder(TestCase):
     @profile
     def test___call__(self):
         Config = self.Config
+        data_generator_sin = SyntheticSineDecayingGen('data/synthetic_data_raw_samples', Config.mesh_wing_path,
+                                                      Config.mesh_tip_path, 50, 20, Config.ir_list, Config.resolution,
+                                                      Config.cameras, Config.texture, Config.cmap
+                                                      )
         data_generator = SyntheticCSVGenerator('data/synthetic_data_raw_samples', Config.mesh_wing_path,
                                                Config.mesh_tip_path, Config.ir_list, Config.resolution, Config.cameras,
                                                Config.texture, Config.cmap)
-        database = db.DatabaseBuilder(data_generator, 'data/databases')
+        database = db.DatabaseBuilder(data_generator_sin, 'data/databases')
         data_file_path = database()
         with h5py.File(data_file_path, 'r') as f:
             print(list(f['data']['video_names']))

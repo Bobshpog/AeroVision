@@ -37,8 +37,8 @@ class FiniteElementWingModel:
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
         wing_table = self.wing.table
         tip_table = self.tip.table
-        new_tip_position = np.zeros((self.tip_vertices_num, 3),dtype='float32')
-        new_wing_position = np.zeros((self.wing_vertices_num, 3),dtype='float32')
+        new_tip_position = np.zeros((self.tip_vertices_num, 3),dtype='float')
+        new_wing_position = np.zeros((self.wing_vertices_num, 3),dtype='float')
         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE,endpoint=False)
         x = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         y = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
@@ -82,8 +82,9 @@ class FiniteElementWingModel:
         """
         cameras = self.cameras
         im_width, im_height = tuple(self.resolution)
-        photos = np.zeros((len(cameras), im_height, im_width, 4), dtype=np.float32)
+        photos = np.zeros((len(cameras), im_height, im_width, 4), dtype=np.float)
         for idx, cam in enumerate(cameras):
+            #TODO UPDATE WITH NEW FUNC
             photos[idx] = Mesh.get_photo((self.wing, self.tip),
                                          movement=movement, resolution=self.resolution, camera=cam,
                                          cmap=self.cmap,
