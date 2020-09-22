@@ -55,6 +55,7 @@ from data.data_generators.data_gen import DataGenerator
 #                 (0.041, 0.0438, -1)]]
 #     texture = 'data/textures/checkers2.png'
 #     cmap = 'jet'
+BATCH_SIZE = 50
 
 
 @dataclass
@@ -105,8 +106,24 @@ class DatabaseBuilder:
 
             progress_bar = tqdm(enumerate(self.data_generator), desc='Building Database', total=num_datapoints,
                                 file=sys.stdout)
+            names, images, ir, scales = [], [], [], []
+            cache_idx = 0
             for idx, datapoint in progress_bar:
                 # datapoint =(video_name, image, ir, scales)
                 # print(idx, points_path, scales_path)
-                dset_video_names[idx], dset_images[idx], dset_ir[idx], dset_scales[idx] = datapoint
+                names.append(datapoint[0]), images.append(datapoint[1]), ir.append(datapoint[2]), scales.append(
+                    datapoint[3])
+                if idx % BATCH_SIZE == 0 :
+                    dset_video_names[cache_idx:idx+1] = names
+                    dset_images[cache_idx:idx+1] = images
+                    dset_ir[cache_idx:idx+1] = ir
+                    dset_scales[cache_idx:idx+1] = scales
+                    cache_idx = idx+1
+                    names, images, ir, scales = [], [], [], []
+                    pass
+
+            dset_video_names[cache_idx:-1] = names
+            dset_images[cache_idx:-1] = images
+            dset_ir[cache_idx:-1] = ir
+            dset_scales[cache_idx:-1] = scales
             return db_name
