@@ -61,6 +61,12 @@ class SyntheticSineDecayingGen(DataGenerator):
                                                 dtype=h5py.string_dtype(encoding='ascii'))
         for idx, name in enumerate(['amp', 'freq_s', 'decay']):
             dset_scale_names[idx] = name.encode('ascii', 'ignore')
+        dset_mean_images = group.create_dataset('mean images', dtype=np.float,
+                                                data=Mesh.get_many_photos([self.wing_mesh, self.tip_mesh],
+                                                                          [self.wing_mesh.vertices,
+                                                                           self.tip_mesh.vertices], self.resolution,
+                                                                          [self.texture_path,None], self.cmap, self.plotter,
+                                                                          self.cameras))
         group.attrs['cameras'] = self.cameras
         group.attrs['mesh_wing_path'] = self.mesh_wing_path.name
         group.attrs['mesh_tip_path'] = self.mesh_tip_path.name
@@ -80,10 +86,11 @@ class SyntheticSineDecayingGen(DataGenerator):
                 tip_movement = np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=self.tip_mesh.vertices,
                                                    freq_t=1, freq_s=freq_s, amp=amp, t=phase)
                 image = Mesh.get_many_photos([self.wing_mesh, self.tip_mesh], [wing_movement, tip_movement],
-                                          self.resolution, [self.texture_path, None], 'jet', self.plotter, self.cameras)
+                                             self.resolution, [self.texture_path, None], 'jet', self.plotter,
+                                             self.cameras)
                 yield vid_name, image, wing_movement[self.ir_list], np.array([amp, decay, freq_s])
 
     def __repr__(self):
-        string=f"{self.__class__.__name__}(mesh_wing='{self.mesh_wing_path.stem}', mesh_tip='{self.mesh_tip_path.stem}'" \
-               f", resolution={self.resolution}, texture_path='{self.texture_path.name}'"
-        return  string
+        string = f"{self.__class__.__name__}(mesh_wing='{self.mesh_wing_path.stem}', mesh_tip='{self.mesh_tip_path.stem}'" \
+                 f", resolution={self.resolution}, texture_path='{self.texture_path.name}'"
+        return string
