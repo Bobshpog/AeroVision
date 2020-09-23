@@ -21,3 +21,6 @@ def identify_system():
         props = torch.cuda.get_device_properties(i)
         print(
             f"GPU {i}: {props.name} [{props.multi_processor_count} SMPs , {props.total_memory / 1024. ** 3:.2f} GiB Memory]")
+
+if __name__=='__main__':
+    identify_system()

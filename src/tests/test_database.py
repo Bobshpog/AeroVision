@@ -61,7 +61,7 @@ class TestDatabaseBuilder(TestCase):
     def test___call__(self):
         Config = self.Config
         data_generator_sin = SyntheticSineDecayingGen('data/synthetic_data_raw_samples', Config.mesh_wing_path,
-                                                      Config.mesh_tip_path, 50, 20, Config.ir_list, Config.resolution,
+                                                      Config.mesh_tip_path, 500, 20, Config.ir_list, Config.resolution,
                                                       Config.cameras, Config.texture, Config.cmap
                                                       )
         data_generator = SyntheticCSVGenerator('data/synthetic_data_raw_samples', Config.mesh_wing_path,

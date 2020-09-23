@@ -21,7 +21,7 @@ class CustomInputResnet(pl.LightningModule):
         self.loss_func = loss_func
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.resnet = models.resnet18(pretrained=True, num_classes=num_outputs)
+        self.resnet = models.resnet18(pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, self.resnet.inplanes, kernel_size=7, stride=2, padding=3,
                                       bias=False)
@@ -56,18 +56,18 @@ class CustomInputResnet(pl.LightningModule):
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 512
-    TRAINING_DB_PATH = ''
-    VALIDATION_DB_PATH = ''
+    BATCH_SIZE = 128
+    TRAINING_DB_PATH = "data/databases/20200923-101734__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    VALIDATION_DB_PATH = "data/databases/20200922-125422__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
-        mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'][0])
+        mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
     remove_mean = partial(my_transforms.remove_mean_photo, mean_image)
     train_dset = SinFunctionDataset(TRAINING_DB_PATH,
                                     transforms=[my_transforms.slice_first_position_no_depth, remove_mean])
     val_dset = SinFunctionDataset(VALIDATION_DB_PATH,
                                   transforms=[my_transforms.slice_first_position_no_depth, remove_mean])
-    train_loader=DataLoader(train_dset,BATCH_SIZE,shuffle=True,num_workers=8)
-    val_loader= DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=8)
+    train_loader=DataLoader(train_dset,BATCH_SIZE,shuffle=True,num_workers=0)
+    val_loader= DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=0)
     model=CustomInputResnet(3,3,F.mse_loss,cosine_annealing_steps=10)
     trainer=pl.Trainer(gpus=1)
     trainer.fit(model,train_loader,val_loader)

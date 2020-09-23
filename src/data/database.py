@@ -55,7 +55,7 @@ from data.data_generators.data_gen import DataGenerator
 #                 (0.041, 0.0438, -1)]]
 #     texture = 'data/textures/checkers2.png'
 #     cmap = 'jet'
-BATCH_SIZE = 50
+BATCH_SIZE = 200
 
 
 @dataclass
