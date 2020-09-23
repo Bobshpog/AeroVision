@@ -122,8 +122,8 @@ class DatabaseBuilder:
                     names, images, ir, scales = [], [], [], []
                     pass
 
-            dset_video_names[cache_idx:-1] = names
-            dset_images[cache_idx:-1] = images
-            dset_ir[cache_idx:-1] = ir
-            dset_scales[cache_idx:-1] = scales
+            dset_video_names[cache_idx:] = names
+            dset_images[cache_idx:] = images
+            dset_ir[cache_idx:] = ir
+            dset_scales[cache_idx:] = scales
             return db_name
