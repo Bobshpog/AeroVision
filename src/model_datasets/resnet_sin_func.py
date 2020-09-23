@@ -21,12 +21,12 @@ class SinFunctionDataset(Dataset):
             self.hf = h5py.File(self.hdf5_path, 'r')
         dataset = self.hf['data']
         transforms = self.transforms
-        image = dataset['image'][item]
+        image = dataset['images'][item]
         scales = dataset['scales'][item]
         if isinstance(transforms, list):
             for transform in transforms:
                 image = transform(image)
-        return image.transpose(0, 3, 1, 2), scales
+        return image, scales
 
     def __len__(self):
         return self.database_len

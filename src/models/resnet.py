@@ -63,11 +63,11 @@ if __name__ == '__main__':
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'][0])
     remove_mean = partial(my_transforms.remove_mean_photo, mean_image)
     train_dset = SinFunctionDataset(TRAINING_DB_PATH,
-                                    transforms=[my_transforms.slice_first_position_no_depth, remove_mean])
+                                    transforms=[my_transforms.slice_first_position_no_depth, remove_mean,my_transforms.double_to_float,my_transforms.last_axis_to_first])
     val_dset = SinFunctionDataset(VALIDATION_DB_PATH,
-                                  transforms=[my_transforms.slice_first_position_no_depth, remove_mean])
-    train_loader=DataLoader(train_dset,BATCH_SIZE,shuffle=True,num_workers=8)
-    val_loader= DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=8)
+                                  transforms=[my_transforms.slice_first_position_no_depth, remove_mean,my_transforms.double_to_float,my_transforms.last_axis_to_first])
+    train_loader=DataLoader(train_dset,BATCH_SIZE,shuffle=True,num_workers=10)
+    val_loader= DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=10)
     model=CustomInputResnet(3,3,F.mse_loss,cosine_annealing_steps=10)
     trainer=pl.Trainer(gpus=1)
     trainer.fit(model,train_loader,val_loader)
