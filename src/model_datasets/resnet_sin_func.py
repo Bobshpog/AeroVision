@@ -14,7 +14,7 @@ class SinFunctionDataset(Dataset):
         self.hf = None
         self.transforms = transforms
         with h5py.File(self.hdf5_path, 'r') as hf:
-            self.database_len = self.hf['data']['images'].len()
+            self.database_len = hf['data']['images'].len()
 
     def __getitem__(self, item):
         if self.hf is None:
@@ -31,6 +31,6 @@ class SinFunctionDataset(Dataset):
     def __len__(self):
         return self.database_len
 
-    def __del__(self):
-        if self.hf:
-            self.hf.close()
+    # def __del__(self):
+    #     if self.hf:
+    #         self.hf.close()
