@@ -10,7 +10,6 @@ class SinFunctionDataset(Dataset):
             hdf5_path: path to hdf5 database
             transforms: list of transforms to perform on the images
         """
-        super.__init__()
         self.hdf5_path = hdf5_path
         self.hf = None
         self.transforms = transforms
