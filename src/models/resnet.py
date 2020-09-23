@@ -1,11 +1,15 @@
+from functools import partial
+
+import h5py
 import pytorch_lightning as pl
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
+from torch.utils.data import DataLoader
 
-# constants
-NUM_EPOCHS = 50
-BATCH_SIZE = 128
+from model_datasets.resnet_sin_func import SinFunctionDataset
+import src.models.transforms as my_transforms
 
 
 class CustomInputResnet(pl.LightningModule):
@@ -49,3 +53,21 @@ class CustomInputResnet(pl.LightningModule):
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
         return result
+
+
+if __name__ == '__main__':
+    BATCH_SIZE = 512
+    TRAINING_DB_PATH = ''
+    VALIDATION_DB_PATH = ''
+    with h5py.File(TRAINING_DB_PATH, 'r') as hf:
+        mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'][0])
+    remove_mean = partial(my_transforms.remove_mean_photo, mean_image)
+    train_dset = SinFunctionDataset(TRAINING_DB_PATH,
+                                    transforms=[my_transforms.slice_first_position_no_depth, remove_mean])
+    val_dset = SinFunctionDataset(VALIDATION_DB_PATH,
+                                  transforms=[my_transforms.slice_first_position_no_depth, remove_mean])
+    train_loader=DataLoader(train_dset,BATCH_SIZE,shuffle=True,num_workers=8)
+    val_loader= DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=8)
+    model=CustomInputResnet(3,3,F.mse_loss,cosine_annealing_steps=10)
+    trainer=pl.Trainer(gpus=1)
+    trainer.fit(model,train_loader,val_loader)
