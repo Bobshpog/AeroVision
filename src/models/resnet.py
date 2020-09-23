@@ -61,7 +61,7 @@ if __name__ == '__main__':
     VALIDATION_DB_PATH = "data/databases/20200922-125422__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
-    remove_mean = partial(my_transforms.remove_mean_photo, mean_image)
+    remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
     train_dset = SinFunctionDataset(TRAINING_DB_PATH,
                                     transforms=[my_transforms.slice_first_position_no_depth, remove_mean,my_transforms.double_to_float,my_transforms.last_axis_to_first])
     val_dset = SinFunctionDataset(VALIDATION_DB_PATH,
