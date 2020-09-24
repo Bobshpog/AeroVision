@@ -45,7 +45,15 @@ class CustomInputResnet(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
-        return loss
+        result = pl.TrainResult(loss)
+        d_amp, d_decay, d_freq = tuple(y_hat - y)
+        result.log('train amp distance', d_amp)
+        result.log('train decay distance', d_decay)
+        result.log('train frequency distance', d_freq)
+        result.log('train amp accuracy', d_amp / y[0])
+        result.log('train decay accuracy', d_decay / y[1])
+        result.log('train frequency accuracy', d_freq / y[2])
+        return result
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
@@ -53,11 +61,19 @@ class CustomInputResnet(pl.LightningModule):
         loss = self.loss_func(y_hat, y)
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
+        d_amp, d_decay, d_freq = tuple(y_hat - y)
+        result.log('val amp distance', d_amp)
+        result.log('val decay distance', d_decay)
+        result.log('val frequency distance', d_freq)
+        result.log('val amp accuracy', d_amp / y[0])
+        result.log('val decay accuracy', d_decay / y[1])
+        result.log('val frequency accuracy', d_freq / y[2])
         return result
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 128
+    BATCH_SIZE = 90
+    NUM_EPOCHS = 50
     TRAINING_DB_PATH = "data/databases/20200923-101734__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     VALIDATION_DB_PATH = "data/databases/20200922-125422__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
@@ -74,5 +90,5 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(3, 3, F.mse_loss, cosine_annealing_steps=10)
-    trainer = pl.Trainer(gpus=1)
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS)
     trainer.fit(model, train_loader, val_loader)
