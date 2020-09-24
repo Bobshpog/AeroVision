@@ -50,6 +50,7 @@ class CustomInputResnet(pl.LightningModule):
         d_amp = diff[0]
         d_decay = diff[1]
         d_freq = diff[2]
+        result.log('train loss', loss)
         result.log('train amp distance', d_amp.abs().mean())
         result.log('train decay distance', d_decay.abs().mean())
         result.log('train frequency distance', d_freq.abs().mean())
@@ -67,7 +68,7 @@ class CustomInputResnet(pl.LightningModule):
         d_amp = diff[0]
         d_decay = diff[1]
         d_freq = diff[2]
-        result.log('val_loss', loss)
+        result.log('val loss', loss)
         result.log('val amp distance', d_amp.abs().mean())
         result.log('val decay distance', d_decay.abs().mean())
         result.log('val frequency distance', d_freq.abs().mean())
