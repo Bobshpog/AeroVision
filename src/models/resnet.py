@@ -46,13 +46,16 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         result = pl.TrainResult(loss)
-        d_amp, d_decay, d_freq = tuple(y_hat - y)
-        result.log('train amp distance', d_amp)
-        result.log('train decay distance', d_decay)
-        result.log('train frequency distance', d_freq)
-        result.log('train amp accuracy', d_amp / y[0])
-        result.log('train decay accuracy', d_decay / y[1])
-        result.log('train frequency accuracy', d_freq / y[2])
+        diff = y_hat - y
+        d_amp = diff[0]
+        d_decay = diff[1]
+        d_freq = diff[2]
+        result.log('train amp distance', d_amp.mean())
+        result.log('train decay distance', d_decay.mean())
+        result.log('train frequency distance', d_freq.mean())
+        result.log('train amp accuracy', (d_amp / y[0]).mean())
+        result.log('train decay accuracy', (d_decay / y[1]).mean())
+        result.log('train frequency accuracy', (d_freq / y[2]).mean())
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -60,14 +63,17 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         result = pl.EvalResult(checkpoint_on=loss)
+        diff = y_hat - y
+        d_amp = diff[0]
+        d_decay = diff[1]
+        d_freq = diff[2]
         result.log('val_loss', loss)
-        d_amp, d_decay, d_freq = tuple(y_hat - y)
-        result.log('val amp distance', d_amp)
-        result.log('val decay distance', d_decay)
-        result.log('val frequency distance', d_freq)
-        result.log('val amp accuracy', d_amp / y[0])
-        result.log('val decay accuracy', d_decay / y[1])
-        result.log('val frequency accuracy', d_freq / y[2])
+        result.log('val amp distance', d_amp.mean())
+        result.log('val decay distance', d_decay.mean())
+        result.log('val frequency distance', d_freq.mean())
+        result.log('val amp accuracy', (d_amp / y[0]).mean())
+        result.log('val decay accuracy', (d_decay / y[1]).mean())
+        result.log('val frequency accuracy', (d_freq / y[2]).mean())
         return result
 
 
