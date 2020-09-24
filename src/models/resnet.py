@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from model_datasets.resnet_sin_func import SinFunctionDataset
 import src.models.transforms as my_transforms
@@ -62,12 +63,16 @@ if __name__ == '__main__':
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
     remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
+    transform = transforms.Compose([my_transforms.slice_first_position_no_depth,
+                                    remove_mean,
+                                    my_transforms.double_to_float,
+                                    my_transforms.last_axis_to_first])
     train_dset = SinFunctionDataset(TRAINING_DB_PATH,
-                                    transforms=[my_transforms.slice_first_position_no_depth, remove_mean,my_transforms.double_to_float,my_transforms.last_axis_to_first])
+                                    transform=transform)
     val_dset = SinFunctionDataset(VALIDATION_DB_PATH,
-                                  transforms=[my_transforms.slice_first_position_no_depth, remove_mean,my_transforms.double_to_float,my_transforms.last_axis_to_first])
-    train_loader=DataLoader(train_dset,BATCH_SIZE,shuffle=True,num_workers=4)
-    val_loader= DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
-    model=CustomInputResnet(3,3,F.mse_loss,cosine_annealing_steps=10)
-    trainer=pl.Trainer(gpus=1)
-    trainer.fit(model,train_loader,val_loader)
+                                  transform=transform)
+    train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
+    model = CustomInputResnet(3, 3, F.mse_loss, cosine_annealing_steps=10)
+    trainer = pl.Trainer(gpus=1)
+    trainer.fit(model, train_loader, val_loader)

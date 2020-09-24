@@ -3,16 +3,16 @@ from torch.utils.data import Dataset
 
 
 class SinFunctionDataset(Dataset):
-    def __init__(self, hdf5_path, transforms=None):
+    def __init__(self, hdf5_path, transform=None):
         """
         Initialization
         Args:
             hdf5_path: path to hdf5 database
-            transforms: list of transforms to perform on the images
+            transform: list of transforms to perform on the images
         """
         self.hdf5_path = hdf5_path
         self.hf = None
-        self.transforms = transforms
+        self.transform = transform
         with h5py.File(self.hdf5_path, 'r') as hf:
             self.database_len = hf['data']['images'].len()
 
@@ -20,12 +20,11 @@ class SinFunctionDataset(Dataset):
         if self.hf is None:
             self.hf = h5py.File(self.hdf5_path, 'r')
         dataset = self.hf['data']
-        transforms = self.transforms
+        transform = self.transform
         image = dataset['images'][item]
         scales = dataset['scales'][item]
-        if isinstance(transforms, list):
-            for transform in transforms:
-                image = transform(image)
+        if transform:
+            image = transform(image)
         return image, scales
 
     def __len__(self):
