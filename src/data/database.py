@@ -12,7 +12,6 @@ from tqdm import tqdm
 
 from data.data_generators.data_gen import DataGenerator
 
-
 #
 #
 # class Config:
@@ -86,21 +85,32 @@ class DatabaseBuilder:
         num_datapoints = len(self.data_generator)
         num_scales, image_shape, num_ir = self.data_generator.get_data_sizes()
 
-        with h5c.File(str(db_name.absolute()), 'w', chunk_cache_mem_size=500 * 1024 ** 2) as hf:
+        with h5py.File(str(db_name.absolute()), 'w') as hf:
 
             self.data_generator.save_metadata(hf, 'generator metadata')
             data_grp = hf.create_group('data')
+
             dset_images = data_grp.create_dataset('images',
                                                   shape=(num_datapoints, *image_shape),
+                                                  maxshape=(num_datapoints, *image_shape),
+                                                  chunks=(1, 1, *(image_shape[1:])),
                                                   compression=self.compression,
                                                   dtype=np.float)
-            dset_scales = data_grp.create_dataset('scales', shape=(num_datapoints, num_scales),
+            dset_scales = data_grp.create_dataset('scales',
+                                                  shape=(num_datapoints, num_scales),
+                                                  maxshape=(num_datapoints, num_scales),
+                                                  chunks=(1, num_scales),
                                                   compression=self.compression,
                                                   dtype=np.float)
-            dset_video_names = data_grp.create_dataset('video_names', shape=(num_datapoints,),
+            dset_video_names = data_grp.create_dataset('video_names',
+                                                       shape=(num_datapoints,),
+                                                       maxshape=(num_datapoints,),
                                                        compression=self.compression,
                                                        dtype=h5py.string_dtype(encoding='ascii'))
-            dset_ir = data_grp.create_dataset('ir', shape=(num_datapoints, num_ir, 3),
+            dset_ir = data_grp.create_dataset('ir',
+                                              shape=(num_datapoints, num_ir, 3),
+                                              maxshape=(num_datapoints, num_ir, 3),
+                                              chunks=(1, num_ir, 3),
                                               compression=self.compression,
                                               dtype=np.float)
 
@@ -113,12 +123,12 @@ class DatabaseBuilder:
                 # print(idx, points_path, scales_path)
                 names.append(datapoint[0]), images.append(datapoint[1]), ir.append(datapoint[2]), scales.append(
                     datapoint[3])
-                if idx % BATCH_SIZE == 0 :
-                    dset_video_names[cache_idx:idx+1] = names
-                    dset_images[cache_idx:idx+1] = images
-                    dset_ir[cache_idx:idx+1] = ir
-                    dset_scales[cache_idx:idx+1] = scales
-                    cache_idx = idx+1
+                if idx % BATCH_SIZE == 0:
+                    dset_video_names[cache_idx:idx + 1] = names
+                    dset_images[cache_idx:idx + 1] = images
+                    dset_ir[cache_idx:idx + 1] = ir
+                    dset_scales[cache_idx:idx + 1] = scales
+                    cache_idx = idx + 1
                     names, images, ir, scales = [], [], [], []
                     pass
 
