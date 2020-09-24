@@ -1,6 +1,9 @@
+import time
 from unittest import TestCase
 
 import h5py
+import numpy as np
+from tqdm import trange
 
 import src.data.database as db
 from data.data_generators.synthetic_csv_gen import SyntheticCSVGenerator
@@ -72,3 +75,27 @@ class TestDatabaseBuilder(TestCase):
         with h5py.File(data_file_path, 'r') as f:
             print(list(f['data']['video_names']))
             pass
+
+    @profile
+    def test_read_hdf5(self):
+        TRAINING_DB_PATH = "data/databases/20200923-215518__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+        VALIDATION_DB_PATH = "data/databases/20200924-184304__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+        with h5py.File(VALIDATION_DB_PATH, 'r') as hf:
+            dset=hf['data']['images']
+            time.perf_counter()
+            sum=0
+            for i in trange(0,1000):
+                t0=time.perf_counter()
+                image=dset[i]
+                # np.save(f'data/images/{i}',image)
+                t1=time.perf_counter()
+                dt=t1-t0
+                print(f"{dt:.03f}")
+                sum+=dt
+                t0=t1
+            print(dt)
+
+    @profile
+    def test_read_py(self):
+        for i in trange(1000, 1060):
+            x=np.load(f'data/images/{i}.npy')
