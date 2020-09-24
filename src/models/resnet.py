@@ -50,12 +50,12 @@ class CustomInputResnet(pl.LightningModule):
         d_amp = diff[0]
         d_decay = diff[1]
         d_freq = diff[2]
-        result.log('train amp distance', d_amp.mean())
-        result.log('train decay distance', d_decay.mean())
-        result.log('train frequency distance', d_freq.mean())
-        result.log('train amp accuracy', (d_amp / y[0]).mean())
-        result.log('train decay accuracy', (d_decay / y[1]).mean())
-        result.log('train frequency accuracy', (d_freq / y[2]).mean())
+        result.log('train amp distance', d_amp.abs().mean())
+        result.log('train decay distance', d_decay.abs().mean())
+        result.log('train frequency distance', d_freq.abs().mean())
+        result.log('train amp error', (d_amp / y[0]).abs().mean())
+        result.log('train decay error', (d_decay / y[1]).abs().mean())
+        result.log('train frequency error', (d_freq / y[2]).abs().mean())
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -68,17 +68,17 @@ class CustomInputResnet(pl.LightningModule):
         d_decay = diff[1]
         d_freq = diff[2]
         result.log('val_loss', loss)
-        result.log('val amp distance', d_amp.mean())
-        result.log('val decay distance', d_decay.mean())
-        result.log('val frequency distance', d_freq.mean())
-        result.log('val amp accuracy', (d_amp / y[0]).mean())
-        result.log('val decay accuracy', (d_decay / y[1]).mean())
-        result.log('val frequency accuracy', (d_freq / y[2]).mean())
+        result.log('val amp distance', d_amp.abs().mean())
+        result.log('val decay distance', d_decay.abs().mean())
+        result.log('val frequency distance', d_freq.abs().mean())
+        result.log('val amp error', (d_amp / y[0]).abs().mean())
+        result.log('val decay error', (d_decay / y[1]).abs().mean())
+        result.log('val frequency error', (d_freq / y[2]).abs().mean())
         return result
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 90
+    BATCH_SIZE = 64
     NUM_EPOCHS = 50
     TRAINING_DB_PATH = "data/databases/20200923-101734__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     VALIDATION_DB_PATH = "data/databases/20200922-125422__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
