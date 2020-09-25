@@ -23,15 +23,15 @@ class CustomInputResnet(pl.LightningModule):
         self.loss_func = loss_func
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.min_train_loss = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_train_amp_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_train_decay_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_train_freq_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_val_loss = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_val_amp_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_val_decay_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_val_freq_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.one = torch.ones(1, dtype=torch.float32).cuda()
+        self.min_train_loss = torch.tensor(10000, dtype=torch.float64).cuda()
+        self.min_train_amp_err = torch.tensor(10000, dtype=torch.float64).cuda()
+        self.min_train_decay_err = torch.tensor(10000, dtype=torch.float64).cuda()
+        self.min_train_freq_err = torch.tensor(10000, dtype=torch.float64).cuda()
+        self.min_val_loss = torch.tensor(10000, dtype=torch.float64).cuda()
+        self.min_val_amp_err = torch.tensor(10000, dtype=torch.float64).cuda()
+        self.min_val_decay_err = torch.tensor(10000, dtype=torch.float64).cuda()
+        self.min_val_freq_err = torch.tensor(10000, dtype=torch.float64).cuda()
+        self.one = torch.ones(1, dtype=torch.float64).cuda()
         self.resnet = models.resnet18(pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
