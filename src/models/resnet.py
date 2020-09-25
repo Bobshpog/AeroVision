@@ -23,15 +23,15 @@ class CustomInputResnet(pl.LightningModule):
         self.loss_func = loss_func
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.min_train_loss = torch.tensor(10000, dtype=torch.float64).cuda()
-        self.min_train_amp_err = torch.tensor(10000, dtype=torch.float64).cuda()
-        self.min_train_decay_err = torch.tensor(10000, dtype=torch.float64).cuda()
-        self.min_train_freq_err = torch.tensor(10000, dtype=torch.float64).cuda()
-        self.min_val_loss = torch.tensor(10000, dtype=torch.float64).cuda()
-        self.min_val_amp_err = torch.tensor(10000, dtype=torch.float64).cuda()
-        self.min_val_decay_err = torch.tensor(10000, dtype=torch.float64).cuda()
-        self.min_val_freq_err = torch.tensor(10000, dtype=torch.float64).cuda()
-        self.one = torch.ones(1, dtype=torch.float64).cuda()
+        self.min_train_loss = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_train_amp_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_train_decay_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_train_freq_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_val_loss = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_val_amp_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_val_decay_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_val_freq_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.one = torch.ones(1, dtype=torch.float32).cuda()
         self.resnet = models.resnet18(pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -58,12 +58,12 @@ class CustomInputResnet(pl.LightningModule):
         result = pl.TrainResult(loss)
         y_no_grad = y.detach()
         y_hat_no_grad = y_hat.detach()
-        amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0])
-        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1])
-        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2])
-        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], self.one)
-        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], self.one)
-        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], self.one)
+        amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0]).to(torch.float32)
+        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1]).to(torch.float32)
+        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2]).to(torch.float32)
+        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], self.one).to(torch.float32)
+        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], self.one).to(torch.float32)
+        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], self.one).to(torch.float32)
         result.log('train loss', loss)
         result.log('train amp distance', amp_dist)
         result.log('train decay distance', decay_dist)
@@ -76,7 +76,7 @@ class CustomInputResnet(pl.LightningModule):
         self.min_train_amp_err = torch.min(amp_err, self.min_train_amp_err)
         self.min_train_decay_err = torch.min(decay_err, self.min_train_decay_err)
         self.min_train_freq_err = torch.min(freq_err, self.min_train_freq_err)
-        result.log('train min loss', self.train_min_loss)
+        result.log('train min loss', self.min_train_loss)
         result.log('train min amp error', self.min_train_amp_err)
         result.log('train min decay error', self.min_train_decay_err)
         result.log('train min frequency error', self.min_train_freq_err)
@@ -89,12 +89,12 @@ class CustomInputResnet(pl.LightningModule):
         result = pl.EvalResult(checkpoint_on=loss)
         y_no_grad = y.detach()
         y_hat_no_grad = y_hat.detach()
-        amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0])
-        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1])
-        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2])
-        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], self.one)
-        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], self.one)
-        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], self.one)
+        amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0]).to(torch.float32)
+        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1]).to(torch.float32)
+        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2]).to(torch.float32)
+        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], self.one).to(torch.float32)
+        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], self.one).to(torch.float32)
+        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], self.one).to(torch.float32)
         result.log('val loss', loss)
         result.log('val amp distance', amp_dist)
         result.log('val decay distance', decay_dist)
@@ -107,7 +107,7 @@ class CustomInputResnet(pl.LightningModule):
         self.min_val_amp_err = torch.min(amp_err, self.min_val_amp_err)
         self.min_val_decay_err = torch.min(decay_err, self.min_val_decay_err)
         self.min_val_freq_err = torch.min(freq_err, self.min_val_freq_err)
-        result.log('val min loss', self.val_min_loss)
+        result.log('val min loss', self.min_val_loss)
         result.log('val min amp error', self.min_val_amp_err)
         result.log('val min decay error', self.min_val_decay_err)
         result.log('val min frequency error', self.min_val_freq_err)
@@ -117,8 +117,8 @@ class CustomInputResnet(pl.LightningModule):
 if __name__ == '__main__':
     BATCH_SIZE = 64
     NUM_EPOCHS = 50
-    TRAINING_DB_PATH = "data/databases/20200923-101734__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
-    VALIDATION_DB_PATH = "data/databases/20200922-125422__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    TRAINING_DB_PATH = "data/databases/20200924-190018__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    VALIDATION_DB_PATH = "data/databases/20200924-204416__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
     remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
