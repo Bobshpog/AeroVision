@@ -23,14 +23,15 @@ class CustomInputResnet(pl.LightningModule):
         self.loss_func = loss_func
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.min_train_loss=10000
-        self.min_train_amp_err=10000
-        self.min_train_decay_err=10000
-        self.min_train_freq_err=10000
-        self.min_val_loss = 10000
-        self.min_val_amp_err = 10000
-        self.min_val_decay_err = 10000
-        self.min_val_freq_err = 10000
+        self.min_train_loss = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_train_amp_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_train_decay_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_train_freq_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_val_loss = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_val_amp_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_val_decay_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.min_val_freq_err = torch.tensor(10000, dtype=torch.float32).cuda()
+        self.one = torch.ones(1, dtype=torch.float32).cuda()
         self.resnet = models.resnet18(pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -60,9 +61,9 @@ class CustomInputResnet(pl.LightningModule):
         amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0])
         decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1])
         freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2])
-        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], 1)
-        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], 1)
-        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], 1)
+        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], self.one)
+        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], self.one)
+        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], self.one)
         result.log('train loss', loss)
         result.log('train amp distance', amp_dist)
         result.log('train decay distance', decay_dist)
@@ -86,14 +87,14 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         result = pl.EvalResult(checkpoint_on=loss)
-        y_no_grad=y.detach()
-        y_hat_no_grad=y_hat.detach()
-        amp_dist=self.loss_func(y_no_grad[0],y_hat_no_grad[0])
+        y_no_grad = y.detach()
+        y_hat_no_grad = y_hat.detach()
+        amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0])
         decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1])
         freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2])
-        amp_err = self.loss_func(y_hat_no_grad[0]/y_no_grad[0], 1)
-        decay_err =self.loss_func(y_hat_no_grad[1]/y_no_grad[1], 1)
-        freq_err = self.loss_func(y_hat_no_grad[2]/y_no_grad[2], 1)
+        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], self.one)
+        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], self.one)
+        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], self.one)
         result.log('val loss', loss)
         result.log('val amp distance', amp_dist)
         result.log('val decay distance', decay_dist)
