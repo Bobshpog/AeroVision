@@ -2,6 +2,7 @@ from functools import partial
 
 import h5py
 import pytorch_lightning as pl
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -22,6 +23,14 @@ class CustomInputResnet(pl.LightningModule):
         self.loss_func = loss_func
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
+        self.min_train_loss=10000
+        self.min_train_amp_err=10000
+        self.min_train_decay_err=10000
+        self.min_train_freq_err=10000
+        self.min_val_loss = 10000
+        self.min_val_amp_err = 10000
+        self.min_val_decay_err = 10000
+        self.min_val_freq_err = 10000
         self.resnet = models.resnet18(pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -46,17 +55,30 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         result = pl.TrainResult(loss)
-        diff = y_hat - y
-        d_amp = diff[0]
-        d_decay = diff[1]
-        d_freq = diff[2]
+        y_no_grad = y.detach()
+        y_hat_no_grad = y_hat.detach()
+        amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0])
+        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1])
+        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2])
+        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], 1)
+        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], 1)
+        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], 1)
         result.log('train loss', loss)
-        result.log('train amp distance', d_amp.abs().mean())
-        result.log('train decay distance', d_decay.abs().mean())
-        result.log('train frequency distance', d_freq.abs().mean())
-        result.log('train amp error', (d_amp / y[0]).abs().mean())
-        result.log('train decay error', (d_decay / y[1]).abs().mean())
-        result.log('train frequency error', (d_freq / y[2]).abs().mean())
+        result.log('train amp distance', amp_dist)
+        result.log('train decay distance', decay_dist)
+        result.log('train frequency distance', freq_dist)
+        result.log('train amp error', amp_err)
+        result.log('train decay error', decay_err)
+        result.log('train frequency error', freq_err)
+
+        self.min_train_loss = torch.min(loss.detach(), self.min_train_loss)
+        self.min_train_amp_err = torch.min(amp_err, self.min_train_amp_err)
+        self.min_train_decay_err = torch.min(decay_err, self.min_train_decay_err)
+        self.min_train_freq_err = torch.min(freq_err, self.min_train_freq_err)
+        result.log('train min loss', self.train_min_loss)
+        result.log('train min amp error', self.min_train_amp_err)
+        result.log('train min decay error', self.min_train_decay_err)
+        result.log('train min frequency error', self.min_train_freq_err)
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -64,17 +86,30 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         result = pl.EvalResult(checkpoint_on=loss)
-        diff = y_hat - y
-        d_amp = diff[0]
-        d_decay = diff[1]
-        d_freq = diff[2]
+        y_no_grad=y.detach()
+        y_hat_no_grad=y_hat.detach()
+        amp_dist=self.loss_func(y_no_grad[0],y_hat_no_grad[0])
+        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1])
+        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2])
+        amp_err = self.loss_func(y_hat_no_grad[0]/y_no_grad[0], 1)
+        decay_err =self.loss_func(y_hat_no_grad[1]/y_no_grad[1], 1)
+        freq_err = self.loss_func(y_hat_no_grad[2]/y_no_grad[2], 1)
         result.log('val loss', loss)
-        result.log('val amp distance', d_amp.abs().mean())
-        result.log('val decay distance', d_decay.abs().mean())
-        result.log('val frequency distance', d_freq.abs().mean())
-        result.log('val amp error', (d_amp / y[0]).abs().mean())
-        result.log('val decay error', (d_decay / y[1]).abs().mean())
-        result.log('val frequency error', (d_freq / y[2]).abs().mean())
+        result.log('val amp distance', amp_dist)
+        result.log('val decay distance', decay_dist)
+        result.log('val frequency distance', freq_dist)
+        result.log('val amp error', amp_err)
+        result.log('val decay error', decay_err)
+        result.log('val frequency error', freq_err)
+
+        self.min_val_loss = torch.min(loss.detach(), self.min_val_loss)
+        self.min_val_amp_err = torch.min(amp_err, self.min_val_amp_err)
+        self.min_val_decay_err = torch.min(decay_err, self.min_val_decay_err)
+        self.min_val_freq_err = torch.min(freq_err, self.min_val_freq_err)
+        result.log('val min loss', self.val_min_loss)
+        result.log('val min amp error', self.min_val_amp_err)
+        result.log('val min decay error', self.min_val_decay_err)
+        result.log('val min frequency error', self.min_val_freq_err)
         return result
 
 
