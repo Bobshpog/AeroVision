@@ -58,7 +58,7 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
-            one = torch.ones(y.shape[:, ], dtype=y.dtype, device=y.device)
+            one = torch.ones(y.shape[0], dtype=y.dtype, device=y.device)
             self.train_batch_list['loss'].append(loss)
             self.train_batch_list['amp_err'].append(self.loss_func(y_hat[:, 0] / y[:, 0], one))
             self.train_batch_list['decay_err'].append(self.loss_func(y_hat[:, 1] / y[:, 1], one))
@@ -70,7 +70,7 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
-            one = torch.ones(y.shape[:, 0], dtype=y.dtype, device=y.device)
+            one = torch.ones(y.shape[0], dtype=y.dtype, device=y.device)
             self.val_batch_list['loss'].append(loss)
             self.val_batch_list['amp_err'].append(self.loss_func(y_hat[:, 0] / y[:, 0], one))
             self.val_batch_list['decay_err'].append(self.loss_func(y_hat[:, 1] / y[:, 1], one))
@@ -79,7 +79,7 @@ class CustomInputResnet(pl.LightningModule):
 
 
 class LoggerCallback(Callback):
-    def on_train_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer, pl_module:pl.LightningModule):
         curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
         curr_amp_err = torch.mean(torch.stack(pl_module.train_batch_list['amp_err']))
         curr_decay_err = torch.mean(torch.stack(pl_module.train_batch_list['decay_err']))
@@ -92,14 +92,17 @@ class LoggerCallback(Callback):
                                                   pl_module.min_train_decay_err) if pl_module.min_train_decay_err else curr_decay_err
         pl_module.min_train_freq_err = torch.min(curr_freq_err,
                                                  pl_module.min_train_freq_err) if pl_module.min_train_freq_err else curr_freq_err
-        pl_module.log('train min loss', pl_module.min_train_loss)
-        pl_module.log('train min amplitude error', pl_module.min_train_amp_err)
-        pl_module.log('train min decay error', pl_module.min_train_decay_err)
-        pl_module.log('train min frequency error', pl_module.min_train_freq_err)
-        pl_module.log('train loss', curr_loss)
-        pl_module.log('train amplitude error', curr_amp_err)
-        pl_module.log('train decay error', curr_decay_err)
-        pl_module.log('train frequency error', curr_freq_err)
+        metrics = {
+            'train min loss': pl_module.min_train_loss,
+            'train min amplitude error': pl_module.min_train_amp_err,
+            'train min decay error': pl_module.min_train_decay_err,
+            'train min frequency error': pl_module.min_train_freq_err,
+            'train loss': curr_loss,
+            'train amplitude error': curr_amp_err,
+            'train decay error': curr_decay_err,
+            'train frequency error': curr_freq_err,
+        }
+        pl_module.logger.log_metrics(metrics)
         for i in pl_module.train_batch_list.values():
             i.clear()
 
@@ -116,14 +119,17 @@ class LoggerCallback(Callback):
                                                 pl_module.min_val_decay_err) if pl_module.min_val_decay_err else curr_decay_err
         pl_module.min_val_freq_err = torch.min(curr_freq_err,
                                                pl_module.min_val_freq_err) if pl_module.min_val_freq_err else curr_freq_err
-        pl_module.log('val min loss', pl_module.min_val_loss)
-        pl_module.log('val min amplitude error', pl_module.min_val_amp_err)
-        pl_module.log('val min decay error', pl_module.min_val_decay_err)
-        pl_module.log('val min frequency error', pl_module.min_val_freq_err)
-        pl_module.log('val loss', curr_loss)
-        pl_module.log('val amplitude error', curr_amp_err)
-        pl_module.log('val decay error', curr_decay_err)
-        pl_module.log('val frequency error', curr_freq_err)
+        metrics = {
+            'val min loss': pl_module.min_val_loss,
+            'val min amplitude error': pl_module.min_val_amp_err,
+            'val min decay error': pl_module.min_val_decay_err,
+            'val min frequency error': pl_module.min_val_freq_err,
+            'val loss': curr_loss,
+            'val amplitude error': curr_amp_err,
+            'val decay error': curr_decay_err,
+            'val frequency error': curr_freq_err,
+        }
+        pl_module.logger.log_metrics(metrics)
         for i in pl_module.val_batch_list.values():
             i.clear()
 
@@ -131,8 +137,8 @@ class LoggerCallback(Callback):
 if __name__ == '__main__':
     BATCH_SIZE = 64
     NUM_EPOCHS = 50
-    TRAINING_DB_PATH = "data/databases/20200923-190018__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
-    VALIDATION_DB_PATH = "data/databases/20200922-204416__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    TRAINING_DB_PATH = "data/databases/20200924-190018__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    VALIDATION_DB_PATH = "data/databases/20200924-204416__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
     remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
