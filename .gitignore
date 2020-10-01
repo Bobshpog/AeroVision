@@ -177,3 +177,4 @@ octave-workspace
 .idea/
 /src/tests/temp/
 /data/databases/
+/data/data_samples/Daniella_data.mat
