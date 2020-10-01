@@ -57,24 +57,24 @@ class CustomInputResnet(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
-        y_no_grad = y.detach()
-        y_hat_no_grad = y_hat.detach()
-        self.train_batch_list['loss'].append(loss)
-        self.train_batch_list['amp_err'].append(self.loss_func(y_hat_no_grad[0] / y_no_grad[0], 1))
-        self.train_batch_list['decay_err'].append(self.loss_func(y_hat_no_grad[1] / y_no_grad[1], 1))
-        self.train_batch_list['freq_err'].append(self.loss_func(y_hat_no_grad[2] / y_no_grad[2], 1))
+        with torch.no_grad():
+            one=torch.ones(y.shape, dtype=y.dtype, device=y.device)
+            self.train_batch_list['loss'].append(loss)
+            self.train_batch_list['amp_err'].append(self.loss_func(y_hat[0] / y[0], one))
+            self.train_batch_list['decay_err'].append(self.loss_func(y_hat[1] / y[1], one))
+            self.train_batch_list['freq_err'].append(self.loss_func(y_hat[2] / y[2], one))
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
-        y_no_grad = y.detach()
-        y_hat_no_grad = y_hat.detach()
-        self.val_batch_list['loss'].append(loss)
-        self.val_batch_list['amp_err'].append(self.loss_func(y_hat_no_grad[0] / y_no_grad[0], 1))
-        self.val_batch_list['decay_err'].append(self.loss_func(y_hat_no_grad[1] / y_no_grad[1], 1))
-        self.val_batch_list['freq_err'].append(self.loss_func(y_hat_no_grad[2] / y_no_grad[2], 1))
+        with torch.no_grad():
+            one=torch.ones(y.shape, dtype=y.dtype, device=y.device)
+            self.val_batch_list['loss'].append(loss)
+            self.val_batch_list['amp_err'].append(self.loss_func(y_hat[0] / y[0], one))
+            self.val_batch_list['decay_err'].append(self.loss_func(y_hat[1] / y[1], one))
+            self.val_batch_list['freq_err'].append(self.loss_func(y_hat[2] / y[2], one))
         return loss
 
 
