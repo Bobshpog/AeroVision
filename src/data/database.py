@@ -80,6 +80,7 @@ class DatabaseBuilder:
         Returns:
             path to the newly created database
         """
+        DTYPE = np.float32
         if db_name is None:
             db_name = self.db_folder / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}__{self.data_generator}.hdf5"
         num_datapoints = len(self.data_generator)
@@ -95,13 +96,13 @@ class DatabaseBuilder:
                                                   maxshape=(num_datapoints, *image_shape),
                                                   chunks=(1, 1, *(image_shape[1:])),
                                                   compression=self.compression,
-                                                  dtype=np.float)
+                                                  dtype=DTYPE)
             dset_scales = data_grp.create_dataset('scales',
                                                   shape=(num_datapoints, num_scales),
                                                   maxshape=(num_datapoints, num_scales),
                                                   chunks=(1, num_scales),
                                                   compression=self.compression,
-                                                  dtype=np.float)
+                                                  dtype=DTYPE)
             dset_video_names = data_grp.create_dataset('video_names',
                                                        shape=(num_datapoints,),
                                                        maxshape=(num_datapoints,),
@@ -112,7 +113,7 @@ class DatabaseBuilder:
                                               maxshape=(num_datapoints, num_ir, 3),
                                               chunks=(1, num_ir, 3),
                                               compression=self.compression,
-                                              dtype=np.float)
+                                              dtype=DTYPE)
 
             progress_bar = tqdm(enumerate(self.data_generator), desc='Building Database', total=num_datapoints,
                                 file=sys.stdout)
