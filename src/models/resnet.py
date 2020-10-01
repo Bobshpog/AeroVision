@@ -144,7 +144,6 @@ if __name__ == '__main__':
     remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
     transform = transforms.Compose([my_transforms.slice_first_position_no_depth,
                                     remove_mean,
-                                    my_transforms.double_to_float,
                                     my_transforms.last_axis_to_first])
     train_dset = SinFunctionDataset(TRAINING_DB_PATH,
                                     transform=transform)
