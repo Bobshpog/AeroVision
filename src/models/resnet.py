@@ -100,7 +100,7 @@ class LoggerCallback(Callback):
         pl_module.log('train amplitude error', curr_amp_err)
         pl_module.log('train decay error', curr_decay_err)
         pl_module.log('train frequency error', curr_freq_err)
-        for i in pl_module.train_batch_list:
+        for i in pl_module.train_batch_list.values():
             i.clear()
 
     def on_validation_epoch_end(self, trainer, pl_module):
@@ -124,7 +124,7 @@ class LoggerCallback(Callback):
         pl_module.log('val amplitude error', curr_amp_err)
         pl_module.log('val decay error', curr_decay_err)
         pl_module.log('val frequency error', curr_freq_err)
-        for i in pl_module.val_batch_list:
+        for i in pl_module.val_batch_list.values():
             i.clear()
 
 if __name__ == '__main__':
