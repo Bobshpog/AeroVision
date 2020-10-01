@@ -10,7 +10,7 @@ import h5py_cache as h5c
 import numpy as np
 from tqdm import tqdm
 
-from data.data_generators.data_gen import DataGenerator
+from src.data.data_generators.data_gen import DataGenerator
 
 #
 #

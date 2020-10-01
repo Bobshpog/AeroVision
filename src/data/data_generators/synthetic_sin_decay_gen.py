@@ -7,10 +7,10 @@ import h5py
 import numpy as np
 import pyvista as pv
 
-from data.data_generators.data_gen import DataGenerator
-from geometry.numpy.mesh import Mesh
-from geometry.numpy.transforms import fem_wing_sine_decaying_in_space, fem_tip_sine_decaying_in_space
-from util.timing import profile
+from src.data.data_generators.data_gen import DataGenerator
+from src.geometry.numpy.mesh import Mesh
+from src.geometry.numpy.transforms import fem_wing_sine_decaying_in_space, fem_tip_sine_decaying_in_space
+from src.util.timing import profile
 
 
 @dataclass(repr=False)
@@ -65,7 +65,8 @@ class SyntheticSineDecayingGen(DataGenerator):
                                                 data=Mesh.get_many_photos([self.wing_mesh, self.tip_mesh],
                                                                           [self.wing_mesh.vertices,
                                                                            self.tip_mesh.vertices], self.resolution,
-                                                                          [self.texture_path,None], self.cmap, self.plotter,
+                                                                          [self.texture_path, None], self.cmap,
+                                                                          self.plotter,
                                                                           self.cameras))
         group.attrs['cameras'] = self.cameras
         group.attrs['mesh_wing_path'] = self.mesh_wing_path.name
