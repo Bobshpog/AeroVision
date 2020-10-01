@@ -58,11 +58,11 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
-            one=torch.ones(y.shape, dtype=y.dtype, device=y.device)
+            one = torch.ones(y.shape[:, ], dtype=y.dtype, device=y.device)
             self.train_batch_list['loss'].append(loss)
-            self.train_batch_list['amp_err'].append(self.loss_func(y_hat[0] / y[0], one))
-            self.train_batch_list['decay_err'].append(self.loss_func(y_hat[1] / y[1], one))
-            self.train_batch_list['freq_err'].append(self.loss_func(y_hat[2] / y[2], one))
+            self.train_batch_list['amp_err'].append(self.loss_func(y_hat[:, 0] / y[:, 0], one))
+            self.train_batch_list['decay_err'].append(self.loss_func(y_hat[:, 1] / y[:, 1], one))
+            self.train_batch_list['freq_err'].append(self.loss_func(y_hat[:, 2] / y[:, 2], one))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -70,11 +70,11 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
-            one=torch.ones(y.shape, dtype=y.dtype, device=y.device)
+            one = torch.ones(y.shape[:, 0], dtype=y.dtype, device=y.device)
             self.val_batch_list['loss'].append(loss)
-            self.val_batch_list['amp_err'].append(self.loss_func(y_hat[0] / y[0], one))
-            self.val_batch_list['decay_err'].append(self.loss_func(y_hat[1] / y[1], one))
-            self.val_batch_list['freq_err'].append(self.loss_func(y_hat[2] / y[2], one))
+            self.val_batch_list['amp_err'].append(self.loss_func(y_hat[:, 0] / y[:, 0], one))
+            self.val_batch_list['decay_err'].append(self.loss_func(y_hat[:, 1] / y[:, 1], one))
+            self.val_batch_list['freq_err'].append(self.loss_func(y_hat[:, 2] / y[:, 2], one))
         return loss
 
 
@@ -127,11 +127,12 @@ class LoggerCallback(Callback):
         for i in pl_module.val_batch_list.values():
             i.clear()
 
+
 if __name__ == '__main__':
     BATCH_SIZE = 64
     NUM_EPOCHS = 50
-    TRAINING_DB_PATH = "data/databases/20200923-101734__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
-    VALIDATION_DB_PATH = "data/databases/20200922-125422__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    TRAINING_DB_PATH = "data/databases/20200923-190018__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    VALIDATION_DB_PATH = "data/databases/20200922-204416__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
     remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
@@ -146,5 +147,5 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(3, 3, F.mse_loss, cosine_annealing_steps=10)
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS,callbacks=[LoggerCallback()])
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()])
     trainer.fit(model, train_loader, val_loader)
