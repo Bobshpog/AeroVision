@@ -7,10 +7,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
+from pytorch_lightning import Callback
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from model_datasets.resnet_sin_func import SinFunctionDataset
+from src.model_datasets.resnet_sin_func import SinFunctionDataset
 import src.models.transforms as my_transforms
 
 
@@ -23,14 +24,16 @@ class CustomInputResnet(pl.LightningModule):
         self.loss_func = loss_func
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.min_train_loss=10000
-        self.min_train_amp_err=10000
-        self.min_train_decay_err=10000
-        self.min_train_freq_err=10000
-        self.min_val_loss = 10000
-        self.min_val_amp_err = 10000
-        self.min_val_decay_err = 10000
-        self.min_val_freq_err = 10000
+        self.min_train_loss = None
+        self.min_train_amp_err = None
+        self.min_train_decay_err = None
+        self.min_train_freq_err = None
+        self.min_val_loss = None
+        self.min_val_amp_err = None
+        self.min_val_decay_err = None
+        self.min_val_freq_err = None
+        self.train_batch_list = {'loss': [], 'amp_err': [], 'decay_err': [], 'freq_err': []}
+        self.val_batch_list = {'loss': [], 'amp_err': [], 'decay_err': [], 'freq_err': []}
         self.resnet = models.resnet18(pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -54,63 +57,71 @@ class CustomInputResnet(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
-        result = pl.TrainResult(loss)
         y_no_grad = y.detach()
         y_hat_no_grad = y_hat.detach()
-        amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0])
-        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1])
-        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2])
-        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], 1)
-        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], 1)
-        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], 1)
-        result.log('train loss', loss)
-        result.log('train amp distance', amp_dist)
-        result.log('train decay distance', decay_dist)
-        result.log('train frequency distance', freq_dist)
-        result.log('train amp error', amp_err)
-        result.log('train decay error', decay_err)
-        result.log('train frequency error', freq_err)
-
-        self.min_train_loss = torch.min(loss.detach(), self.min_train_loss)
-        self.min_train_amp_err = torch.min(amp_err, self.min_train_amp_err)
-        self.min_train_decay_err = torch.min(decay_err, self.min_train_decay_err)
-        self.min_train_freq_err = torch.min(freq_err, self.min_train_freq_err)
-        result.log('train min loss', self.train_min_loss)
-        result.log('train min amp error', self.min_train_amp_err)
-        result.log('train min decay error', self.min_train_decay_err)
-        result.log('train min frequency error', self.min_train_freq_err)
-        return result
+        self.train_batch_list['loss'].append(loss)
+        self.train_batch_list['amp_err'].append(self.loss_func(y_hat_no_grad[0] / y_no_grad[0], 1))
+        self.train_batch_list['decay_err'].append(self.loss_func(y_hat_no_grad[1] / y_no_grad[1], 1))
+        self.train_batch_list['freq_err'].append(self.loss_func(y_hat_no_grad[2] / y_no_grad[2], 1))
+        return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
-        result = pl.EvalResult(checkpoint_on=loss)
-        y_no_grad=y.detach()
-        y_hat_no_grad=y_hat.detach()
-        amp_dist=self.loss_func(y_no_grad[0],y_hat_no_grad[0])
-        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1])
-        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2])
-        amp_err = self.loss_func(y_hat_no_grad[0]/y_no_grad[0], 1)
-        decay_err =self.loss_func(y_hat_no_grad[1]/y_no_grad[1], 1)
-        freq_err = self.loss_func(y_hat_no_grad[2]/y_no_grad[2], 1)
-        result.log('val loss', loss)
-        result.log('val amp distance', amp_dist)
-        result.log('val decay distance', decay_dist)
-        result.log('val frequency distance', freq_dist)
-        result.log('val amp error', amp_err)
-        result.log('val decay error', decay_err)
-        result.log('val frequency error', freq_err)
+        y_no_grad = y.detach()
+        y_hat_no_grad = y_hat.detach()
+        self.val_batch_list['loss'].append(loss)
+        self.val_batch_list['amp_err'].append(self.loss_func(y_hat_no_grad[0] / y_no_grad[0], 1))
+        self.val_batch_list['decay_err'].append(self.loss_func(y_hat_no_grad[1] / y_no_grad[1], 1))
+        self.val_batch_list['freq_err'].append(self.loss_func(y_hat_no_grad[2] / y_no_grad[2], 1))
+        return loss
 
-        self.min_val_loss = torch.min(loss.detach(), self.min_val_loss)
-        self.min_val_amp_err = torch.min(amp_err, self.min_val_amp_err)
-        self.min_val_decay_err = torch.min(decay_err, self.min_val_decay_err)
-        self.min_val_freq_err = torch.min(freq_err, self.min_val_freq_err)
-        result.log('val min loss', self.val_min_loss)
-        result.log('val min amp error', self.min_val_amp_err)
-        result.log('val min decay error', self.min_val_decay_err)
-        result.log('val min frequency error', self.min_val_freq_err)
-        return result
+
+class LoggerCallback(Callback):
+    def on_train_epoch_end(self, trainer, pl_module):
+        curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
+        curr_amp_err = torch.mean(torch.stack(pl_module.train_batch_list['amp_err']))
+        curr_decay_err = torch.mean(torch.stack(pl_module.train_batch_list['decay_err']))
+        curr_freq_err = torch.mean(torch.stack(pl_module.train_batch_list['freq_err']))
+        pl_module.min_train_loss = torch.min(curr_loss,
+                                             pl_module.min_train_loss) if pl_module.min_train_loss else curr_loss
+        pl_module.min_train_amp_err = torch.min(curr_amp_err,
+                                                pl_module.min_train_amp_err) if pl_module.min_train_amp_err else curr_amp_err
+        pl_module.min_train_decay_err = torch.min(curr_decay_err,
+                                                  pl_module.min_train_decay_err) if pl_module.min_train_decay_err else curr_decay_err
+        pl_module.min_train_freq_err = torch.min(curr_freq_err,
+                                                 pl_module.min_train_freq_err) if pl_module.min_train_freq_err else curr_freq_err
+        pl_module.log('train min loss', pl_module.min_train_loss)
+        pl_module.log('train min amplitude error', pl_module.min_train_amp_err)
+        pl_module.log('train min decay error', pl_module.min_train_decay_err)
+        pl_module.log('train min frequency error', pl_module.min_train_freq_err)
+        pl_module.log('train loss', curr_loss)
+        pl_module.log('train amplitude error', curr_amp_err)
+        pl_module.log('train decay error', curr_decay_err)
+        pl_module.log('train frequency error', curr_freq_err)
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        curr_loss = torch.mean(torch.stack(pl_module.val_batch_list['loss']))
+        curr_amp_err = torch.mean(torch.stack(pl_module.val_batch_list['amp_err']))
+        curr_decay_err = torch.mean(torch.stack(pl_module.val_batch_list['decay_err']))
+        curr_freq_err = torch.mean(torch.stack(pl_module.val_batch_list['freq_err']))
+        pl_module.min_val_loss = torch.min(curr_loss,
+                                           pl_module.min_val_loss) if pl_module.min_val_loss else curr_loss
+        pl_module.min_val_amp_err = torch.min(curr_amp_err,
+                                              pl_module.min_val_amp_err) if pl_module.min_val_amp_err else curr_amp_err
+        pl_module.min_val_decay_err = torch.min(curr_decay_err,
+                                                pl_module.min_val_decay_err) if pl_module.min_val_decay_err else curr_decay_err
+        pl_module.min_val_freq_err = torch.min(curr_freq_err,
+                                               pl_module.min_val_freq_err) if pl_module.min_val_freq_err else curr_freq_err
+        pl_module.log('val min loss', pl_module.min_val_loss)
+        pl_module.log('val min amplitude error', pl_module.min_val_amp_err)
+        pl_module.log('val min decay error', pl_module.min_val_decay_err)
+        pl_module.log('val min frequency error', pl_module.min_val_freq_err)
+        pl_module.log('val loss', curr_loss)
+        pl_module.log('val amplitude error', curr_amp_err)
+        pl_module.log('val decay error', curr_decay_err)
+        pl_module.log('val frequency error', curr_freq_err)
 
 
 if __name__ == '__main__':
@@ -132,5 +143,5 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(3, 3, F.mse_loss, cosine_annealing_steps=10)
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS)
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS,callbacks=[LoggerCallback()])
     trainer.fit(model, train_loader, val_loader)
