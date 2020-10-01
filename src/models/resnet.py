@@ -100,6 +100,8 @@ class LoggerCallback(Callback):
         pl_module.log('train amplitude error', curr_amp_err)
         pl_module.log('train decay error', curr_decay_err)
         pl_module.log('train frequency error', curr_freq_err)
+        for i in pl_module.train_batch_list:
+            i.clear()
 
     def on_validation_epoch_end(self, trainer, pl_module):
         curr_loss = torch.mean(torch.stack(pl_module.val_batch_list['loss']))
@@ -122,7 +124,8 @@ class LoggerCallback(Callback):
         pl_module.log('val amplitude error', curr_amp_err)
         pl_module.log('val decay error', curr_decay_err)
         pl_module.log('val frequency error', curr_freq_err)
-
+        for i in pl_module.val_batch_list:
+            i.clear()
 
 if __name__ == '__main__':
     BATCH_SIZE = 64
