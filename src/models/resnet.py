@@ -102,7 +102,7 @@ class LoggerCallback(Callback):
             'train decay error': curr_decay_err,
             'train frequency error': curr_freq_err,
         }
-        pl_module.logger.log_metrics(metrics)
+        pl_module.logger.experiment.log_metrics(metrics,pl_module.current_epoch)
         for i in pl_module.train_batch_list.values():
             i.clear()
 
@@ -129,7 +129,7 @@ class LoggerCallback(Callback):
             'val decay error': curr_decay_err,
             'val frequency error': curr_freq_err,
         }
-        pl_module.logger.log_metrics(metrics)
+        pl_module.logger.log_metrics(metrics,pl_module.current_epoch)
         for i in pl_module.val_batch_list.values():
             i.clear()
 
@@ -137,8 +137,8 @@ class LoggerCallback(Callback):
 if __name__ == '__main__':
     BATCH_SIZE = 64
     NUM_EPOCHS = 50
-    TRAINING_DB_PATH = "data/databases/20200924-190018__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
-    VALIDATION_DB_PATH = "data/databases/20200924-204416__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    TRAINING_DB_PATH = "data/databases/20201001-231036__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    VALIDATION_DB_PATH = "data/databases/20201001-223844__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
     remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
@@ -152,5 +152,5 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(3, 3, F.mse_loss, cosine_annealing_steps=10)
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()])
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()],num_sanity_val_steps=0)
     trainer.fit(model, train_loader, val_loader)
