@@ -6,9 +6,9 @@ import numpy as np
 from tqdm import trange
 
 import src.data.database as db
-from data.data_generators.synthetic_csv_gen import SyntheticCSVGenerator
-from data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayingGen
-from util.timing import profile
+from src.data.data_generators.synthetic_csv_gen import SyntheticCSVGenerator
+from src.data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayingGen
+from src.util.timing import profile
 
 
 class Test(TestCase):

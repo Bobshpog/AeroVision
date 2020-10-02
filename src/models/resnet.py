@@ -7,10 +7,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
+from pytorch_lightning import Callback
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from model_datasets.resnet_sin_func import SinFunctionDataset
+from src.model_datasets.resnet_sin_func import SinFunctionDataset
 import src.models.transforms as my_transforms
 
 
@@ -23,15 +24,16 @@ class CustomInputResnet(pl.LightningModule):
         self.loss_func = loss_func
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.min_train_loss = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_train_amp_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_train_decay_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_train_freq_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_val_loss = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_val_amp_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_val_decay_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.min_val_freq_err = torch.tensor(10000, dtype=torch.float32).cuda()
-        self.one = torch.ones(1, dtype=torch.float32).cuda()
+        self.min_train_loss = None
+        self.min_train_amp_err = None
+        self.min_train_decay_err = None
+        self.min_train_freq_err = None
+        self.min_val_loss = None
+        self.min_val_amp_err = None
+        self.min_val_decay_err = None
+        self.min_val_freq_err = None
+        self.train_batch_list = {'loss': [], 'amp_err': [], 'decay_err': [], 'freq_err': []}
+        self.val_batch_list = {'loss': [], 'amp_err': [], 'decay_err': [], 'freq_err': []}
         self.resnet = models.resnet18(pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -55,76 +57,93 @@ class CustomInputResnet(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
-        result = pl.TrainResult(loss)
-        y_no_grad = y.detach()
-        y_hat_no_grad = y_hat.detach()
-        amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0]).to(torch.float32)
-        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1]).to(torch.float32)
-        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2]).to(torch.float32)
-        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], self.one).to(torch.float32)
-        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], self.one).to(torch.float32)
-        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], self.one).to(torch.float32)
-        result.log('train loss', loss)
-        result.log('train amp distance', amp_dist)
-        result.log('train decay distance', decay_dist)
-        result.log('train frequency distance', freq_dist)
-        result.log('train amp error', amp_err)
-        result.log('train decay error', decay_err)
-        result.log('train frequency error', freq_err)
-
-        self.min_train_loss = torch.min(loss.detach(), self.min_train_loss)
-        self.min_train_amp_err = torch.min(amp_err, self.min_train_amp_err)
-        self.min_train_decay_err = torch.min(decay_err, self.min_train_decay_err)
-        self.min_train_freq_err = torch.min(freq_err, self.min_train_freq_err)
-        result.log('train min loss', self.min_train_loss)
-        result.log('train min amp error', self.min_train_amp_err)
-        result.log('train min decay error', self.min_train_decay_err)
-        result.log('train min frequency error', self.min_train_freq_err)
-        return result
+        with torch.no_grad():
+            one = torch.ones(y.shape[0], dtype=y.dtype, device=y.device)
+            self.train_batch_list['loss'].append(loss)
+            self.train_batch_list['amp_err'].append(self.loss_func(y_hat[:, 0] / y[:, 0], one))
+            self.train_batch_list['decay_err'].append(self.loss_func(y_hat[:, 1] / y[:, 1], one))
+            self.train_batch_list['freq_err'].append(self.loss_func(y_hat[:, 2] / y[:, 2], one))
+        return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
-        result = pl.EvalResult(checkpoint_on=loss)
-        y_no_grad = y.detach()
-        y_hat_no_grad = y_hat.detach()
-        amp_dist = self.loss_func(y_no_grad[0], y_hat_no_grad[0]).to(torch.float32)
-        decay_dist = self.loss_func(y_no_grad[1], y_hat_no_grad[1]).to(torch.float32)
-        freq_dist = self.loss_func(y_no_grad[2], y_hat_no_grad[2]).to(torch.float32)
-        amp_err = self.loss_func(y_hat_no_grad[0] / y_no_grad[0], self.one).to(torch.float32)
-        decay_err = self.loss_func(y_hat_no_grad[1] / y_no_grad[1], self.one).to(torch.float32)
-        freq_err = self.loss_func(y_hat_no_grad[2] / y_no_grad[2], self.one).to(torch.float32)
-        result.log('val loss', loss)
-        result.log('val amp distance', amp_dist)
-        result.log('val decay distance', decay_dist)
-        result.log('val frequency distance', freq_dist)
-        result.log('val amp error', amp_err)
-        result.log('val decay error', decay_err)
-        result.log('val frequency error', freq_err)
+        with torch.no_grad():
+            one = torch.ones(y.shape[0], dtype=y.dtype, device=y.device)
+            self.val_batch_list['loss'].append(loss)
+            self.val_batch_list['amp_err'].append(self.loss_func(y_hat[:, 0] / y[:, 0], one))
+            self.val_batch_list['decay_err'].append(self.loss_func(y_hat[:, 1] / y[:, 1], one))
+            self.val_batch_list['freq_err'].append(self.loss_func(y_hat[:, 2] / y[:, 2], one))
+        return loss
 
-        self.min_val_loss = torch.min(loss.detach(), self.min_val_loss)
-        self.min_val_amp_err = torch.min(amp_err, self.min_val_amp_err)
-        self.min_val_decay_err = torch.min(decay_err, self.min_val_decay_err)
-        self.min_val_freq_err = torch.min(freq_err, self.min_val_freq_err)
-        result.log('val min loss', self.min_val_loss)
-        result.log('val min amp error', self.min_val_amp_err)
-        result.log('val min decay error', self.min_val_decay_err)
-        result.log('val min frequency error', self.min_val_freq_err)
-        return result
+
+class LoggerCallback(Callback):
+    def on_train_epoch_end(self, trainer, pl_module:pl.LightningModule):
+        curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
+        curr_amp_err = torch.mean(torch.stack(pl_module.train_batch_list['amp_err']))
+        curr_decay_err = torch.mean(torch.stack(pl_module.train_batch_list['decay_err']))
+        curr_freq_err = torch.mean(torch.stack(pl_module.train_batch_list['freq_err']))
+        pl_module.min_train_loss = torch.min(curr_loss,
+                                             pl_module.min_train_loss) if pl_module.min_train_loss else curr_loss
+        pl_module.min_train_amp_err = torch.min(curr_amp_err,
+                                                pl_module.min_train_amp_err) if pl_module.min_train_amp_err else curr_amp_err
+        pl_module.min_train_decay_err = torch.min(curr_decay_err,
+                                                  pl_module.min_train_decay_err) if pl_module.min_train_decay_err else curr_decay_err
+        pl_module.min_train_freq_err = torch.min(curr_freq_err,
+                                                 pl_module.min_train_freq_err) if pl_module.min_train_freq_err else curr_freq_err
+        metrics = {
+            'train min loss': pl_module.min_train_loss,
+            'train min amplitude error': pl_module.min_train_amp_err,
+            'train min decay error': pl_module.min_train_decay_err,
+            'train min frequency error': pl_module.min_train_freq_err,
+            'train loss': curr_loss,
+            'train amplitude error': curr_amp_err,
+            'train decay error': curr_decay_err,
+            'train frequency error': curr_freq_err,
+        }
+        pl_module.logger.log_metrics(metrics,pl_module.current_epoch)
+        for i in pl_module.train_batch_list.values():
+            i.clear()
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        curr_loss = torch.mean(torch.stack(pl_module.val_batch_list['loss']))
+        curr_amp_err = torch.mean(torch.stack(pl_module.val_batch_list['amp_err']))
+        curr_decay_err = torch.mean(torch.stack(pl_module.val_batch_list['decay_err']))
+        curr_freq_err = torch.mean(torch.stack(pl_module.val_batch_list['freq_err']))
+        pl_module.min_val_loss = torch.min(curr_loss,
+                                           pl_module.min_val_loss) if pl_module.min_val_loss else curr_loss
+        pl_module.min_val_amp_err = torch.min(curr_amp_err,
+                                              pl_module.min_val_amp_err) if pl_module.min_val_amp_err else curr_amp_err
+        pl_module.min_val_decay_err = torch.min(curr_decay_err,
+                                                pl_module.min_val_decay_err) if pl_module.min_val_decay_err else curr_decay_err
+        pl_module.min_val_freq_err = torch.min(curr_freq_err,
+                                               pl_module.min_val_freq_err) if pl_module.min_val_freq_err else curr_freq_err
+        metrics = {
+            'val min loss': pl_module.min_val_loss,
+            'val min amplitude error': pl_module.min_val_amp_err,
+            'val min decay error': pl_module.min_val_decay_err,
+            'val min frequency error': pl_module.min_val_freq_err,
+            'val loss': curr_loss,
+            'val amplitude error': curr_amp_err,
+            'val decay error': curr_decay_err,
+            'val frequency error': curr_freq_err,
+        }
+        pl_module.logger.log_metrics(metrics,pl_module.current_epoch)
+        for i in pl_module.val_batch_list.values():
+            i.clear()
 
 
 if __name__ == '__main__':
     BATCH_SIZE = 64
     NUM_EPOCHS = 50
-    TRAINING_DB_PATH = "data/databases/20200924-190018__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
-    VALIDATION_DB_PATH = "data/databases/20200924-204416__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    TRAINING_DB_PATH = "data/databases/20201002-083303__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    VALIDATION_DB_PATH = "data/databases/20201002-095619__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
     remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
     transform = transforms.Compose([my_transforms.slice_first_position_no_depth,
                                     remove_mean,
-                                    my_transforms.double_to_float,
                                     my_transforms.last_axis_to_first])
     train_dset = SinFunctionDataset(TRAINING_DB_PATH,
                                     transform=transform)
@@ -133,5 +152,5 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(3, 3, F.mse_loss, cosine_annealing_steps=10)
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS)
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()],num_sanity_val_steps=0)
     trainer.fit(model, train_loader, val_loader)

@@ -454,7 +454,7 @@ class Mesh:
         screen = plotter.screenshot(window_size=resolution)
         screen = screen/255
         plotter.remove_actor("title")
-        return np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
+        return np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1).astype(np.float32)
 
 
     @staticmethod
@@ -504,7 +504,7 @@ class Mesh:
             depth = np.abs(depth)
             screen = plotter.screenshot(window_size=resolution)
             screen = screen/255
-            to_return[idx] = np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
+            to_return[idx] = np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1).astype(np.float32)
         return to_return
 
 

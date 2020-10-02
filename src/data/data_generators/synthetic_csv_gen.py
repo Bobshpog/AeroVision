@@ -10,8 +10,8 @@ import pyvista as pv
 from memoization import cached
 
 import src.data.data_generators.data_gen as data_gen
-from geometry.numpy.mesh import read_off_size
-from geometry.numpy.wing_models import FiniteElementWingModel
+from src.geometry.numpy.mesh import read_off_size
+from src.geometry.numpy.wing_models import FiniteElementWingModel
 
 
 @dataclass(repr=False)
