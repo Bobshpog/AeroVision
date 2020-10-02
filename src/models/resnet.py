@@ -79,7 +79,7 @@ class CustomInputResnet(pl.LightningModule):
 
 
 class LoggerCallback(Callback):
-    def on_train_epoch_end(self, trainer, pl_module:pl.LightningModule):
+    def on_train_epoch_end(self, trainer, pl_module: pl.LightningModule):
         curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
         curr_amp_err = torch.mean(torch.stack(pl_module.train_batch_list['amp_err']))
         curr_decay_err = torch.mean(torch.stack(pl_module.train_batch_list['decay_err']))
@@ -102,7 +102,7 @@ class LoggerCallback(Callback):
             'train decay error': curr_decay_err,
             'train frequency error': curr_freq_err,
         }
-        pl_module.logger.log_metrics(metrics,pl_module.current_epoch)
+        pl_module.logger.log_metrics(metrics, pl_module.current_epoch)
         for i in pl_module.train_batch_list.values():
             i.clear()
 
@@ -129,9 +129,14 @@ class LoggerCallback(Callback):
             'val decay error': curr_decay_err,
             'val frequency error': curr_freq_err,
         }
-        pl_module.logger.log_metrics(metrics,pl_module.current_epoch)
+        pl_module.logger.log_metrics(metrics, pl_module.current_epoch)
         for i in pl_module.val_batch_list.values():
             i.clear()
+
+
+def MSE_Weighted(weights, a, b):
+    weights = torch.tensor(weights, dtype=a.dtype, device=a.device)
+    return torch.sum(weights * (a - b) ** 2)
 
 
 if __name__ == '__main__':
@@ -151,6 +156,6 @@ if __name__ == '__main__':
                                   transform=transform)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
-    model = CustomInputResnet(3, 3, F.mse_loss, cosine_annealing_steps=10)
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()],num_sanity_val_steps=0)
+    model = CustomInputResnet(3, 3, partial(MSE_Weighted, [80, 1, 1.6]), cosine_annealing_steps=10)
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()], num_sanity_val_steps=0)
     trainer.fit(model, train_loader, val_loader)
