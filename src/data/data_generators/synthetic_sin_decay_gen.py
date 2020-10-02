@@ -61,7 +61,7 @@ class SyntheticSineDecayingGen(DataGenerator):
                                                 dtype=h5py.string_dtype(encoding='ascii'))
         for idx, name in enumerate(['amp', 'freq_s', 'decay']):
             dset_scale_names[idx] = name.encode('ascii', 'ignore')
-        dset_mean_images = group.create_dataset('mean images', dtype=np.float,
+        dset_mean_images = group.create_dataset('mean images', dtype=np.float32,
                                                 data=Mesh.get_many_photos([self.wing_mesh, self.tip_mesh],
                                                                           [self.wing_mesh.vertices,
                                                                            self.tip_mesh.vertices], self.resolution,
