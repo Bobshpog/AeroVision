@@ -146,9 +146,9 @@ if __name__ == '__main__':
                                     remove_mean,
                                     my_transforms.last_axis_to_first])
     train_dset = SinFunctionDataset(TRAINING_DB_PATH,
-                                    transform=transform)
+                                    transform=transform,cache_size=1000)
     val_dset = SinFunctionDataset(VALIDATION_DB_PATH,
-                                  transform=transform)
+                                  transform=transform,cache_size=1000)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(3, 3, partial(MSE_Weighted, [80, 1, 1.6]), cosine_annealing_steps=10)
