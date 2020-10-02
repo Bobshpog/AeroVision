@@ -4,7 +4,6 @@ import h5py
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
 from pytorch_lightning import Callback
@@ -12,7 +11,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from src.model_datasets.resnet_sin_func import SinFunctionDataset
-import src.models.transforms as my_transforms
+import src.util.image_transforms as my_transforms
+from src.util.loss_functions import MSE_Weighted
 
 
 class CustomInputResnet(pl.LightningModule):
@@ -132,11 +132,6 @@ class LoggerCallback(Callback):
         pl_module.logger.log_metrics(metrics, pl_module.current_epoch)
         for i in pl_module.val_batch_list.values():
             i.clear()
-
-
-def MSE_Weighted(weights, a, b):
-    weights = torch.tensor(weights, dtype=a.dtype, device=a.device)
-    return torch.sum(weights * (a - b) ** 2)
 
 
 if __name__ == '__main__':
