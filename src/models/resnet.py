@@ -16,14 +16,20 @@ import src.util.image_transforms as my_transforms
 from src.util.loss_functions import MSE_Weighted
 
 
-
 class CustomInputResnet(pl.LightningModule):
-    def __init__(self, num_input_layers, num_outputs, loss_func, learning_rate=1e-2, cosine_annealing_steps=0,
+    def __init__(self, num_input_layers, num_outputs, loss_func, resnet_type='18', learning_rate=1e-2,
+                 cosine_annealing_steps=0,
                  weight_decay=0):
         super().__init__()
         # TODO consider removing pretrained
-        self.learning_rate = learning_rate
+        resnet_dict = {'18': models.resnet18,
+                       '34': models.resnet34,
+                       '50': models.resnet50}
+        self.num_input_layers=num_input_layers
+        self.num_output_layers=num_outputs
         self.loss_func = loss_func
+        self.learning_rate = learning_rate
+        self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
         self.min_train_loss = None
@@ -36,7 +42,7 @@ class CustomInputResnet(pl.LightningModule):
         self.min_val_freq_err = None
         self.train_batch_list = {'loss': [], 'amp_err': [], 'decay_err': [], 'freq_err': []}
         self.val_batch_list = {'loss': [], 'amp_err': [], 'decay_err': [], 'freq_err': []}
-        self.resnet = models.resnet18(pretrained=False, num_classes=num_outputs)
+        self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
                                       bias=False)
@@ -155,6 +161,7 @@ if __name__ == '__main__':
                                   transform=transform, cache_size=VAL_CACHE_SIZE)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
-    model = CustomInputResnet(3, 3, F.mse_loss, cosine_annealing_steps=10)
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()], num_sanity_val_steps=0,profiler=True)
+    model = CustomInputResnet(3, 3, loss_func=F.mse_loss, resnet_type='18', cosine_annealing_steps=10)
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()], num_sanity_val_steps=0,
+                         profiler=True)
     trainer.fit(model, train_loader, val_loader)
