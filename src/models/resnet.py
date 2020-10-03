@@ -27,8 +27,8 @@ class CustomInputResnet(pl.LightningModule):
         resnet_dict = {'18': models.resnet18,
                        '34': models.resnet34,
                        '50': models.resnet50}
-        self.num_input_layers=num_input_layers
-        self.num_output_layers=num_outputs
+        self.num_input_layers = num_input_layers
+        self.num_output_layers = num_outputs
         self.loss_func = loss_func
         self.learning_rate = learning_rate
         self.resnet_type = resnet_type
@@ -149,6 +149,7 @@ if __name__ == '__main__':
     NUM_EPOCHS = 50
     VAL_CACHE_SIZE = 1000
     TRAIN_CACHE_SIZE = 5500
+    EXPERIMENT_NAME = ""
     TRAINING_DB_PATH = "data/databases/20201002-083303__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     VALIDATION_DB_PATH = "data/databases/20201002-095619__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
@@ -164,8 +165,12 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(3, 3, loss_func=F.mse_loss, resnet_type='18', cosine_annealing_steps=10)
-    logger=TensorBoardLogger('lightning_logs')
-    mcp = ModelCheckpoint(filepath=f'{logger.log_dir}/' + '{epoch}_tl_{train loss:.3f}_vl_{val loss:.3f}',save_last=True,mode='min')
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()],checkpoint_callback=mcp, num_sanity_val_steps=0,
-                         profiler=True,logger=logger)
+    logger = TensorBoardLogger('lightning_logs',name=EXPERIMENT_NAME)
+    mcp = ModelCheckpoint(
+        filepath=f"{logger.log_dir}/checkpoints" + "{epoch}_tl_{train_batch_list['loss']:.3f}_vl_{train_batch_list['loss']:.3f}",
+        save_last=True, mode='min', )
+
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()], checkpoint_callback=mcp,
+                         num_sanity_val_steps=0,
+                         profiler=True, logger=logger)
     trainer.fit(model, train_loader, val_loader)
