@@ -103,14 +103,14 @@ class LoggerCallback(Callback):
         pl_module.min_train_freq_err = torch.min(curr_freq_err,
                                                  pl_module.min_train_freq_err) if pl_module.min_train_freq_err else curr_freq_err
         metrics = {
-            'train min loss': pl_module.min_train_loss,
-            'train min amplitude error': pl_module.min_train_amp_err,
-            'train min decay error': pl_module.min_train_decay_err,
-            'train min frequency error': pl_module.min_train_freq_err,
-            'train loss': curr_loss,
-            'train amplitude error': curr_amp_err,
-            'train decay error': curr_decay_err,
-            'train frequency error': curr_freq_err,
+            'train_min_loss': pl_module.min_train_loss,
+            'train_min_amplitude_error': pl_module.min_train_amp_err,
+            'train_min_decay_error': pl_module.min_train_decay_err,
+            'train_min_frequency error': pl_module.min_train_freq_err,
+            'train_loss': curr_loss,
+            'train_amplitude_error': curr_amp_err,
+            'train_decay_error': curr_decay_err,
+            'train_frequency_error': curr_freq_err,
         }
         pl_module.logger.log_metrics(metrics, pl_module.current_epoch)
         for i in pl_module.train_batch_list.values():
@@ -130,14 +130,14 @@ class LoggerCallback(Callback):
         pl_module.min_val_freq_err = torch.min(curr_freq_err,
                                                pl_module.min_val_freq_err) if pl_module.min_val_freq_err else curr_freq_err
         metrics = {
-            'val min loss': pl_module.min_val_loss,
-            'val min amplitude error': pl_module.min_val_amp_err,
-            'val min decay error': pl_module.min_val_decay_err,
-            'val min frequency error': pl_module.min_val_freq_err,
-            'val loss': curr_loss,
-            'val amplitude error': curr_amp_err,
-            'val decay error': curr_decay_err,
-            'val frequency error': curr_freq_err,
+            'val_min_loss': pl_module.min_val_loss,
+            'val_min_amplitude_error': pl_module.min_val_amp_err,
+            'val_min_decay_error': pl_module.min_val_decay_err,
+            'val_min_frequency error': pl_module.min_val_freq_err,
+            'val_loss': curr_loss,
+            'val_amplitude_error': curr_amp_err,
+            'val_decay_error': curr_decay_err,
+            'val_frequency_error': curr_freq_err,
         }
         pl_module.logger.log_metrics(metrics, pl_module.current_epoch)
         for i in pl_module.val_batch_list.values():
@@ -165,9 +165,10 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(3, 3, loss_func=F.mse_loss, resnet_type='18', cosine_annealing_steps=10)
-    logger = TensorBoardLogger('lightning_logs',name=EXPERIMENT_NAME)
+    logger = TensorBoardLogger('lightning_logs', name=EXPERIMENT_NAME)
     mcp = ModelCheckpoint(
-        filepath=f"{logger.log_dir}/checkpoints" + "{epoch}_tl_{train_batch_list['loss']:.3f}_vl_{train_batch_list['loss']:.3f}",
+        filepath=f"{logger.log_dir}/checkpoints"
+                 + "{epoch}_tl_{train_loss:.3f}_vl_{val_loss:.3f}",
         save_last=True, mode='min', )
 
     trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()], checkpoint_callback=mcp,
