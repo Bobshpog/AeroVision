@@ -90,7 +90,6 @@ class CustomInputResnet(pl.LightningModule):
 
 class LoggerCallback(Callback):
     def __init__(self,logger):
-        super.__init__()
         self.logger=logger
     def on_train_epoch_end(self, trainer, pl_module: pl.LightningModule):
         curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
@@ -173,8 +172,8 @@ if __name__ == '__main__':
     logger = TensorBoardLogger('lightning_logs', name=EXPERIMENT_NAME)
     mcp = ModelCheckpoint(
         filepath=f"{logger.log_dir}/checkpoints/"
-                 + "{epoch}_tl_{train_loss:.3f}_vl_{val_loss:.3f}",
-        save_last=True, mode='min', )
+                 + "{epoch}",
+        save_last=True, mode='min')
 
     trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger)], checkpoint_callback=mcp,
                          num_sanity_val_steps=0,
