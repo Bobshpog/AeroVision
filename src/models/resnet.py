@@ -7,12 +7,14 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
 from pytorch_lightning import Callback
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from src.model_datasets.resnet_sin_func import SinFunctionDataset
 import src.util.image_transforms as my_transforms
 from src.util.loss_functions import MSE_Weighted
+
 
 
 class CustomInputResnet(pl.LightningModule):
@@ -137,6 +139,8 @@ class LoggerCallback(Callback):
 if __name__ == '__main__':
     BATCH_SIZE = 64
     NUM_EPOCHS = 50
+    VAL_CACHE_SIZE = 1000
+    TRAIN_CACHE_SIZE = 5500
     TRAINING_DB_PATH = "data/databases/20201002-083303__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     VALIDATION_DB_PATH = "data/databases/20201002-095619__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
@@ -146,11 +150,11 @@ if __name__ == '__main__':
                                     remove_mean,
                                     my_transforms.last_axis_to_first])
     train_dset = SinFunctionDataset(TRAINING_DB_PATH,
-                                    transform=transform,cache_size=1000)
+                                    transform=transform, cache_size=TRAIN_CACHE_SIZE)
     val_dset = SinFunctionDataset(VALIDATION_DB_PATH,
-                                  transform=transform,cache_size=1000)
+                                  transform=transform, cache_size=VAL_CACHE_SIZE)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
-    model = CustomInputResnet(3, 3, partial(MSE_Weighted, [80, 1, 1.6]), cosine_annealing_steps=10)
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()], num_sanity_val_steps=0)
+    model = CustomInputResnet(3, 3, F.mse_loss, cosine_annealing_steps=10)
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()], num_sanity_val_steps=0,profiler=True)
     trainer.fit(model, train_loader, val_loader)
