@@ -9,6 +9,7 @@ import torchvision.models as models
 from pytorch_lightning import Callback
 import torch.nn.functional as F
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
@@ -163,9 +164,8 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(3, 3, loss_func=F.mse_loss, resnet_type='18', cosine_annealing_steps=10)
-
-    logger_path=model.logger.log_dir
-    mcp = ModelCheckpoint(filepath=f'{logger_path}/' + '{epoch}_vl_{val_loss:.2f}',save_last=True,mode='min')
+    logger=TensorBoardLogger('lightning_logs')
+    mcp = ModelCheckpoint(filepath=f'{logger.log_dir}/' + '{epoch}_tl_{train loss:.3f}_vl_{val loss:.3f}',save_last=True,mode='min')
     trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback()],checkpoint_callback=mcp, num_sanity_val_steps=0,
-                         profiler=True)
+                         profiler=True,logger=logger)
     trainer.fit(model, train_loader, val_loader)
