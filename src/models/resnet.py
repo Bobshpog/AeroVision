@@ -89,8 +89,9 @@ class CustomInputResnet(pl.LightningModule):
 
 
 class LoggerCallback(Callback):
-    def __init__(self,logger):
-        self.logger=logger
+    def __init__(self, logger):
+        self.logger = logger
+
     def on_train_epoch_end(self, trainer, pl_module: pl.LightningModule):
         curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
         curr_amp_err = torch.mean(torch.stack(pl_module.train_batch_list['amp_err']))
@@ -104,19 +105,20 @@ class LoggerCallback(Callback):
                                                   pl_module.min_train_decay_err) if pl_module.min_train_decay_err else curr_decay_err
         pl_module.min_train_freq_err = torch.min(curr_freq_err,
                                                  pl_module.min_train_freq_err) if pl_module.min_train_freq_err else curr_freq_err
-        metrics = {
-            'min_loss/train_min_loss': pl_module.min_train_loss,
-            'train_min_error/amplitude': pl_module.min_train_amp_err,
-            'train_min_error/decay': pl_module.min_train_decay_err,
-            'train_min_error/frequency': pl_module.min_train_freq_err,
-            'loss/train_loss': curr_loss,
-            'train_error/amplitude': curr_amp_err,
-            'train_error/decay': curr_decay_err,
-            'train_error/frequency': curr_freq_err,
-        }
-        self.logger.log_metrics(metrics, pl_module.current_epoch)
+
+        self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss})
+        self.logger.experiment.add_scalars('min_loss', {'train': pl_module.min_train_loss})
+        self.logger.experiment.add_scalars('train_error',
+                                           {'amplitude': curr_amp_err,
+                                            'decay': curr_decay_err,
+                                            'frequency': curr_freq_err})
+        self.logger.experiment.add_scalars('train_min_error',
+                                           {'amplitude': pl_module.min_train_amp_err,
+                                            'decay': pl_module.min_train_decay_err,
+                                            'frequency': pl_module.min_train_freq_err})
+
         for i in pl_module.train_batch_list.values():
-            i.clear()
+                i.clear()
 
     def on_validation_epoch_end(self, trainer, pl_module):
         curr_loss = torch.mean(torch.stack(pl_module.val_batch_list['loss']))
@@ -131,18 +133,17 @@ class LoggerCallback(Callback):
                                                 pl_module.min_val_decay_err) if pl_module.min_val_decay_err else curr_decay_err
         pl_module.min_val_freq_err = torch.min(curr_freq_err,
                                                pl_module.min_val_freq_err) if pl_module.min_val_freq_err else curr_freq_err
-        metrics = {
-            'min_loss/val_min_loss': pl_module.min_val_loss,
-            'val_min_error/amplitude': pl_module.min_val_amp_err,
-            'val_min_error/decay': pl_module.min_val_decay_err,
-            'val_min_error/frequency': pl_module.min_val_freq_err,
-            'loss/val_loss': curr_loss,
-            'val_error/amplitude': curr_amp_err,
-            'val_error/decay': curr_decay_err,
-            'val_error/frequency': curr_freq_err,
-        }
+        self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss})
+        self.logger.experiment.add_scalars('min_loss', {'val': pl_module.min_val_loss})
+        self.logger.experiment.add_scalars('val_error',
+                                           {'amplitude': curr_amp_err,
+                                            'decay': curr_decay_err,
+                                            'frequency': curr_freq_err})
+        self.logger.experiment.add_scalars('val_min_error',
+                                           {'amplitude': pl_module.min_val_amp_err,
+                                            'decay': pl_module.min_val_decay_err,
+                                            'frequency': pl_module.min_val_freq_err})
 
-        self.logger.log_metrics(metrics, pl_module.current_epoch)
         for i in pl_module.val_batch_list.values():
             i.clear()
 
@@ -152,8 +153,8 @@ if __name__ == '__main__':
     NUM_EPOCHS = 50
     VAL_CACHE_SIZE = 1000
     TRAIN_CACHE_SIZE = 5500
-    NUM_INPUT_LAYERS=3
-    NUM_OUTPUTS=3
+    NUM_INPUT_LAYERS = 3
+    NUM_OUTPUTS = 3
     EXPERIMENT_NAME = ""
     TRAINING_DB_PATH = "data/databases/20201002-083303__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     VALIDATION_DB_PATH = "data/databases/20201002-095619__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
@@ -169,7 +170,8 @@ if __name__ == '__main__':
                                   transform=transform, cache_size=VAL_CACHE_SIZE)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
-    model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=F.mse_loss, resnet_type='18', cosine_annealing_steps=10)
+    model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=F.mse_loss, resnet_type='18',
+                              cosine_annealing_steps=10)
     logger = TensorBoardLogger('lightning_logs', name=EXPERIMENT_NAME)
     mcp = ModelCheckpoint(
         filepath=f"{logger.log_dir}/checkpoints/"
