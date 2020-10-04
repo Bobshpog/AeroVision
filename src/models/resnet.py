@@ -106,19 +106,19 @@ class LoggerCallback(Callback):
         pl_module.min_train_freq_err = torch.min(curr_freq_err,
                                                  pl_module.min_train_freq_err) if pl_module.min_train_freq_err else curr_freq_err
 
-        self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss},pl_module.current_epoch)
-        self.logger.experiment.add_scalars('min_loss', {'train': pl_module.min_train_loss},pl_module.current_epoch)
+        self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss}, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('min_loss', {'train': pl_module.min_train_loss}, pl_module.current_epoch)
         self.logger.experiment.add_scalars('train_error',
                                            {'amplitude': curr_amp_err,
                                             'decay': curr_decay_err,
-                                            'frequency': curr_freq_err},pl_module.current_epoch)
+                                            'frequency': curr_freq_err}, pl_module.current_epoch)
         self.logger.experiment.add_scalars('train_min_error',
                                            {'amplitude': pl_module.min_train_amp_err,
                                             'decay': pl_module.min_train_decay_err,
-                                            'frequency': pl_module.min_train_freq_err},pl_module.current_epoch)
+                                            'frequency': pl_module.min_train_freq_err}, pl_module.current_epoch)
 
         for i in pl_module.train_batch_list.values():
-                i.clear()
+            i.clear()
 
     def on_validation_epoch_end(self, trainer, pl_module):
         curr_loss = torch.mean(torch.stack(pl_module.val_batch_list['loss']))
@@ -133,16 +133,16 @@ class LoggerCallback(Callback):
                                                 pl_module.min_val_decay_err) if pl_module.min_val_decay_err else curr_decay_err
         pl_module.min_val_freq_err = torch.min(curr_freq_err,
                                                pl_module.min_val_freq_err) if pl_module.min_val_freq_err else curr_freq_err
-        self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss},pl_module.current_epoch)
-        self.logger.experiment.add_scalars('min_loss', {'val': pl_module.min_val_loss},pl_module.current_epoch)
+        self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss}, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('min_loss', {'val': pl_module.min_val_loss}, pl_module.current_epoch)
         self.logger.experiment.add_scalars('val_error',
                                            {'amplitude': curr_amp_err,
                                             'decay': curr_decay_err,
-                                            'frequency': curr_freq_err},pl_module.current_epoch)
+                                            'frequency': curr_freq_err}, pl_module.current_epoch)
         self.logger.experiment.add_scalars('val_min_error',
                                            {'amplitude': pl_module.min_val_amp_err,
                                             'decay': pl_module.min_val_decay_err,
-                                            'frequency': pl_module.min_val_freq_err},pl_module.current_epoch)
+                                            'frequency': pl_module.min_val_freq_err}, pl_module.current_epoch)
 
         for i in pl_module.val_batch_list.values():
             i.clear()
@@ -176,7 +176,10 @@ if __name__ == '__main__':
     mcp = ModelCheckpoint(
         filepath=f"{logger.log_dir}/checkpoints/"
                  + "{epoch}",
-        save_last=True, mode='min')
+        save_last=True,
+        save_top_k=-1,
+        period=5,
+        verbose=True)
 
     trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger)], checkpoint_callback=mcp,
                          num_sanity_val_steps=0,
