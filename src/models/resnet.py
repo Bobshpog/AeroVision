@@ -105,14 +105,14 @@ class LoggerCallback(Callback):
         pl_module.min_train_freq_err = torch.min(curr_freq_err,
                                                  pl_module.min_train_freq_err) if pl_module.min_train_freq_err else curr_freq_err
         metrics = {
-            'train_min_loss': pl_module.min_train_loss,
-            'train_min_amplitude_error': pl_module.min_train_amp_err,
-            'train_min_decay_error': pl_module.min_train_decay_err,
-            'train_min_frequency error': pl_module.min_train_freq_err,
-            'train_loss': curr_loss,
-            'train_amplitude_error': curr_amp_err,
-            'train_decay_error': curr_decay_err,
-            'train_frequency_error': curr_freq_err,
+            'min_loss/train_min_loss': pl_module.min_train_loss,
+            'train_min_error/amplitude': pl_module.min_train_amp_err,
+            'train_min_error/decay': pl_module.min_train_decay_err,
+            'train_min_error/frequency': pl_module.min_train_freq_err,
+            'loss/train_loss': curr_loss,
+            'train_error/amplitude': curr_amp_err,
+            'train_error/decay': curr_decay_err,
+            'train_error/frequency': curr_freq_err,
         }
         self.logger.log_metrics(metrics, pl_module.current_epoch)
         for i in pl_module.train_batch_list.values():
@@ -132,15 +132,16 @@ class LoggerCallback(Callback):
         pl_module.min_val_freq_err = torch.min(curr_freq_err,
                                                pl_module.min_val_freq_err) if pl_module.min_val_freq_err else curr_freq_err
         metrics = {
-            'val_min_loss': pl_module.min_val_loss,
-            'val_min_amplitude_error': pl_module.min_val_amp_err,
-            'val_min_decay_error': pl_module.min_val_decay_err,
-            'val_min_frequency error': pl_module.min_val_freq_err,
-            'val_loss': curr_loss,
-            'val_amplitude_error': curr_amp_err,
-            'val_decay_error': curr_decay_err,
-            'val_frequency_error': curr_freq_err,
+            'min_loss/val_min_loss': pl_module.min_val_loss,
+            'val_min_error/amplitude': pl_module.min_val_amp_err,
+            'val_min_error/decay': pl_module.min_val_decay_err,
+            'val_min_error/frequency': pl_module.min_val_freq_err,
+            'loss/val_loss': curr_loss,
+            'val_error/amplitude': curr_amp_err,
+            'val_error/decay': curr_decay_err,
+            'val_error/frequency': curr_freq_err,
         }
+
         self.logger.log_metrics(metrics, pl_module.current_epoch)
         for i in pl_module.val_batch_list.values():
             i.clear()
