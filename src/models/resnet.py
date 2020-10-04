@@ -106,16 +106,16 @@ class LoggerCallback(Callback):
         pl_module.min_train_freq_err = torch.min(curr_freq_err,
                                                  pl_module.min_train_freq_err) if pl_module.min_train_freq_err else curr_freq_err
 
-        self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss})
-        self.logger.experiment.add_scalars('min_loss', {'train': pl_module.min_train_loss})
+        self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss},pl_module.current_epoch)
+        self.logger.experiment.add_scalars('min_loss', {'train': pl_module.min_train_loss},pl_module.current_epoch)
         self.logger.experiment.add_scalars('train_error',
                                            {'amplitude': curr_amp_err,
                                             'decay': curr_decay_err,
-                                            'frequency': curr_freq_err})
+                                            'frequency': curr_freq_err},pl_module.current_epoch)
         self.logger.experiment.add_scalars('train_min_error',
                                            {'amplitude': pl_module.min_train_amp_err,
                                             'decay': pl_module.min_train_decay_err,
-                                            'frequency': pl_module.min_train_freq_err})
+                                            'frequency': pl_module.min_train_freq_err},pl_module.current_epoch)
 
         for i in pl_module.train_batch_list.values():
                 i.clear()
@@ -133,16 +133,16 @@ class LoggerCallback(Callback):
                                                 pl_module.min_val_decay_err) if pl_module.min_val_decay_err else curr_decay_err
         pl_module.min_val_freq_err = torch.min(curr_freq_err,
                                                pl_module.min_val_freq_err) if pl_module.min_val_freq_err else curr_freq_err
-        self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss})
-        self.logger.experiment.add_scalars('min_loss', {'val': pl_module.min_val_loss})
+        self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss},pl_module.current_epoch)
+        self.logger.experiment.add_scalars('min_loss', {'val': pl_module.min_val_loss},pl_module.current_epoch)
         self.logger.experiment.add_scalars('val_error',
                                            {'amplitude': curr_amp_err,
                                             'decay': curr_decay_err,
-                                            'frequency': curr_freq_err})
+                                            'frequency': curr_freq_err},pl_module.current_epoch)
         self.logger.experiment.add_scalars('val_min_error',
                                            {'amplitude': pl_module.min_val_amp_err,
                                             'decay': pl_module.min_val_decay_err,
-                                            'frequency': pl_module.min_val_freq_err})
+                                            'frequency': pl_module.min_val_freq_err},pl_module.current_epoch)
 
         for i in pl_module.val_batch_list.values():
             i.clear()
