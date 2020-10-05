@@ -23,14 +23,10 @@ class Test(TestCase):
 
 class TestDatabaseBuilder(TestCase):
     class Config:
-        mesh_wing_path = 'data/wing_off_files/finished_fem_without_tip.off'
+        mesh_wing_path = 'data/wing_off_files/synth_wing_v3.off'
         mesh_tip_path = 'data/wing_off_files/fem_tip.off'
 
-        num_scales = 11  # number of modal scales
-        num_vertices_input = 9067
         compression = 'gzip'
-        num_vertices_wing = 7724
-        num_vertices_tip = 930
 
         im_width = 640
         im_height = 480
@@ -62,7 +58,7 @@ class TestDatabaseBuilder(TestCase):
                    [(-0.019770941905445285, -0.06082136750543311, -0.038694507832388224),
                     (0.05, 0.3, 0.02),
                     (0.041, 0.0438, -1)]]
-        texture = 'data/textures/checkers2.png'
+        texture = 'data/textures/checkers_dark_blue.png'
         cmap = 'jet'
 
     @profile
@@ -89,7 +85,7 @@ class TestDatabaseBuilder(TestCase):
             dset = hf['data']['images']
             time.perf_counter()
             index = randint(dset.shape[0])
-            images = dset[index, 0, :, :, 0]
+            images = dset[index, 0, :, :, :3]
             cv2.imshow("photo", images[index])
             pass
 
