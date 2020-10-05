@@ -54,14 +54,13 @@ from src.data.data_generators.data_gen import DataGenerator
 #                 (0.041, 0.0438, -1)]]
 #     texture = 'data/textures/checkers2.png'
 #     cmap = 'jet'
-BATCH_SIZE = 200
 
 
 @dataclass
 class DatabaseBuilder:
     data_generator: DataGenerator
     db_folder: Union[str, Path] = field(repr=False)
-
+    batch_size: int=field(repr=False,default=200)
     compression: str = 'gzip'
 
     def __post_init__(self):
@@ -124,7 +123,7 @@ class DatabaseBuilder:
                 # print(idx, points_path, scales_path)
                 names.append(datapoint[0]), images.append(datapoint[1]), ir.append(datapoint[2]), scales.append(
                     datapoint[3])
-                if idx % BATCH_SIZE == 0:
+                if idx % self.batch_size== 0:
                     dset_video_names[cache_idx:idx + 1] = names
                     dset_images[cache_idx:idx + 1] = images
                     dset_ir[cache_idx:idx + 1] = ir
