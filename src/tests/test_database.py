@@ -1,6 +1,7 @@
 import time
 from unittest import TestCase
 
+import cv2
 import h5py
 import numpy as np
 from tqdm import trange
@@ -86,17 +87,8 @@ class TestDatabaseBuilder(TestCase):
         with h5py.File(VALIDATION_DB_PATH, 'r') as hf:
             dset = hf['data']['images']
             time.perf_counter()
-            sum = 0
-            for i in trange(0, 1000):
-                t0 = time.perf_counter()
-                image = dset[i]
-                # np.save(f'data/images/{i}',image)
-                t1 = time.perf_counter()
-                dt = t1 - t0
-                print(f"{dt:.03f}")
-                sum += dt
-                t0 = t1
-            print(dt)
+            images = dset[0,:,:,0]
+            pass
 
     @profile
     def test_read_py(self):
