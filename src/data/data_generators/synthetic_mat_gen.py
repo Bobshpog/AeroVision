@@ -74,11 +74,11 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
     def get_data_sizes(self) -> (int, int):
         """
         Returns:
-            num_frames,image_shape,num_ir_points
+            num_scales,image_shape,num_ir_points
         """
         resolution = tuple(self.resolution[::-1])
         image_shape = (len(self.cameras), *resolution, 4)
-        return self.num_frames, image_shape, len(self.ir_list)
+        return self.num_scales, image_shape, len(self.ir_list)
 
 
     def __iter__(self) -> (str, np.array, np.array, np.array):
