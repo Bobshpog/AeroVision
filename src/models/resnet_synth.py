@@ -88,7 +88,7 @@ class CustomInputResnet(pl.LightningModule):
 class LoggerCallback(Callback):
     def __init__(self, logger, min_scales, max_scales):
         self.logger = logger
-        self.range_scales = torch.tensor(max_scales - min_scales + np.eps).cuda()
+        self.range_scales = torch.tensor(max_scales - min_scales + np.finfo(np.float32).eps).cuda()
         # self.min_scales = min_scales
         # self.max_Scales = max_scales
 
@@ -112,7 +112,7 @@ class LoggerCallback(Callback):
         self.logger.experiment.add_scalars('train_error',
                                            error_dict, pl_module.current_epoch)
         self.logger.experiment.add_scalars('train_min_error',
-                                           pl_module.train_min_errors,pl_module.current_epoch)
+                                           pl_module.train_min_errors, pl_module.current_epoch)
 
         for i in pl_module.train_batch_list.values():
             i.clear()
@@ -125,11 +125,11 @@ class LoggerCallback(Callback):
                                       self.range_scales[i]
 
         pl_module.min_val_loss = torch.min(curr_loss,
-                                             pl_module.min_val_loss) if pl_module.min_val_loss else curr_loss
+                                           pl_module.min_val_loss) if pl_module.min_val_loss else curr_loss
 
         for i in range(pl_module.num_output_layers):
             pl_module.val_min_errors[f'scale{i}'] = torch.min(pl_module.val_min_errors[f'scale{i}'],
-                                                                error_dict[f'scale{i}']) if pl_module.val_min_errors[
+                                                              error_dict[f'scale{i}']) if pl_module.val_min_errors[
                 f'scale{i}'] else error_dict[f'scale{i}']
 
         self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss}, pl_module.current_epoch)
@@ -162,9 +162,9 @@ if __name__ == '__main__':
                                     remove_mean,
                                     my_transforms.last_axis_to_first])
     train_dset = ImageDataset(TRAINING_DB_PATH,
-                              transform=transform, cache_size=TRAIN_CACHE_SIZE,max_index=900)
+                              transform=transform, cache_size=TRAIN_CACHE_SIZE, max_index=900)
     val_dset = ImageDataset(VALIDATION_DB_PATH,
-                            transform=transform, cache_size=VAL_CACHE_SIZE,min_index=900)
+                            transform=transform, cache_size=VAL_CACHE_SIZE, min_index=900)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=F.mse_loss, output_loss_func=F.l1_loss,

@@ -64,7 +64,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
         #     dset_scale_names[idx] = name
         dset_displacements = group.create_dataset('displacements', data=self.disp_arr, dtype=np.float)
         dset_mean_images = group.create_dataset('mean images', dtype=np.float32,
-                                                data=self.wing_model(np.zeros(self.cords.shape)))
+                                                data=self.wing_model(np.zeros(self.cords.shape),dtype=np.float32)[0])
         group.attrs['cameras'] = self.cameras
         group.attrs['mesh_wing_path'] = self.mesh_wing_path.name
         group.attrs['mesh_tip_path'] = self.mesh_tip_path.name
