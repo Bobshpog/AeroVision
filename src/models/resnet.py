@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from src.model_datasets.resnet_sin_func import SinFunctionDataset
+from src.model_datasets.resnet_sin_func import ImageDataset
 import src.util.image_transforms as my_transforms
 from src.util.loss_functions import MSE_Weighted
 
@@ -164,10 +164,10 @@ if __name__ == '__main__':
     transform = transforms.Compose([my_transforms.slice_first_position_no_depth,
                                     remove_mean,
                                     my_transforms.last_axis_to_first])
-    train_dset = SinFunctionDataset(TRAINING_DB_PATH,
-                                    transform=transform, cache_size=TRAIN_CACHE_SIZE)
-    val_dset = SinFunctionDataset(VALIDATION_DB_PATH,
-                                  transform=transform, cache_size=VAL_CACHE_SIZE)
+    train_dset = ImageDataset(TRAINING_DB_PATH,
+                              transform=transform, cache_size=TRAIN_CACHE_SIZE)
+    val_dset = ImageDataset(VALIDATION_DB_PATH,
+                            transform=transform, cache_size=VAL_CACHE_SIZE)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=F.mse_loss, resnet_type='18',

@@ -3,8 +3,8 @@ from torch.utils.data import Dataset
 import multiprocessing as mp
 
 
-class SinFunctionDataset(Dataset):
-    def __init__(self, hdf5_path, transform=None, cache_size=0):
+class ImageDataset(Dataset):
+    def __init__(self, hdf5_path, transform=None, cache_size=0, min_index=0, max_index=None):
         """
         Initialization
         Args:
@@ -16,11 +16,14 @@ class SinFunctionDataset(Dataset):
         self.transform = transform
         self.cache_size = cache_size
         self.cache_dict = mp.Manager().dict()
-
+        self.min_index = min_index
         with h5py.File(self.hdf5_path, 'r') as hf:
-            self.database_len = hf['data']['images'].len()
+            if max_index is None:
+                max_index = hf['data']['images'].len()
+            self.database_len = min(hf['data']['images'].len(), max_index - min_index)
 
     def __getitem__(self, item):
+        item+=self.min_index
         if item in self.cache_dict:
             return self.cache_dict[item]
 
