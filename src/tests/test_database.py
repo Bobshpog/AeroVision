@@ -84,9 +84,10 @@ class TestDatabaseBuilder(TestCase):
         with h5py.File(VALIDATION_DB_PATH, 'r') as hf:
             dset = hf['data']['images']
             time.perf_counter()
-            index = randint(dset.shape[0])
+            index = randint(0,dset.shape[0])
             images = dset[index, 0, :, :, :3]
             cv2.imshow("photo", images[index])
+            cv2.waitKey()
             pass
 
     @profile
