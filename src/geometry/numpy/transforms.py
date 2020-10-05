@@ -1,6 +1,6 @@
 import numpy as np
 location_of_tip = 0.605  # the location of the middle of the tip, we want the entire tip to move together
-
+from src.geometry.numpy.mesh import cord2index
 
 def fem_wing_normal_sine(vec, freq_t, freq_s, amp, t):
     """
@@ -147,3 +147,41 @@ def fem_tip_sine_decaying_in_space_time(vec, freq_t, freq_s, amp, t, decay_rate_
     return transformed
 
 
+def synth_tip_movement(mesh_ver, tip_index, x, y, z, y_t, z_t, tip_table, new_tip_position, t):
+    """
+               creating the tip's  position in time t.
+              Args:
+                 mesh_ver: the mesh'es coordinates
+                 tip_index: list of the indecies of the tip inside of mesh_ver
+                 x: displacement in X, U1 in dinallea's format
+                 y: displacement in Y, U2 in dinallea's format
+                 z: displacement in Z, U3 in dinallea's format
+                 y_t: the difference in y cord for our tip and the original tip, size (30) np..array
+                 z_t: the difference in z cord for our tip and the original tip, size (30) np..array
+                 tip_table: the tip's table
+                 new_tip_position: the np.array we change, size (|tip.meshes|,3)
+                 t: time
+               Returns:
+                  nothing, will fill new_tip_position
+               """
+    for idx in tip_index:
+        for i in range(30):
+            cord = mesh_ver[idx]
+            vec = np.array((cord[0] + x[idx, t], cord[1] + y[idx, t] + y_t[i],
+                            cord[2] + z[idx, t] + z_t[i]))
+            new_tip_position[tip_table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vec
+
+def tip_arr_creation(mesh_ver, line=0.605):
+    """
+            creating list with the tip indices
+           Args:
+              mesh_ver: the mesh's vertices
+              line: the threshold of where is the tip
+            Returns:
+               list [N] of indices of the tip
+            """
+    tip_index_arr = []
+    for idx, cord in enumerate(mesh_ver):
+        if cord[1] >= line:
+            tip_index_arr.append(idx)
+    return tip_index_arr

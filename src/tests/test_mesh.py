@@ -1,17 +1,19 @@
 import glob
 import os
 import unittest
-
+import vtk
 import cv2
 
 from src.geometry.numpy.transforms import *
 from src.geometry.numpy.wing_models import *
 from src.geometry.spod import *
 from src.util.timing import profile
-from src.geometry.numpy.animations import  *
+from src.geometry.numpy.animations import *
 import matplotlib as mpl
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
+from datetime import datetime
+
 class TestMesh(unittest.TestCase):
     class Config:
         num_of_vertices_wing = 7724
@@ -48,7 +50,7 @@ class TestMesh(unittest.TestCase):
     def setUp(self):
         # self.off_files = glob.glob('data/example_off_files/*.off')
         self.mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        self.off_files = {'data/wing_off_files/combined_wing.off'}
+        self.off_files = {'data/wing_off_files/synth_wing_v3.off'}
 
     @profile
     def test_get_vertex_valence(self):
@@ -148,19 +150,22 @@ class TestMesh(unittest.TestCase):
             print(plotter.camera_position)
 
     def test_Texture(self):
-        plotter = pv.Plotter(shape=(1, 2))
-        cam = self.Config.camera_pos['down_middle']
-        mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        mesh1 = Mesh('data/wing_off_files/fem_tip.off')
-        # cam = FemNoTip.camera_pos["up_middle"]
-        mesh2.main_cords(plot=True, show=False, plotter=plotter, scale=0.1)
-        mesh2.main_cords(plot=True, show=False, plotter=plotter, index_row=0, index_col=1, scale=0.1)
-        mesh2.plot_faces(camera=cam, texture="data/textures/checkers.png",
-                         title="without parallel projection")
-        mesh1.plot_faces(plotter=plotter, show=False, index_row=0, index_col=0)
-        mesh1.plot_faces(plotter=plotter, show=False, index_row=0, index_col=1)
-        mesh2.plot_faces(plotter=plotter, index_row=0, index_col=1, title="with parallel projection",
-                         texture="data/textures/checkers2.png", camera=cam, show=False, depth=True)
+        plotter = pv.Plotter()
+        plotter.set_background("white",top="blue")
+        tex = "data/textures/checkers_dark_blue.png"
+        mesh = Mesh("data/wing_off_files/synth_wing_v3.off")
+        tip = Mesh("data/wing_off_files/fem_tip.off")
+        camera =  [(0.047, -0.053320266561896174, 0.026735639600027315),
+                          (0.05, 0.3, 0.02),
+                          (0, 0, 1)]
+
+        plotter.set_position(camera[0])
+        plotter.set_focus(camera[1])
+        plotter.set_viewup(camera[2])
+        tex = pv.read_texture(tex)
+        mesh.pv_mesh.texture_map_to_plane(inplace=True)
+        plotter.show_bounds(mesh=mesh.pv_mesh)
+        plotter.add_mesh(mesh.pv_mesh, texture=tex)
         plotter.show()
         print(plotter.camera_position)
 
@@ -179,48 +184,6 @@ class TestMesh(unittest.TestCase):
                 new_ver.append(v + (0, x, y))
         write_off((np.array(new_ver), np.array([])), "src/tests/temp/fem_tip_take3.off")
 
-    def test_depth_screenshot(self):
-        plotter = pv.Plotter(off_screen=True)
-        res = [480, 480]
-        mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        mesh2 = Mesh('data/wing_off_files/fem_tip.off')
-        photo = Mesh.get_photo([mesh, mesh2], [mesh.vertices, mesh2.vertices], plotter=plotter,
-                               texture=["data/textures/checkers2.png", None],
-                               cmap=[None, None], camera=camera_pos["up_left"], resolution=res, title="up left")
-
-        r= np.copy(photo[:,:,2])
-        b= np.copy(photo[:,:,0])
-        color_photo = np.delete(photo, 3, axis=-1)
-        color_photo[:,:,0] = r
-        color_photo[:,:,2] = b
-        print(photo[:,:,3].min(), photo[:,:,3].max())
-        depth = photo[:,:,-1]
-        depth_f1 = (((depth - depth.min()) / depth.max()) * 255).astype('uint8')
-        cv2.imshow("frame", color_photo)
-        cv2.waitKey()
-
-    def test_colored_depth_screenshot(self):
-        plotter = pv.Plotter(off_screen=True)
-        res = [480, 480]
-        mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-        mesh2 = Mesh('data/wing_off_files/fem_tip.off')
-        photo = Mesh.get_photo([mesh, mesh2], [mesh.vertices, mesh2.vertices], plotter=plotter,
-                               texture=["data/textures/checkers2.png", None],
-                               cmap=[None, None], camera=camera_pos["up_left"], resolution=res, title="up left")
-
-        depth =photo[:,:,-1]
-        depth_min,depth_max=depth.min(),depth.max()
-        wing_max=depth[depth<depth_max].max()
-        new_jet_table=cm.get_cmap('jet',1024)(np.linspace(0,1,1024))
-        new_jet_table[-250:]=[1,1,1,1]
-        new_jet=ListedColormap(new_jet_table)
-        plt.imshow(depth,cmap=new_jet)
-        cbar=plt.colorbar(boundaries=np.linspace(depth_min,wing_max))
-        cbar.set_label(label='Depth (m)',size=14)
-
-        plt.clim(depth_min,depth_max)
-        # plt.clim(depth_min,depth[depth<depth_max].max())
-        plt.show()
 
     def test_six_still_pictures(self):
         mesh = Mesh('data/wing_off_files/combined_wing.off')
@@ -291,7 +254,9 @@ class TestMesh(unittest.TestCase):
             plotter3.set_position(angle[i][0])
             plotter3.set_focus(angle[i][1])
             plotter3.set_viewup(angle[i][2])
-            mesh.plot_faces(plotter=plotter3, texture="data/textures/checkers_blue.png", show=False,
+            mesh3.plot_faces(plotter=plotter3, texture="data/textures/circles_tex.jpg", show=False,
+                            index_row=subplots[i][0], index_col=subplots[i][1])
+            mesh2.plot_faces(plotter=plotter3, show=False,
                             index_row=subplots[i][0], index_col=subplots[i][1])
         #plotter2.show()
         plotter3.show(auto_close=False)
@@ -309,8 +274,8 @@ class TestMesh(unittest.TestCase):
         screen[:,:,0] += noise
         screen[:, :, 1] += noise
         screen[:, :, 2] += noise
-        #cv2.imshow("frame",screen)
-        #cv2.waitKey()
+        cv2.imshow("frame",screen)
+        cv2.waitKey()
         mesh2.plot_wireframe(line_width=width, plotter=plotter, camera=camera_pos["up_left"], show=False)
         mesh3.plot_wireframe(line_width=width,plotter=plotter, camera=camera_pos["up_left"], show=False)
 
@@ -336,8 +301,40 @@ class TestMesh(unittest.TestCase):
 
 
     def test_xyz(self):
-        #annimate_six_wings()
-        print(len([[1,1,1],[2,2,2]]))
+        mesh = Mesh("data/wing_off_files/synth_wing_v3.off")
+        tip = Mesh("data/wing_off_files/fem_tip.off")
+        plotter = pv.Plotter()
+        plotter.set_background("white")
+        tip.plot_faces(show=False, plotter=plotter)
+        mesh.plot_faces(show= False, plotter=plotter, texture="data/textures/circles_normal.png",
+                        camera=camera_pos["up_middle"])
+        vmtx = plotter.camera.GetModelViewTransformMatrix()
+        print(type(vmtx))
+        mtx = pv.trans_from_matrix(vmtx)
+
+        print(mtx.shape)
+        print(dir(plotter.camera))
+        #plotter.camera.SetUseExplicitProjectionTransformMatrix(True)
+        #plotter.camera.SetExplicitProjectionTransformMatrix(vmtx.Invert())
+        #plotter.show()
+        print(mtx)
+        #synth_ir_video("src/tests/temp/ir_synth.mp4")
+
+    def test_animate(self):
+        synth_wing_animation("src/tests/temp/animation_synth.mp4")
+
+    def test_improve_synth_wing(self):
+        v, f, _ = read_off("data/wing_off_files/synth_wing_v1.off")
+        a = np.array([[6481,6460,4717] , [6460, 6440, 3341], [4717,4722,4703]])
+        print(f.shape)
+        f2 = np.append(f,a,0)
+        #write_off((v,f2),"data/wing_off_files/synth_wing_v3.off")
+        mesh = Mesh("data/wing_off_files/synth_wing_v3.off")
+
+
+        print(f2.shape)
+
+
 
 def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0, 0.8, 0.8)):
     mult_h = np.ceil(h / tile_size)
@@ -352,3 +349,19 @@ def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0,
 
 if __name__ == '__main__':
     unittest.main()
+
+def homogenize(v, value=1):
+    v = np.asanyarray(v)
+    if hasattr(value, '__len__'):
+        return np.append(v, np.asanyarray(value).reshape(v.shape[:-1] + (1,)), axis=-1)
+    else:
+        return np.insert(v, v.shape[-1], np.array(value, v.dtype), axis=-1)
+def dehomogenize(a):
+    """ makes homogeneous vectors inhomogenious by dividing by the last element in the last axis
+    >>> dehomogenize([1, 2, 4, 2]).tolist()
+    [0.5, 1.0, 2.0]
+    >>> dehomogenize([[1, 2], [4, 4]]).tolist()
+    [[0.5], [1.0]]
+    """
+    a = np.asfarray(a)
+    return a[..., :-1] / a[..., np.newaxis, -1]

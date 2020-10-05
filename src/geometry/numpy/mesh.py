@@ -145,7 +145,7 @@ class Mesh:
     # ----------------------------Basic Visualizer----------------------------#
 
     def plot_wireframe(self, line_width=None, index_row=0, index_col=0, show=True, plotter=None, title='', font_size=10,
-                       font_color='black', camera=None):
+                       title_location="upper_edge", font_color='black', camera=None):
         """
        plots the wireframe of the Mesh
 
@@ -156,6 +156,7 @@ class Mesh:
            show: should the function call imshow()
            plotter: the pyvista plotter
            title: the title of the figure
+           title_location: title location
            font_size: the font size of the title
            font_color: the color of the font for the title
            camera: the [camera position , focal point, view up] each (x,y,z) tuple
@@ -166,7 +167,7 @@ class Mesh:
         if plotter is None:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
-        plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
+        plotter.add_text(title, position=title_location, font_size=font_size, color=font_color)
         if camera:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
@@ -177,7 +178,7 @@ class Mesh:
         return plotter
 
     def plot_vertices(self, f=None, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
-                      font_size=10, font_color='black', camera=None):
+                      title_location="upper_edge", font_size=10, font_color='black', camera=None):
         """
             plots the vertices of the Mesh
 
@@ -189,6 +190,7 @@ class Mesh:
                 plotter: the pyvista plotter
                 cmap: the color map to use
                 title: the title of the figure
+                title_location: title location
                 font_size: the font size of the title
                 font_color: the color of the font for the title
                 camera: the [camera position , focal point, view up] each (x,y,z) tuple
@@ -200,18 +202,18 @@ class Mesh:
         if plotter is None:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
-        plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
+        plotter.add_text(title, position=title_location, font_size=font_size, color=font_color)
         if camera:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
-        plotter.add_mesh(self.vertices, scalars=f, cmap=cmap)
+        plotter.add_mesh(self.vertices, scalars=f, cmap=cmap, render_points_as_spheres=True)
         if show:
             plotter.show()
         return plotter
 
-    def plot_faces(self, f=None, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title='',
-                   font_size=10, font_color='black', texture=None, camera=None, depth=False):
+    def plot_faces(self, f=None, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title=None,
+                   title_location="upper_edge", font_size=10, font_color='black', texture=None, camera=None):
         """
              plots the faces of the Mesh
 
@@ -223,6 +225,7 @@ class Mesh:
                   plotter: the pyvista plotter
                   cmap: the color map to use
                   title: the title of the figure
+                  title_location: title location
                   font_size: the font size of the title
                   font_color: the color of the font for the title
                   texture: the filename for the texture of the figure
@@ -234,9 +237,8 @@ class Mesh:
         if plotter is None:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
-        plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
-        if depth:
-            plotter.enable_depth_peeling(0)
+        if title:
+            plotter.add_text(title, position=title_location, font_size=font_size, color=font_color)
         if camera:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
@@ -411,7 +413,7 @@ class Mesh:
 
     @staticmethod
     def get_photo(mesh, movement, resolution, texture, cmap,
-                  plotter, camera, title=""):
+                  plotter, camera, title=None, title_location = "upper_edge"):
         """
         Take a photo of the mesh in a cerain position
         all args in case for more then one mesh should be in list
@@ -433,9 +435,6 @@ class Mesh:
         plotter.set_position(camera[0])
         plotter.set_focus(camera[1])
         plotter.set_viewup(camera[2])
-        if num_of_mesh == 1:
-            mesh = [mesh]
-            texture = [texture]
         for i in range(num_of_mesh):
             if texture[i] is None:
                 plotter.add_mesh(mesh[i].pv_mesh, cmap=cmap, texture=texture[i],
@@ -446,15 +445,17 @@ class Mesh:
                 plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_'+str(i))
 
             plotter.update_coordinates(movement[i])
-        plotter.add_text(title, position="upper_edge", font_size=10, color="black", name="title")
+        if title is not None:
+            plotter.add_text(title, position=title_location, font_size=10, color="black", name="title")
         plotter.set_background(color="white")
         plotter.show(auto_close=False, window_size=resolution)
         depth = plotter.get_image_depth(fill_value=None)
         depth = np.abs(depth)
         screen = plotter.screenshot(window_size=resolution)
         screen = screen/255
-        plotter.remove_actor("title")
-        return np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1).astype(np.float32)
+        if title is not None:
+            plotter.remove_actor("title")
+        return np.asarray(np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1), np.float32)
 
 
     @staticmethod
@@ -477,7 +478,6 @@ class Mesh:
         Returns:
            An image shot from camera of the mesh
         """
-
         to_return = np.zeros(shape=(len(camera), resolution[1], resolution[0], 4))
         num_of_mesh = len(mesh)
 
@@ -504,8 +504,8 @@ class Mesh:
             depth = np.abs(depth)
             screen = plotter.screenshot(window_size=resolution)
             screen = screen/255
-            to_return[idx] = np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1).astype(np.float32)
-        return to_return
+            to_return[idx] = np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
+        return np.asarray(to_return, np.float32)
 
 
 

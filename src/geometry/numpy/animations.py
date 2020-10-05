@@ -1,7 +1,8 @@
 import glob
 import os
 import cv2
-
+from scipy.io import loadmat
+from PIL import Image
 from src.geometry.numpy.transforms import *
 from src.geometry.numpy.wing_models import *
 from src.geometry.spod import *
@@ -45,7 +46,7 @@ camera_pos = {
                                      (0, 0.16643488101070833, 1)],
         }
 
-def annimate_six_wings():
+def annimate_six_wings(path):
     # the movement for each of the meshes
     g1 = []
     f1 = []
@@ -63,20 +64,21 @@ def annimate_six_wings():
     g7 = []
     # we need to create 6 different meshes, three of tips and three for wing. Pyvista will not recognise the
     # meshes as different otherwise.
+    wing_path = 'data/wing_off_files/synth_wing_v1.off'
     tip1 = Mesh('data/wing_off_files/fem_tip.off')
     tip2 = Mesh('data/wing_off_files/fem_tip.off')
     tip3 = Mesh('data/wing_off_files/fem_tip.off')
-    mesh1 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-    mesh2 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-    mesh3 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
+    mesh1 = Mesh(wing_path)
+    mesh2 = Mesh(wing_path)
+    mesh3 = Mesh(wing_path)
     tip4 = Mesh('data/wing_off_files/fem_tip.off')
     tip5 = Mesh('data/wing_off_files/fem_tip.off')
     tip6 = Mesh('data/wing_off_files/fem_tip.off')
-    mesh4 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-    mesh5 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
-    mesh6 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
+    mesh4 = Mesh(wing_path)
+    mesh5 = Mesh(wing_path)
+    mesh6 = Mesh(wing_path)
     tip7 = Mesh('data/wing_off_files/fem_tip.off')
-    mesh7 = Mesh('data/wing_off_files/finished_fem_without_tip.off')
+    mesh7 = Mesh(wing_path)
     meshes = [mesh1, tip1, mesh2, tip2, mesh3, tip3, mesh4, tip4, mesh5, tip5, mesh6, tip6, mesh7, tip7]
     # ^ define the order of each mesh
     frames = 40
@@ -89,9 +91,9 @@ def annimate_six_wings():
                                       freq_t=1, freq_s=3, amp=0.05, t=phase))
 
         f2.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh2.vertices,
-                                      freq_t=1, freq_s=0, amp=0.05, t=phase, decay_rate_s=5))
+                                      freq_t=1, freq_s=0.5, amp=0.05, t=phase, decay_rate_s=5))
         g2.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip2.vertices,
-                                      freq_t=1, freq_s=0, amp=0.05, t=phase))
+                                      freq_t=1, freq_s=0.5, amp=0.05, t=phase))
 
         f3.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh3.vertices,
                                       freq_t=1, freq_s=1, amp=0.02, t=phase, decay_rate_s=5))
@@ -139,13 +141,13 @@ def annimate_six_wings():
         plotter.add_mesh(mesh=pv.Sphere(center=camera_pos["down_middle"][0], radius=0.01),
                          color='black')
 
-    mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=0, texture="data/textures/checkers2.png")
-    mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=2, texture="data/textures/checkers2.png")
+    mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=0, texture="data/textures/circles_tex.png")
+    mesh1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=2, texture="data/textures/circles_tex.png")
     tip1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=0)
     tip1.plot_faces(show=False, plotter=plotter, index_row=2, index_col=2)
 
     scalars = [None] * 14
-    textures = ["data/textures/checkers2.png", None] * 7
+    textures = ["data/textures/checkers_dark_blue.png", None] * 7
     color_maps = ["jet"] * 14
     titles = ["high freq", "", "low freq", "", "low emp", "", "high emp", "", "low decay", "", "high decay", "",
               " normal", ""]
@@ -159,12 +161,12 @@ def annimate_six_wings():
     animate_few_meshes(mesh=meshes, movement=fg, f=scalars, subplot=cords,
                        texture=textures, cmap=color_maps, plotter=plotter,
                        title=titles, font_size=font_size, font_color=font_colors,
-                       gif_path="src/tests/temp/camera_positions.gif",
+                       gif_path=path,
                        camera=cam, depth=False
                        )
 
 
-def annimate_three_wings():
+def annimate_three_wings(path):
     # the movement of all meshes
     g1 = []
     f1 = []
@@ -189,18 +191,18 @@ def annimate_three_wings():
         f1.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh1.vertices,
                                      freq_t=1, freq_s=1, amp=0.05, t=phase,decay_rate_s=5))
         g1.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip1.vertices,
-                                    freq_t=1, freq_s=1, amp=0.05, t=phase, decay_rate_s=5))
+                                    freq_t=1, freq_s=1, amp=0.05, t=phase))
 
         f2.append(np.apply_along_axis(fem_wing_sine_decaying_in_space, axis=1, arr=mesh2.vertices,
                                           freq_t=1, freq_s=25, amp=0.05, t=phase, decay_rate_s=5))
         g2.append(np.apply_along_axis(fem_tip_sine_decaying_in_space, axis=1, arr=tip2.vertices,
-                                          freq_t=1, freq_s=25, amp=0.05, t=phase, decay_rate_s=5))
+                                          freq_t=1, freq_s=25, amp=0.05, t=phase))
 
         f3.append(np.apply_along_axis(fem_wing_normal_sine, axis=1, arr=mesh3.vertices,
-                                          freq_t=1, freq_s=25, amp=0.05, t=phase, decay_rate_s=5))
+                                          freq_t=1, freq_s=25, amp=0.05, t=phase))
 
         g3.append(np.apply_along_axis(fem_tip_normal_sine, axis=1, arr=tip3.vertices,
-                                          freq_t=1, freq_s=25, amp=0.05, t=phase, decay_rate_s=5))
+                                          freq_t=1, freq_s=25, amp=0.05, t=phase))
         # couldnt vectorise
 
     fg = [f1, g1, f2, g2, f3, g3]
@@ -212,16 +214,16 @@ def annimate_three_wings():
     mesh2.main_cords(plot=True, index_row=1, index_col=0, scale=0.1, plotter=plotter, show=False)
     mesh3.main_cords(plot=True, index_row=2, index_col=0, scale=0.1, plotter=plotter, show=False)
     scalars = [None] * 6
-    textures = ["data/textures/checkers2.png", None] * 3
+    textures = ["data/textures/circles_tex.png", None] * 3
     color_maps = ["jet"] * 6
     titles = ["big wave length", "", "small wave length", "", "non decaying sin", ""]
     font_colors = ["black"] * 6
     font_size = [10, 10, 10, 10, 10, 10]
-    cam = [(0.005, -0.2, 0.01), (0.047, 0.3, 0), (0, 0, 1)]
+    cam = camera_pos["up_right"]
     animate_few_meshes(mesh=meshes, movement=fg, f=scalars, subplot=cords,
                        texture=textures, cmap=color_maps, plotter=plotter,
                        title=titles, font_size=font_size, font_color=font_colors,
-                       gif_path="src/tests/temp/three_red_wings2.gif",
+                       gif_path=path,
                        camera=[cam, cam, cam, cam, cam, cam], depth=False
                        )
     # ^ every argument should be given as a list, the default args for this function is for a single mesh, not more
@@ -229,7 +231,7 @@ def annimate_three_wings():
     # ^ would animate a single mesh in a single subplot
 
 
-def depth_video():
+def depth_video(path):
     mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
     mesh2 = Mesh("data/wing_off_files/fem_tip.off")
     res = [480,480]
@@ -300,7 +302,7 @@ def depth_video():
         # cv2 does not support making video from np array...
         if cv2.waitKey(1) & 0xFF == ord('q'):
              break
-    out = cv2.VideoWriter("src/tests/temp/depth_video2.mp4", cv2.VideoWriter_fourcc(*'DIVX'), 15, (1440, 960))
+    out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (1440, 960))
     for i in range(len(im_frames)):
         out.write(im_frames[i])
     out.release()
@@ -309,7 +311,109 @@ def depth_video():
     cv2.destroyAllWindows()
 
 
-def normal_video():
+def synth_wing_animation(path):
+    mat=loadmat("data/synt_data_mat_files/data.mat")
+    x = mat['U1']
+    y = mat['U2']
+    z = mat['U3']
+    tip = Mesh('data/wing_off_files/fem_tip.off')
+    mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
+    TIP_RADIUS = 0.008
+    NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
+    tip_vertices_num = 930
+    new_tip_position = np.zeros((tip_vertices_num, 3), dtype='float')
+    tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
+    y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
+    z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
+    tip_index_arr = tip_arr_creation(mesh.vertices)
+    tex = "data/textures/circles_tex.png"
+    res = [480,480]
+    plotter = pv.Plotter(off_screen=True)
+    frames = 1000
+    url = "src/tests/temp/video_frames/"
+    i = 0
+    im_frames = []
+    f1 = np.zeros(mesh.vertices.shape)
+    for phase in range(frames):
+        i = i + 1
+        f1[:,0] = x[:, phase] + mesh.vertices[:, 0]
+        f1[:,1] = y[:, phase] + mesh.vertices[:, 1]
+        f1[:,2] = z[:, phase] + mesh.vertices[:, 2]
+        synth_tip_movement(mesh_ver=mesh.vertices, tip_index=tip_index_arr, x=x, y=y, z=z, y_t=y_t, z_t=z_t,
+                           tip_table=tip.table, new_tip_position=new_tip_position, t=phase)
+        photo = Mesh.get_photo([mesh, tip], [f1, new_tip_position], plotter=plotter, texture=[tex, None],
+                               cmap=None, camera=camera_pos["up_right"], resolution=res, title="up right")
+        depth = photo[:, :,0:3]
+        r= np.copy(photo[:,:,2])
+        depth[:,:,2] = depth[:,:,0]
+        depth[:,:,0] = r
+        cv2.imwrite(url + "depth_frameA" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
+        photo = Mesh.get_photo([mesh, tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None],
+                               cmap=None, camera=camera_pos["up_middle"], resolution=res, title="up middle")
+        depth = photo[:, :,0:3]
+        r= np.copy(photo[:,:,2])
+        depth[:,:,2] = depth[:,:,0]
+        depth[:,:,0] = r
+        cv2.imwrite(url + "depth_frameB" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
+        photo = Mesh.get_photo([mesh,tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None],
+                               cmap=None, camera=camera_pos["up_left"], resolution=res, title="up left")
+        depth = photo[:, :,0:3]
+        r= np.copy(photo[:,:,2])
+        depth[:,:,2] = depth[:,:,0]
+        depth[:,:,0] = r
+        cv2.imwrite(url + "depth_frameC" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
+
+        img1 = cv2.imread(url + "depth_frameA" + str(i) + ".jpg")
+        img2 = cv2.imread(url + "depth_frameB" + str(i) + ".jpg")
+        img3 = cv2.imread(url + "depth_frameC" + str(i) + ".jpg")
+        img_u = cv2.hconcat([img3, img2, img1])
+
+        photo = Mesh.get_photo([mesh,tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None],
+                               cmap=None, camera=camera_pos["rotated_down_right"], resolution=res, title="down right",
+                               title_location="lower_edge")
+        depth = photo[:, :,0:3]
+        r= np.copy(photo[:,:,2])
+        depth[:,:,2] = depth[:,:,0]
+        depth[:,:,0] = r
+        cv2.imwrite(url + "depth_frameD" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
+        photo = Mesh.get_photo([mesh,tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None], cmap=None,
+                               camera=camera_pos["rotated_down_middle"], resolution=res, title="down middle",
+                               title_location="lower_edge")
+        depth = photo[:, :,0:3]
+        r= np.copy(photo[:,:,2])
+        depth[:,:,2] = depth[:,:,0]
+        depth[:,:,0] = r
+        cv2.imwrite(url + "depth_frameE" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
+        photo = Mesh.get_photo([mesh,tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None], cmap=None,
+                               camera=camera_pos["rotated_down_left"], resolution=res, title="down left",
+                               title_location="lower_edge")
+
+        depth = photo[:, :,0:3]
+        r= np.copy(photo[:,:,2])
+        depth[:,:,2] = depth[:,:,0]
+        depth[:,:,0] = r
+        cv2.imwrite(url + "depth_frameF" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
+
+        img1 = cv2.imread(url + "depth_frameD" + str(i) + ".jpg")
+        img2 = cv2.imread(url + "depth_frameE" + str(i) + ".jpg")
+        img3 = cv2.imread(url + "depth_frameF" + str(i) + ".jpg")
+        img_d = cv2.hconcat([img3, img2, img1])
+        img_f = cv2.vconcat([img_u, img_d])
+        #7,cv2.imshow("frame", img_f)
+        im_frames.append(img_f)
+        # cv2 does not support making video from np array...
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+             break
+    out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (1440, 960))
+    for i in range(len(im_frames)):
+        out.write(im_frames[i])
+    out.release()
+    for f in glob.glob(url + '*.jpg'):
+       os.remove(f)
+    cv2.destroyAllWindows()
+
+
+def normal_video(path):
     mesh = Mesh('data/wing_off_files/finished_fem_without_tip.off')
     mesh2 = Mesh("data/wing_off_files/fem_tip.off")
     res = [480, 480]
@@ -332,7 +436,8 @@ def normal_video():
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
-        cv2.imwrite(url + "depth_frameA" + str(i) + ".jpg", depth)
+        cv2.imwrite(url + "depth_frameA" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
+
         photo = Mesh.get_photo([mesh, mesh2], [f1, g1], plotter=plotter,
                                texture=["data/textures/checkers2.png", None],
                                cmap=[None, None], camera=camera_pos["up_middle"], resolution=res, title="")
@@ -340,7 +445,7 @@ def normal_video():
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
-        cv2.imwrite(url + "depth_frameB" + str(i) + ".jpg", depth)
+        cv2.imwrite(url + "depth_frameB" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
         photo = Mesh.get_photo([mesh, mesh2], [f1, g1], plotter=plotter,
                                texture=["data/textures/checkers2.png", None],
                                cmap=[None, None], camera=camera_pos["up_right"], resolution=res, title="")
@@ -348,7 +453,7 @@ def normal_video():
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
-        cv2.imwrite(url + "depth_frameC" + str(i) + ".jpg", depth)
+        cv2.imwrite(url + "depth_frameC" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
 
         img1 = cv2.imread(url + "depth_frameA" + str(i) + ".jpg")
         img2 = cv2.imread(url + "depth_frameB" + str(i) + ".jpg")
@@ -363,7 +468,7 @@ def normal_video():
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
-        cv2.imwrite(url + "depth_frameD" + str(i) + ".jpg", depth)
+        cv2.imwrite(url + "depth_frameD" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
         photo = Mesh.get_photo([mesh, mesh2], [f1, g1], plotter=plotter,
                                texture=["data/textures/checkers2.png", None],
                                cmap=[None, None], camera=camera_pos["down_middle"], resolution=res,
@@ -372,7 +477,7 @@ def normal_video():
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
-        cv2.imwrite(url + "depth_frameE" + str(i) + ".jpg", depth)
+        cv2.imwrite(url + "depth_frameE" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
         photo = Mesh.get_photo([mesh, mesh2], [f1, g1], plotter=plotter,
                                texture=["data/textures/checkers2.png", None],
                                cmap=[None, None], camera=camera_pos["down_right"], resolution=res, title="")
@@ -380,19 +485,19 @@ def normal_video():
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
-        cv2.imwrite(url + "depth_frameF" + str(i) + ".jpg", depth)
+        cv2.imwrite(url + "depth_frameF" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
 
         img1 = cv2.imread(url + "depth_frameD" + str(i) + ".jpg")
         img2 = cv2.imread(url + "depth_frameE" + str(i) + ".jpg")
         img3 = cv2.imread(url + "depth_frameF" + str(i) + ".jpg")
         img_d = cv2.hconcat([img3, img2, img1])
         img_f = cv2.vconcat([img_u, img_d])
-        cv2.imshow("frame", img_f)
+        #cv2.imshow("frame", img_f)
         im_frames.append(img_f)
         # cv2 does not support making video from np array...
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-    out = cv2.VideoWriter("src/tests/temp/depth_video2.mp4", cv2.VideoWriter_fourcc(*'DIVX'), 15, (1440, 960))
+    out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (1440, 960))
     for i in range(len(im_frames)):
         out.write(im_frames[i])
     out.release()
@@ -401,7 +506,7 @@ def normal_video():
     cv2.destroyAllWindows()
 
 
-def ir_video():
+def ir_video(path):
     # 753, 9, 23, 120, 108, 38, 169, 1084, 53, 393, 1416, 68, 378, 1748, 83, 143, 2079, 190, 348, 2537, 205,333, 3559,
     # 220, 318, 2648, 235, 303, 2711, 250, 3409, 3424, 3439
     ids = [753, 9, 23, 120, 108, 38, 169, 1084, 53, 393, 1416, 68, 378, 1748, 83, 143, 3416, 3434,
@@ -443,7 +548,7 @@ def ir_video():
         if cv2.waitKey(1) & 0xFF == ord('q'):
              break
 
-    out = cv2.VideoWriter("src/tests/temp/ir_video.mp4", cv2.VideoWriter_fourcc(*'DIVX'), 15, (480, 480))
+    out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (480, 480))
     for i in range(len(im_frames)):
         out.write(im_frames[i])
     out.release()
@@ -452,7 +557,69 @@ def ir_video():
     cv2.destroyAllWindows()
 
 
-def laplasian_wing():
+def synth_ir_video(path):
+    TIP_RADIUS = 0.008
+    NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
+    tip_vertices_num = 930
+    ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
+           6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
+           6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
+    mat = loadmat("data/synt_data_mat_files/data.mat")
+    x = mat['U1']
+    y = mat['U2']
+    z = mat['U3']
+    mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
+    tip = Mesh('data/wing_off_files/fem_tip.off')
+    new_tip_position = np.zeros((tip_vertices_num, 3), dtype='float')
+    tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
+    y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
+    z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
+    tip_index_arr = tip_arr_creation(mesh.vertices)
+    url = "src/tests/temp/video_frames/"
+    plotter = pv.Plotter(off_screen=True)
+    plotter.set_background("white")
+    camera = camera_pos["up_middle"]
+    plotter.set_position(camera[0])
+    plotter.set_focus(camera[1])
+    plotter.set_viewup(camera[2])
+    resolution = [480, 480]
+    im_frames = []
+    frames = 100
+    i = 0
+    plotter.add_mesh(mesh.pv_mesh, name="mesh", style='wireframe')
+    plotter.add_mesh(tip.pv_mesh, name="mesh2", style='wireframe')
+    f1 = np.zeros(mesh.vertices.shape)
+    for phase in range(frames):
+        i = i + 1
+        f1[:, 0] = x[:, phase] + mesh.vertices[:, 0]
+        f1[:, 1] = y[:, phase] + mesh.vertices[:, 1]
+        f1[:, 2] = z[:, phase] + mesh.vertices[:, 2]
+
+        synth_tip_movement(mesh_ver=mesh.vertices, tip_index=tip_index_arr, x=x, y=y, z=z, y_t=y_t, z_t=z_t,
+                           tip_table=tip.table, new_tip_position=new_tip_position, t=phase)
+        for id, v_id in enumerate(ids):
+            plotter.add_mesh(mesh=pv.Sphere(center=f1[v_id], radius=0.003), color='red', name=str(id))
+
+        plotter.update_coordinates(f1, mesh.pv_mesh)
+        plotter.update_coordinates(new_tip_position, tip.pv_mesh)
+        plotter.show(auto_close=False, window_size=resolution)
+        screen = plotter.screenshot(window_size=resolution)
+        cv2.imwrite(url + "depth_frameE" + str(i) + ".jpg", screen)
+        img = cv2.imread(url + "depth_frameE" + str(i) + ".jpg")
+        im_frames.append(img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (480, 480))
+    for i in range(len(im_frames)):
+        out.write(im_frames[i])
+    out.release()
+    # for f in glob.glob(url + '*.jpg'):
+    # os.remove(f)
+    cv2.destroyAllWindows()
+
+
+def laplasian_wing(path):
     mesh2 = Mesh('data/wing_off_files/mesh_for_laplace.off')
     mesh = []
     plotter = pv.Plotter(shape=(3,3), off_screen=False)
@@ -478,7 +645,7 @@ def laplasian_wing():
     bool_arr = func[:,8] <0
     NN = (np.sum(bool_arr))
 
-    plotter.open_movie("src/tests/temp/laplacian_wing.mp4")
+    plotter.open_movie(path)
     plotter.show(auto_close=False)
     frames = 40
     for phase in np.linspace(0, 4 * np.pi, frames + 1):
