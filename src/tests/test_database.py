@@ -7,6 +7,7 @@ from tqdm import trange
 
 import src.data.database as db
 from src.data.data_generators.synthetic_csv_gen import SyntheticCSVGenerator
+from src.data.data_generators.synthetic_mat_gen import SyntheticMatGenerator
 from src.data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayingGen
 from src.util.timing import profile
 
@@ -32,7 +33,9 @@ class TestDatabaseBuilder(TestCase):
         im_width = 640
         im_height = 480
         resolution = [im_width, im_height]
-        ir_list = list(range(28))
+        ir_list = ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
+                         6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
+                         6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
         # cameras in pyvista format
         cameras = [[(0.047, -0.053320266561896174, 0.026735639600027315),
                     (0.05, 0.3, 0.02),
@@ -64,13 +67,13 @@ class TestDatabaseBuilder(TestCase):
     def test___call__(self):
         Config = self.Config
         data_generator_sin = SyntheticSineDecayingGen('data/synthetic_data_raw_samples', Config.mesh_wing_path,
-                                                      Config.mesh_tip_path, 500, 20, Config.ir_list, Config.resolution,
+                                                      Config.mesh_tip_path, 5, 2, Config.ir_list, Config.resolution,
                                                       Config.cameras, Config.texture, Config.cmap
                                                       )
-        data_generator = SyntheticCSVGenerator('data/synthetic_data_raw_samples', Config.mesh_wing_path,
+        data_generator = SyntheticMatGenerator('data/data_samples/Daniella_data.mat', Config.mesh_wing_path,
                                                Config.mesh_tip_path, Config.ir_list, Config.resolution, Config.cameras,
                                                Config.texture, Config.cmap)
-        database = db.DatabaseBuilder(data_generator_sin, 'data/databases')
+        database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=64)
         data_file_path = database()
         with h5py.File(data_file_path, 'r') as f:
             print(list(f['data']['video_names']))
@@ -81,21 +84,21 @@ class TestDatabaseBuilder(TestCase):
         TRAINING_DB_PATH = "data/databases/20200923-215518__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
         VALIDATION_DB_PATH = "data/databases/20200924-184304__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
         with h5py.File(VALIDATION_DB_PATH, 'r') as hf:
-            dset=hf['data']['images']
+            dset = hf['data']['images']
             time.perf_counter()
-            sum=0
-            for i in trange(0,1000):
-                t0=time.perf_counter()
-                image=dset[i]
+            sum = 0
+            for i in trange(0, 1000):
+                t0 = time.perf_counter()
+                image = dset[i]
                 # np.save(f'data/images/{i}',image)
-                t1=time.perf_counter()
-                dt=t1-t0
+                t1 = time.perf_counter()
+                dt = t1 - t0
                 print(f"{dt:.03f}")
-                sum+=dt
-                t0=t1
+                sum += dt
+                t0 = t1
             print(dt)
 
     @profile
     def test_read_py(self):
         for i in trange(1000, 1060):
-            x=np.load(f'data/images/{i}.npy')
+            x = np.load(f'data/images/{i}.npy')

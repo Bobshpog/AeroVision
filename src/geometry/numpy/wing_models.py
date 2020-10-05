@@ -105,7 +105,7 @@ class FiniteElementWingModel:
 
 
 @dataclass
-class SynteticWingModel:
+class SyntheticWingModel:
     coordinates: np.ndarray
     ir_idx_list: list
     texture: str
