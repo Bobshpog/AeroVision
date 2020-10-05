@@ -88,8 +88,8 @@ class TestDatabaseBuilder(TestCase):
         with h5py.File(VALIDATION_DB_PATH, 'r') as hf:
             dset = hf['data']['images']
             time.perf_counter()
-            images = dset[:, 0, :, :, 0]
-            index = randint(images.shape[0])
+            index = randint(dset.shape[0])
+            images = dset[index, 0, :, :, 0]
             cv2.imshow("photo", images[index])
             pass
 
