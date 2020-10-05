@@ -32,6 +32,7 @@ class CustomInputResnet(pl.LightningModule):
         self.num_input_layers = num_input_layers
         self.num_output_layers = num_outputs
         self.loss_func = loss_func
+        self.output_loss_func=output_loss_func
         self.learning_rate = learning_rate
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
