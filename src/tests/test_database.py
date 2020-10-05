@@ -85,8 +85,8 @@ class TestDatabaseBuilder(TestCase):
             dset = hf['data']['images']
             time.perf_counter()
             index = randint(0,dset.shape[0])
-            images = dset[index, 0, :, :, :3]
-            cv2.imshow("photo", images[index])
+            image = dset[index, 0, :, :, :3]
+            cv2.imshow("photo", image)
             cv2.waitKey()
             pass
 
