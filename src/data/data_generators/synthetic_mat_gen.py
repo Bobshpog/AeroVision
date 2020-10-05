@@ -48,6 +48,8 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
                                              self.mesh_tip_path, self.cameras, self.num_vertices_wing,
                                              self.num_vertices_tip, plotter, self.resolution, self.cmap)
 
+    def __len__(self):
+        return self.num_frames
     def __repr__(self):
         return f"{self.__class__.__name__}(mesh_wing='{self.mesh_wing_path.name}', mesh_tip='{self.mesh_tip_path.name}'" \
                f", resolution={self.resolution}, texture_path='{self.texture_path.name}'"
