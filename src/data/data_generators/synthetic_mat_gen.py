@@ -11,7 +11,7 @@ from memoization import cached
 
 import src.data.data_generators.data_gen as data_gen
 from src.data.matlab_reader import read_data
-from src.geometry.numpy.mesh import read_off_size
+from src.geometry.numpy.mesh import read_off_size, Mesh
 from src.geometry.numpy.wing_models import FiniteElementWingModel, SyntheticWingModel
 
 
@@ -50,6 +50,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
 
     def __len__(self):
         return self.num_frames
+
     def __repr__(self):
         return f"{self.__class__.__name__}(mesh_wing='{self.mesh_wing_path.name}', mesh_tip='{self.mesh_tip_path.name}'" \
                f", resolution={self.resolution}, texture_path='{self.texture_path.name}'"
@@ -62,13 +63,13 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
         # for idx, name in enumerate(self._get_scale_names()):
         #     dset_scale_names[idx] = name
         dset_displacements = group.create_dataset('displacements', data=self.disp_arr, dtype=np.float)
-
+        dset_mean_images = group.create_dataset('mean images', dtype=np.float32,
+                                                data=self.wing_model(np.zeros(self.cords.shape)))
         group.attrs['cameras'] = self.cameras
         group.attrs['mesh_wing_path'] = self.mesh_wing_path.name
         group.attrs['mesh_tip_path'] = self.mesh_tip_path.name
         group.attrs['resolution'] = self.resolution
         group.attrs['texture'] = self.texture_path.name
-
 
     @cached(max_size=1)
     def get_data_sizes(self) -> (int, int):
@@ -79,7 +80,6 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
         resolution = tuple(self.resolution[::-1])
         image_shape = (len(self.cameras), *resolution, 4)
         return self.num_scales, image_shape, len(self.ir_list)
-
 
     def __iter__(self) -> (str, np.array, np.array, np.array):
         """
