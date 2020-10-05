@@ -44,7 +44,8 @@ class SyntheticSineDecayingGen(DataGenerator):
         self.plotter = pv.Plotter(off_screen=True)
 
     def __del__(self):
-        self.plotter.close()
+        if self.plotter:
+            self.plotter.close()
 
     def __len__(self):
         return self.num_videos * self.num_frames_per_video
