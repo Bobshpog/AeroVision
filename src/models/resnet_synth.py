@@ -41,8 +41,8 @@ class CustomInputResnet(pl.LightningModule):
         self.min_val_loss = None
         self.train_min_errors = defaultdict(None)
         self.val_min_scales = defaultdict(None)
-        self.train_batch_list = {}
-        self.val_batch_list = {}
+        self.train_batch_list = {'loss':[]}
+        self.val_batch_list = {'loss':[]}
         for i in range(self.num_output_layers):
             self.train_batch_list[f'scale{i}'] = []
             self.val_batch_list[f'scale{i}'] = []
