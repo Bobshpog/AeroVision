@@ -14,7 +14,7 @@ class ImageDataset(Dataset):
         self.hdf5_path = hdf5_path
         self.hf = None
         self.transform = transform
-        self.out_transform = transform
+        self.out_transform = out_transform
         self.cache_size = cache_size
         self.cache_dict = mp.Manager().dict()
         self.min_index = min_index

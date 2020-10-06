@@ -154,7 +154,7 @@ if __name__ == '__main__':
     EXPERIMENT_NAME = ""
     TRAINING_DB_PATH = "data/databases/20201002-083303__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     VALIDATION_DB_PATH = "data/databases/20201002-095619__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
-    out_transform = lambda x: (1e7 * x).astype(np.float32)
+    out_transform = transforms.Compose([lambda x: (1e7 * x).astype(np.float32)])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
@@ -164,9 +164,9 @@ if __name__ == '__main__':
                                     remove_mean,
                                     my_transforms.last_axis_to_first])
     train_dset = ImageDataset(TRAINING_DB_PATH,
-                              transform=transform, out_transforms=out_transform, cache_size=TRAIN_CACHE_SIZE, max_index=900)
+                              transform=transform, out_transform=out_transform, cache_size=TRAIN_CACHE_SIZE, max_index=900)
     val_dset = ImageDataset(VALIDATION_DB_PATH,
-                            transform=transform, out_transforms=out_transform, cache_size=VAL_CACHE_SIZE, min_index=900)
+                            transform=transform, out_transform=out_transform, cache_size=VAL_CACHE_SIZE, min_index=900)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=F.mse_loss, output_loss_func=F.l1_loss,
