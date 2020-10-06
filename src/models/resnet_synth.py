@@ -184,7 +184,7 @@ if __name__ == '__main__':
     VAL_SPLIT = None
     if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT]:
         raise ValueError('Config not fully initialized')
-    out_transform = transforms.Compose([my_transforms.mul_by1e7])
+    out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power,3)])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
