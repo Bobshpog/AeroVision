@@ -144,6 +144,9 @@ class LoggerCallback(Callback):
             i.clear()
 
 
+
+
+
 if __name__ == '__main__':
     BATCH_SIZE = 64
     NUM_EPOCHS = 50
@@ -154,7 +157,7 @@ if __name__ == '__main__':
     EXPERIMENT_NAME = ""
     TRAINING_DB_PATH = "data/databases/20201002-083303__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
     VALIDATION_DB_PATH = "data/databases/20201002-095619__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
-    out_transform = transforms.Compose([lambda x: (1e7 * x).astype(np.float32)])
+    out_transform = transforms.Compose([my_transforms.mul_by1e7])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
