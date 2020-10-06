@@ -93,12 +93,13 @@ class TestDatabaseBuilder(TestCase):
     def test_show_scale_histograms(self):
         hdf5_path=""
         with h5py.File(hdf5_path,'r') as hf:
-            dset=['data']['scales']
+            dset=hf['data']['scales']
             ax=[]
-            fig,(ax[0],ax[1],ax[2],ax[3],ax[4])=plt.subplot(1,5)
+            fig,((ax[0],ax[1],ax[2]),(ax[3],ax[4],_))=plt.subplot(2,3)
             for i in range(5):
                 scales=dset[:,i]
-                ax[i].hist(scales,bins=[scales.min,scales.max])
+                ax[i].set_title(f'scale{i}')
+                ax[i].hist(scales)
 
     @profile
     def test_read_py(self):
