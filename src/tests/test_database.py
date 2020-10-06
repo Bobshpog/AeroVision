@@ -12,7 +12,7 @@ from src.data.data_generators.synthetic_csv_gen import SyntheticCSVGenerator
 from src.data.data_generators.synthetic_mat_gen import SyntheticMatGenerator
 from src.data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayingGen
 from src.util.timing import profile
-
+import matplotlib.pyplot as plt
 
 class Test(TestCase):
     def test_process_csv_pair(self):
@@ -89,6 +89,16 @@ class TestDatabaseBuilder(TestCase):
             cv2.imshow("photo", image)
             cv2.waitKey()
             pass
+
+    def test_show_scale_histograms(self):
+        hdf5_path=""
+        with h5py.File(hdf5_path,'r') as hf:
+            dset=['data']['scales']
+            ax=[]
+            fig,(ax[0],ax[1],ax[2],ax[3],ax[4])=plt.subplot(1,5)
+            for i in range(5):
+                scales=dset[:,i]
+                ax[i].hist(scales,bins=[scales.min,scales.max])
 
     @profile
     def test_read_py(self):
