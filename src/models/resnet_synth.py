@@ -148,18 +148,19 @@ def L1_normalized_loss(min, max):
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 64
+    BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
     NUM_EPOCHS = 50
     VAL_CACHE_SIZE = 1000
-    TRAIN_CACHE_SIZE = 5500
+    TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
     NUM_INPUT_LAYERS = 3
     NUM_OUTPUTS = 5
-    RESNET_TYPE = '18'
+    RESNET_TYPE = None  # '18', '50', '34'
     OUTPUT_LOSS_FUNC = None  # Initialized later
     LOSS_FUNC = F.smooth_l1_loss
     EXPERIMENT_NAME = ""
     TRAINING_DB_PATH = ""
     VALIDATION_DB_PATH = ""
+    VAL_SPLIT = 900
     out_transform = transforms.Compose([my_transforms.mul_by1e7])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
@@ -172,9 +173,10 @@ if __name__ == '__main__':
                                     my_transforms.last_axis_to_first])
     train_dset = ImageDataset(TRAINING_DB_PATH,
                               transform=transform, out_transform=out_transform, cache_size=TRAIN_CACHE_SIZE,
-                              max_index=900)
+                              max_index=VAL_SPLIT)
     val_dset = ImageDataset(VALIDATION_DB_PATH,
-                            transform=transform, out_transform=out_transform, cache_size=VAL_CACHE_SIZE, min_index=900)
+                            transform=transform, out_transform=out_transform, cache_size=VAL_CACHE_SIZE,
+                            min_index=VAL_SPLIT)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC, output_loss_func=OUTPUT_LOSS_FUNC,
@@ -189,7 +191,7 @@ if __name__ == '__main__':
         period=5,
         verbose=True)
 
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger, min_scales, max_scales)],
+    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger)],
                          checkpoint_callback=mcp,
                          num_sanity_val_steps=0,
                          profiler=True, logger=logger)
