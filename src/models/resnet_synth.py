@@ -41,11 +41,9 @@ class CustomInputResnet(pl.LightningModule):
         self.min_val_loss = None
         self.train_min_errors = defaultdict(lambda: None)
         self.val_min_errors = defaultdict(lambda: None)
-        self.train_batch_list = {'loss': []}
-        self.val_batch_list = {'loss': []}
-        for i in range(self.num_output_layers):
-            self.train_batch_list[f'scale{i}'] = []
-            self.val_batch_list[f'scale{i}'] = []
+        self.train_batch_list = defaultdict(list)
+        self.val_batch_list = defaultdict(list)
+
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -71,8 +69,12 @@ class CustomInputResnet(pl.LightningModule):
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
             output_loss = self.output_loss_func(y_hat, y)
+            means = torch.mean(y_hat, dim=0)
+            variance = torch.var(y_hat, dim=0)
             for i in range(self.num_output_layers):
                 self.train_batch_list[f'scale{i}'].append(output_loss[i])
+                self.train_batch_list[f'mean{i}'].append(means[i])
+                self.train_batch_list[f'var{i}'].append(variance[i])
             self.train_batch_list['loss'].append(loss)
         return loss
 
@@ -82,8 +84,12 @@ class CustomInputResnet(pl.LightningModule):
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
             output_loss = self.output_loss_func(y_hat, y)
+            means = torch.mean(y_hat, dim=0)
+            variance = torch.var(y_hat, dim=0)
             for i in range(self.num_output_layers):
                 self.val_batch_list[f'scale{i}'].append(output_loss[i])
+                self.val_batch_list[f'mean{i}'].append(means[i])
+                self.val_batch_list[f'var{i}'].append(variance[i])
             self.val_batch_list['loss'].append(loss)
         return loss
 
@@ -97,8 +103,12 @@ class LoggerCallback(Callback):
     def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
         curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
         error_dict = {}
+        means_dict = {}
+        var_dict = {}
         for i in range(pl_module.num_output_layers):
             error_dict[f'scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'scale{i}']))
+            means_dict[f'mean{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'mean{i}']))
+            var_dict[f'var{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'var{i}']))
 
         pl_module.min_train_loss = torch.min(curr_loss,
                                              pl_module.min_train_loss) if pl_module.min_train_loss else curr_loss
@@ -114,16 +124,22 @@ class LoggerCallback(Callback):
                                            error_dict, pl_module.current_epoch)
         self.logger.experiment.add_scalars('train_min_error',
                                            pl_module.train_min_errors, pl_module.current_epoch)
-
+        self.logger.experiment.add_scalars('train_means',
+                                           means_dict, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('train_variance',
+                                           var_dict, pl_module.current_epoch)
         for i in pl_module.train_batch_list.values():
             i.clear()
 
     def on_validation_epoch_end(self, trainer, pl_module):
         curr_loss = torch.mean(torch.stack(pl_module.val_batch_list['loss']))
         error_dict = {}
+        means_dict = {}
+        var_dict = {}
         for i in range(pl_module.num_output_layers):
             error_dict[f'scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'scale{i}']))
-
+            means_dict[f'mean{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'mean{i}']))
+            var_dict[f'var{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'var{i}']))
         pl_module.min_val_loss = torch.min(curr_loss,
                                            pl_module.min_val_loss) if pl_module.min_val_loss else curr_loss
 
@@ -136,6 +152,10 @@ class LoggerCallback(Callback):
         self.logger.experiment.add_scalars('min_loss', {'val': pl_module.min_val_loss}, pl_module.current_epoch)
         self.logger.experiment.add_scalars('val_error',
                                            error_dict, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('val_means',
+                                           means_dict, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('val_variance',
+                                           var_dict, pl_module.current_epoch)
         self.logger.experiment.add_scalars('val_min_error',
                                            pl_module.val_min_errors, pl_module.current_epoch)
 
@@ -161,7 +181,7 @@ if __name__ == '__main__':
     TRAINING_DB_PATH = None
     VALIDATION_DB_PATH = None
     VAL_SPLIT = None
-    if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE,TRAINING_DB_PATH,VALIDATION_DB_PATH,VAL_SPLIT]:
+    if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT]:
         raise ValueError('Config not fully initialized')
     out_transform = transforms.Compose([my_transforms.mul_by1e7])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
