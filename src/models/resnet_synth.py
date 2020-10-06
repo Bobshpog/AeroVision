@@ -149,7 +149,7 @@ def L1_normalized_loss(min, max):
 
 if __name__ == '__main__':
     BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
-    NUM_EPOCHS = 50
+    NUM_EPOCHS = None
     VAL_CACHE_SIZE = 1000
     TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
     NUM_INPUT_LAYERS = 3
@@ -158,9 +158,11 @@ if __name__ == '__main__':
     OUTPUT_LOSS_FUNC = None  # Initialized later
     LOSS_FUNC = F.smooth_l1_loss
     EXPERIMENT_NAME = ""
-    TRAINING_DB_PATH = ""
-    VALIDATION_DB_PATH = ""
-    VAL_SPLIT = 900
+    TRAINING_DB_PATH = None
+    VALIDATION_DB_PATH = None
+    VAL_SPLIT = None
+    if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE,TRAINING_DB_PATH,VALIDATION_DB_PATH,VAL_SPLIT]:
+        raise ValueError('Config not fully initialized')
     out_transform = transforms.Compose([my_transforms.mul_by1e7])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
