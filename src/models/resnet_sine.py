@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from src.model_datasets.resnet_sin_func import ImageDataset
+from src.model_datasets.image_dataset import ImageDataset
 import src.util.image_transforms as my_transforms
 from src.util.loss_functions import MSE_Weighted
 
