@@ -164,7 +164,8 @@ class LoggerCallback(Callback):
 
 
 def L1_normalized_loss(min, max):
-    return lambda x, y: torch.mean(F.l1_loss(x, y, reduction=None), dim=0) / (max - min)
+    return lambda x, y: torch.mean(F.l1_loss(x, y, reduction='none'), dim=0) / (max - min)
+
 
 
 if __name__ == '__main__':
