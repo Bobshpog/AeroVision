@@ -70,8 +70,9 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
+            output_loss = self.output_loss_func(y_hat, y)
             for i in range(self.num_output_layers):
-                self.train_batch_list[f'scale{i}'].append(self.output_loss_func(y_hat[:, i], y[:, i]))
+                self.train_batch_list[f'scale{i}'].append(output_loss[i])
             self.train_batch_list['loss'].append(loss)
         return loss
 
@@ -80,16 +81,16 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
+            output_loss = self.output_loss_func(y_hat, y)
             for i in range(self.num_output_layers):
-                self.val_batch_list[f'scale{i}'].append(self.output_loss_func(y_hat[:, i], y[:, i]))
+                self.val_batch_list[f'scale{i}'].append(output_loss[i])
             self.val_batch_list['loss'].append(loss)
         return loss
 
 
 class LoggerCallback(Callback):
-    def __init__(self, logger, min_scales, max_scales):
+    def __init__(self, logger):
         self.logger = logger
-        self.range_scales = torch.tensor(max_scales - min_scales + np.finfo(np.float32).eps).cuda()
         # self.min_scales = min_scales
         # self.max_Scales = max_scales
 
@@ -97,8 +98,7 @@ class LoggerCallback(Callback):
         curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
         error_dict = {}
         for i in range(pl_module.num_output_layers):
-            error_dict[f'scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'scale{i}'])) / \
-                                      self.range_scales[i]
+            error_dict[f'scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'scale{i}']))
 
         pl_module.min_train_loss = torch.min(curr_loss,
                                              pl_module.min_train_loss) if pl_module.min_train_loss else curr_loss
@@ -122,8 +122,7 @@ class LoggerCallback(Callback):
         curr_loss = torch.mean(torch.stack(pl_module.val_batch_list['loss']))
         error_dict = {}
         for i in range(pl_module.num_output_layers):
-            error_dict[f'scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'scale{i}'])) / \
-                                      self.range_scales[i]
+            error_dict[f'scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'scale{i}']))
 
         pl_module.min_val_loss = torch.min(curr_loss,
                                            pl_module.min_val_loss) if pl_module.min_val_loss else curr_loss
@@ -144,7 +143,8 @@ class LoggerCallback(Callback):
             i.clear()
 
 
-
+def L1_normalized_loss(min, max):
+    return lambda x, y: torch.mean(F.l1_loss(x, y, reduction=None), dim=0) / (max - min)
 
 
 if __name__ == '__main__':
@@ -154,26 +154,31 @@ if __name__ == '__main__':
     TRAIN_CACHE_SIZE = 5500
     NUM_INPUT_LAYERS = 3
     NUM_OUTPUTS = 5
+    RESNET_TYPE = '18'
+    OUTPUT_LOSS_FUNC = None  # Initialized later
+    LOSS_FUNC = F.smooth_l1_loss
     EXPERIMENT_NAME = ""
-    TRAINING_DB_PATH = "data/databases/20201002-083303__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
-    VALIDATION_DB_PATH = "data/databases/20201002-095619__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
+    TRAINING_DB_PATH = ""
+    VALIDATION_DB_PATH = ""
     out_transform = transforms.Compose([my_transforms.mul_by1e7])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
         max_scales = out_transform(np.max(hf['data']['scales'], axis=0))
+    OUTPUT_LOSS_FUNC = L1_normalized_loss(min_scales, max_scales)
     remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
     transform = transforms.Compose([my_transforms.slice_first_position_no_depth,
                                     remove_mean,
                                     my_transforms.last_axis_to_first])
     train_dset = ImageDataset(TRAINING_DB_PATH,
-                              transform=transform, out_transform=out_transform, cache_size=TRAIN_CACHE_SIZE, max_index=900)
+                              transform=transform, out_transform=out_transform, cache_size=TRAIN_CACHE_SIZE,
+                              max_index=900)
     val_dset = ImageDataset(VALIDATION_DB_PATH,
                             transform=transform, out_transform=out_transform, cache_size=VAL_CACHE_SIZE, min_index=900)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
-    model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=F.mse_loss, output_loss_func=F.l1_loss,
-                              resnet_type='18',
+    model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC, output_loss_func=OUTPUT_LOSS_FUNC,
+                              resnet_type=RESNET_TYPE,
                               cosine_annealing_steps=10)
     logger = TensorBoardLogger('lightning_logs', name=EXPERIMENT_NAME)
     mcp = ModelCheckpoint(
