@@ -164,8 +164,8 @@ class LoggerCallback(Callback):
 
 
 def L1_normalized_loss(min, max):
-    return lambda x, y: torch.mean(F.l1_loss(x, y, reduction='none'), dim=0) / torch.tensor((max - min),device=x.device)
-
+    return lambda x, y: torch.mean(F.l1_loss(x, y, reduction='none'), dim=0) / torch.tensor((max - min),
+                                                                                            device=x.device)
 
 
 if __name__ == '__main__':
@@ -182,18 +182,16 @@ if __name__ == '__main__':
     TRAINING_DB_PATH = None
     VALIDATION_DB_PATH = None
     VAL_SPLIT = None
+    TRANSFORM = my_transforms.top_middle_rgb
     if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT]:
         raise ValueError('Config not fully initialized')
-    out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power,3)])
+    out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power, 3)])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
         max_scales = out_transform(np.max(hf['data']['scales'], axis=0))
     OUTPUT_LOSS_FUNC = L1_normalized_loss(min_scales, max_scales)
-    remove_mean = partial(my_transforms.remove_dc_photo, mean_image)
-    transform = transforms.Compose([my_transforms.slice_first_position_no_depth,
-                                    remove_mean,
-                                    my_transforms.last_axis_to_first])
+    transform = TRANSFORM(mean_image)
     train_dset = ImageDataset(TRAINING_DB_PATH,
                               transform=transform, out_transform=out_transform, cache_size=TRAIN_CACHE_SIZE,
                               max_index=VAL_SPLIT)
