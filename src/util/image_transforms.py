@@ -8,6 +8,10 @@ def slice_first_position_no_depth(input_photo):
     return input_photo[0, :, :, :3]
 
 
+def slice_first_position_with_depth(input_photo):
+    return input_photo[0, :, :, :]
+
+
 def remove_dc_photo(dc_photo, input_photo):
     return input_photo - dc_photo
 
@@ -42,4 +46,12 @@ def top_middle_bw(mean_photos):
     return transforms.Compose([slice_first_position_no_depth,
                                remove_mean,
                                single_rgb_to_bw
+                               ])
+
+
+def top_middle_rgbd(mean_photos):
+    mean_photos = slice_first_position_with_depth(mean_photos)
+    remove_mean = partial(remove_dc_photo, mean_photos)
+    return transforms.Compose([slice_first_position_with_depth,
+                               remove_mean,
                                ])
