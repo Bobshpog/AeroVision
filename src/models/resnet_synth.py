@@ -80,7 +80,7 @@ class CustomInputResnet(pl.LightningModule):
                 self.train_batch_list[f'var{i}'].append(variance[i])
             self.train_batch_list['loss'].append(loss)
             if self.vertice_mean_rms_loss_func:
-                self.train_batch_list['mean_vertice_rms'].append(self.vertices_mean_rms_loss(y_hat, y))
+                self.train_batch_list['mean_vertice_rms'].append(self.vertices_mean_rms_loss_func(y_hat, y))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -97,7 +97,7 @@ class CustomInputResnet(pl.LightningModule):
                 self.val_batch_list[f'var{i}'].append(variance[i])
             self.val_batch_list['loss'].append(loss)
             if self.vertice_mean_rms_loss_func:
-                self.val_batch_list['mean_vertice_rms'].append(self.vertices_mean_rms_loss(y_hat, y))
+                self.val_batch_list['mean_vertice_rms'].append(self.vertices_mean_rms_loss_func(y_hat, y))
         return loss
 
 
