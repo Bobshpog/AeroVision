@@ -238,6 +238,7 @@ if __name__ == '__main__':
         save_last=True,
         save_top_k=10,
         period=-1,
+        monitor='val_loss',
         verbose=True)
 
     trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger)],
