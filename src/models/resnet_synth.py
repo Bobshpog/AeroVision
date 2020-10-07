@@ -236,8 +236,8 @@ if __name__ == '__main__':
         filepath=f"{logger.log_dir}/checkpoints/"
                  + "{epoch}",
         save_last=True,
-        save_top_k=-1,
-        period=5,
+        save_top_k=10,
+        period=-1,
         verbose=True)
 
     trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger)],
