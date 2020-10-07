@@ -107,7 +107,8 @@ class LoggerCallback(Callback):
 
     def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
         curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
-        curr_vertice_rms = torch.mean(torch.stack(pl_module.train_batch_list['mean_vertice_rms']))
+        if pl_module.vertice_mean_rms_loss_func:
+            curr_vertice_rms = torch.mean(torch.stack(pl_module.train_batch_list['mean_vertice_rms']))
         error_dict = {}
         means_dict = {}
         var_dict = {}
@@ -146,7 +147,9 @@ class LoggerCallback(Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         curr_loss = torch.mean(torch.stack(pl_module.val_batch_list['loss']))
-        curr_vertice_rms = torch.mean(torch.stack(pl_module.val_batch_list['mean_vertice_rms']))
+
+        if pl_module.vertice_mean_rms_loss_func:
+            curr_vertice_rms = torch.mean(torch.stack(pl_module.val_batch_list['mean_vertice_rms']))
         error_dict = {}
         means_dict = {}
         var_dict = {}
@@ -208,8 +211,9 @@ if __name__ == '__main__':
         raise ValueError('Config not fully initialized')
     out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power, OUTPUT_SCALING)])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
-        mean_image = hf['generator metadata']['mean images'].value
-        vertice_mean_rms_loss_func = partial(vertice_mean_rms, hf['generator metadata']['modal shapes'], OUTPUT_SCALING)
+        mean_image = hf['generator metadata']['mean images'][()]
+        vertice_mean_rms_loss_func = partial(vertice_mean_rms, hf['generator metadata']['modal shapes'][()],
+                                             OUTPUT_SCALING)
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
         max_scales = out_transform(np.max(hf['data']['scales'], axis=0))
     OUTPUT_LOSS_FUNC = L1_normalized_loss(min_scales, max_scales)
@@ -223,6 +227,7 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC, output_loss_func=OUTPUT_LOSS_FUNC,
+                              vertice_mean_rms_loss_func=vertice_mean_rms_loss_func,
                               resnet_type=RESNET_TYPE,
                               cosine_annealing_steps=10)
     logger = TensorBoardLogger('lightning_logs', name=EXPERIMENT_NAME)
