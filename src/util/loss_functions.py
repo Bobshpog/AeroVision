@@ -9,7 +9,7 @@ def mse_weighted(weights, a, b):
     return torch.sqrt(torch.sum(loss))
 
 
-def vertices_mean_rms(mode_shapes, pow, scale_a: torch.tensor, scale_b: torch.tensor):
+def vertice_mean_rms(mode_shapes, pow, scale_a: torch.tensor, scale_b: torch.tensor):
     """
         return loss between movement (based on the scales) we received and the movement we calculated by our own scales
           Args:

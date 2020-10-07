@@ -17,11 +17,12 @@ from torchvision import transforms
 
 from src.model_datasets.image_dataset import ImageDataset
 import src.util.image_transforms as my_transforms
-from src.util.loss_functions import mse_weighted, vertices_mean_rms
+from src.util.loss_functions import mse_weighted, vertice_mean_rms
 
 
 class CustomInputResnet(pl.LightningModule):
-    def __init__(self, num_input_layers, num_outputs, loss_func, output_loss_func, resnet_type='18', learning_rate=1e-2,
+    def __init__(self, num_input_layers, num_outputs, loss_func, output_loss_func, vertice_mean_rms_loss_func=None,
+                 resnet_type='18', learning_rate=1e-2,
                  cosine_annealing_steps=0,
                  weight_decay=0):
         super().__init__()
@@ -33,13 +34,14 @@ class CustomInputResnet(pl.LightningModule):
         self.num_output_layers = num_outputs
         self.loss_func = loss_func
         self.output_loss_func = output_loss_func
+        self.vertice_mean_rms_loss_func = vertice_mean_rms_loss_func
         self.learning_rate = learning_rate
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
         self.min_train_loss = None
         self.min_val_loss = None
-        self.min_train_vertice_rms=None
+        self.min_train_vertice_rms = None
         self.train_min_errors = defaultdict(lambda: None)
         self.val_min_errors = defaultdict(lambda: None)
         self.train_batch_list = defaultdict(list)
@@ -77,7 +79,8 @@ class CustomInputResnet(pl.LightningModule):
                 self.train_batch_list[f'mean{i}'].append(means[i])
                 self.train_batch_list[f'var{i}'].append(variance[i])
             self.train_batch_list['loss'].append(loss)
-            self.train_batch_list['mean_vertice_rms'].append(vertices_mean_rms(y_hat,y))
+            if self.vertice_mean_rms_loss_func:
+                self.train_batch_list['mean_vertice_rms'].append(self.vertices_mean_rms_loss(y_hat, y))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -93,19 +96,18 @@ class CustomInputResnet(pl.LightningModule):
                 self.val_batch_list[f'mean{i}'].append(means[i])
                 self.val_batch_list[f'var{i}'].append(variance[i])
             self.val_batch_list['loss'].append(loss)
-            self.val_batch_list['mean_vertice_rms'].append(vertices_mean_rms(y_hat, y))
+            if self.vertice_mean_rms_loss_func:
+                self.val_batch_list['mean_vertice_rms'].append(self.vertices_mean_rms_loss(y_hat, y))
         return loss
 
 
 class LoggerCallback(Callback):
     def __init__(self, logger):
         self.logger = logger
-        # self.min_scales = min_scales
-        # self.max_Scales = max_scales
 
     def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
         curr_loss = torch.mean(torch.stack(pl_module.train_batch_list['loss']))
-        curr_vertice_rms=torch.mean(torch.stack(pl_module.train_batch_list['mean_vertice_rms']))
+        curr_vertice_rms = torch.mean(torch.stack(pl_module.train_batch_list['mean_vertice_rms']))
         error_dict = {}
         means_dict = {}
         var_dict = {}
@@ -116,8 +118,8 @@ class LoggerCallback(Callback):
 
         pl_module.min_train_loss = torch.min(curr_loss,
                                              pl_module.min_train_loss) if pl_module.min_train_loss else curr_loss
-        pl_module.min_train_vertice_rms= torch.min(curr_vertice_rms,
-                                             pl_module.min_train_vertice_rms) if pl_module.min_train_vertice_rms else curr_vertice_rms
+        pl_module.min_train_vertice_rms = torch.min(curr_vertice_rms,
+                                                    pl_module.min_train_vertice_rms) if pl_module.min_train_vertice_rms else curr_vertice_rms
 
         for i in range(pl_module.num_output_layers):
             pl_module.train_min_errors[f'scale{i}'] = torch.min(pl_module.train_min_errors[f'scale{i}'],
@@ -134,8 +136,10 @@ class LoggerCallback(Callback):
                                            means_dict, pl_module.current_epoch)
         self.logger.experiment.add_scalars('train_variance',
                                            var_dict, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('mean_vertice_rms', {'train': curr_vertice_rms}, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('min_mean_vertice_rms', {'train': pl_module.min_train_vertice_rms}, pl_module.current_epoch)
+        if pl_module.vertice_mean_rms_loss_func:
+            self.logger.experiment.add_scalars('mean_vertice_rms', {'train': curr_vertice_rms}, pl_module.current_epoch)
+            self.logger.experiment.add_scalars('min_mean_vertice_rms', {'train': pl_module.min_train_vertice_rms},
+                                               pl_module.current_epoch)
 
         for i in pl_module.train_batch_list.values():
             i.clear()
@@ -153,7 +157,7 @@ class LoggerCallback(Callback):
         pl_module.min_val_loss = torch.min(curr_loss,
                                            pl_module.min_val_loss) if pl_module.min_val_loss else curr_loss
         pl_module.min_val_vertice_rms = torch.min(curr_vertice_rms,
-                                                    pl_module.min_val_vertice_rms) if pl_module.min_val_vertice_rms else curr_vertice_rms
+                                                  pl_module.min_val_vertice_rms) if pl_module.min_val_vertice_rms else curr_vertice_rms
         for i in range(pl_module.num_output_layers):
             pl_module.val_min_errors[f'scale{i}'] = torch.min(pl_module.val_min_errors[f'scale{i}'],
                                                               error_dict[f'scale{i}']) if pl_module.val_min_errors[
@@ -170,9 +174,10 @@ class LoggerCallback(Callback):
         self.logger.experiment.add_scalars('val_min_error',
                                            pl_module.val_min_errors, pl_module.current_epoch)
 
-        self.logger.experiment.add_scalars('mean_vertice_rms', {'val': curr_vertice_rms}, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('min_mean_vertice_rms', {'val': pl_module.min_val_vertice_rms},
-                                           pl_module.current_epoch)
+        if pl_module.vertice_mean_rms_loss_func:
+            self.logger.experiment.add_scalars('mean_vertice_rms', {'val': curr_vertice_rms}, pl_module.current_epoch)
+            self.logger.experiment.add_scalars('min_mean_vertice_rms', {'val': pl_module.min_val_vertice_rms},
+                                               pl_module.current_epoch)
         for i in pl_module.val_batch_list.values():
             i.clear()
 
@@ -197,11 +202,14 @@ if __name__ == '__main__':
     VALIDATION_DB_PATH = None
     VAL_SPLIT = None
     TRANSFORM = my_transforms.top_middle_rgb
+    OUTPUT_SCALING = 3
+
     if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT]:
         raise ValueError('Config not fully initialized')
-    out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power, 3)])
+    out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power, OUTPUT_SCALING)])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
+        vertice_mean_rms_loss_func = partial(vertice_mean_rms, hf['generator metadata']['mode shapes'], OUTPUT_SCALING)
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
         max_scales = out_transform(np.max(hf['data']['scales'], axis=0))
     OUTPUT_LOSS_FUNC = L1_normalized_loss(min_scales, max_scales)
