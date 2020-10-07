@@ -14,6 +14,7 @@ from src.data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayi
 from src.util.timing import profile
 import matplotlib.pyplot as plt
 
+
 class Test(TestCase):
     def test_process_csv_pair(self):
         points, scales = db.process_csv_pair('data/synthetic_data_raw_samples/load1dice.csv',
@@ -68,7 +69,8 @@ class TestDatabaseBuilder(TestCase):
                                                       Config.mesh_tip_path, 5, 2, Config.ir_list, Config.resolution,
                                                       Config.cameras, Config.texture, Config.cmap
                                                       )
-        data_generator = SyntheticMatGenerator('data/data_samples/Daniella_data.mat', Config.mesh_wing_path,
+        data_generator = SyntheticMatGenerator('data/data_samples/Daniella_data.mat',
+                                               "data/mode_shapes/synth_mode_shapes_9103_10.mat", Config.mesh_wing_path,
                                                Config.mesh_tip_path, Config.ir_list, Config.resolution, Config.cameras,
                                                Config.texture, Config.cmap)
         database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=64)
@@ -84,20 +86,20 @@ class TestDatabaseBuilder(TestCase):
         with h5py.File(VALIDATION_DB_PATH, 'r') as hf:
             dset = hf['data']['images']
             time.perf_counter()
-            index = randint(0,dset.shape[0])
+            index = randint(0, dset.shape[0])
             image = dset[index, 0, :, :, :3]
             cv2.imshow("photo", image)
             cv2.waitKey()
             pass
 
     def test_show_scale_histograms(self):
-        hdf5_path=""
-        with h5py.File(hdf5_path,'r') as hf:
-            dset=hf['data']['scales']
-            ax={}
-            fig,((ax[0],ax[1],ax[2]),(ax[3],ax[4],_))=plt.subplots(2,3)
+        hdf5_path = ""
+        with h5py.File(hdf5_path, 'r') as hf:
+            dset = hf['data']['scales']
+            ax = {}
+            fig, ((ax[0], ax[1], ax[2]), (ax[3], ax[4], _)) = plt.subplots(2, 3)
             for i in range(5):
-                scales=dset[:,i]
+                scales = dset[:, i]
                 ax[i].set_title(f'scale{i}')
                 ax[i].hist(scales)
             fig.show()

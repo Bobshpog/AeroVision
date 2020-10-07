@@ -41,3 +41,12 @@ def read_data(mat_path):
     disp = np.dstack((dx, dy, dz))  # n x <num vertices> x 3
     scales = mat['xi'].T  # n x 5
     return vertices, disp, scales
+
+
+def read_modal_shapes(mat_path, num_scales):
+    mat = loadmat(mat_path)
+    x = mat['T1']
+    y = mat['T2']
+    z = mat['T3']
+    mode_shapes = np.dstack((x, y, z))[:, :num_scales].transpose((2,0,1))
+    return mode_shapes

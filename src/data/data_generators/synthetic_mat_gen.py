@@ -10,7 +10,7 @@ import pyvista as pv
 from memoization import cached
 
 import src.data.data_generators.data_gen as data_gen
-from src.data.matlab_reader import read_data
+from src.data.matlab_reader import read_data, read_modal_shapes
 from src.geometry.numpy.mesh import read_off_size, Mesh
 from src.geometry.numpy.wing_models import FiniteElementWingModel, SyntheticWingModel
 
@@ -18,6 +18,7 @@ from src.geometry.numpy.wing_models import FiniteElementWingModel, SyntheticWing
 @dataclass(repr=False)
 class SyntheticMatGenerator(data_gen.DataGenerator):
     mat_path: Union[Path, str] = field(repr=False)
+    modal_shape_mat_path: Union[Path, str] = field(repr=False)
     mesh_wing_path: Union[Path, str]
     mesh_tip_path: Union[Path, str]
 
@@ -33,6 +34,8 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
     def __post_init__(self):
         if isinstance(self.mat_path, str):
             self.mat_path = Path(self.mat_path)
+        if isinstance(self.modal_shape_mat_path, str):
+            self.modal_shape_mat_path = Path(self.modal_shape_mat_path)
         if isinstance(self.mesh_wing_path, str):
             self.mesh_wing_path = Path(self.mesh_wing_path)
         if isinstance(self.mesh_tip_path, str):
@@ -64,7 +67,9 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
         #     dset_scale_names[idx] = name
         dset_displacements = group.create_dataset('displacements', data=self.disp_arr, dtype=np.float)
         dset_mean_images = group.create_dataset('mean images', dtype=np.float32,
-                                                data=self.wing_model(np.zeros(self.cords.shape),dtype=np.float32)[0])
+                                                data=self.wing_model(np.zeros(self.cords.shape, dtype=np.float32))[0])
+        group.create_dataset('modal shapes',dtype=np.float64,data=read_modal_shapes(self.modal_shape_mat_path,num_scales=self.num_scales))
+
         group.attrs['cameras'] = self.cameras
         group.attrs['mesh_wing_path'] = self.mesh_wing_path.name
         group.attrs['mesh_tip_path'] = self.mesh_tip_path.name
