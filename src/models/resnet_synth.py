@@ -42,7 +42,7 @@ class CustomInputResnet(pl.LightningModule):
         self.min_train_loss = None
         self.min_val_loss = None
         self.min_train_vertice_rms = None
-        self.min_train_val_rms=None
+        self.min_val_vertice_rms=None
         self.train_min_errors = defaultdict(lambda: None)
         self.val_min_errors = defaultdict(lambda: None)
         self.train_batch_list = defaultdict(list)
