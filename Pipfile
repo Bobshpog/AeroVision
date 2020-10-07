@@ -24,6 +24,8 @@ memoization = "*"
 h5py-cache = "*"
 py-cpuinfo = "*"
 psutil = "*"
+scikit-image = "*"
+pytorch-ssim = "*"
 
 [requires]
 python_version = "3.8"
