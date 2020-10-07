@@ -25,4 +25,4 @@ def vertices_mean_rms(mode_shapes, pow, scale_a: torch.tensor, scale_b: torch.te
     mode_shapes = torch.tensor(mode_shapes, device=scale_a.device, dtype=torch.float64)
     pos_a = (mode_shapes * scale_a).sum(dim=1)
     pos_b = (mode_shapes * scale_b).sum(dim=1)
-    return torch.norm(pos_a - pos_b, 2)
+    return torch.norm(pos_a - pos_b, 2)/pos_a.shape[0]
