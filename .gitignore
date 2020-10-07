@@ -178,3 +178,5 @@ octave-workspace
 /src/tests/temp/
 /data/databases/
 /data/data_samples/Daniella_data.mat
+/data/synt_data_mat_files/
+/data/synt_data_mat_files/data.mat

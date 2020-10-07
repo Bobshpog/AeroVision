@@ -1,7 +1,5 @@
 from unittest import TestCase
-
 from src.data.matlab_reader import vertices_to_off, read_data
-
 
 class Test(TestCase):
     def test_vertices_to_off(self):

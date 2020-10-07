@@ -143,11 +143,13 @@ class SPOD(BaseEstimator, TransformerMixin):
 
         # --> List to store the various SPOD modes.
         Psi, modal_energy = list(), list()
-        print(np.array(X_blk).shape, len(freqs))
+        #print(np.array(X_blk).shape, len(freqs))
         # --> Loop through the frequencies.
-        for i in range(len(freqs)):
+        #for i in range(len(freqs)):
+        for i in range(129):
             # --> Get the ensemble of Fourier realization for frequency i.
             Q = X_blk[:, :, i]
+
 
             # --> Compute the SPOD modes.
             #U, S, _ = svd(Q, full_matrices=False)
@@ -158,7 +160,7 @@ class SPOD(BaseEstimator, TransformerMixin):
 
         # -->
         self.spod_modes = np.moveaxis(np.asarray(Psi), [0, 1, 2], [2, 0, 1])
-        self.modal_energy = np.asarray(modal_energy)
+        self.modal_enfergy = np.asarray(modal_energy)
         self.freqs = freqs
 
         return np.asarray(Psi), np.asarray(modal_energy), freqs

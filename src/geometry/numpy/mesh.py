@@ -738,7 +738,6 @@ def animate_few_meshes(mesh, movement, f=None, subplot=(0, 0), texture=None, cma
     plotter.show(auto_close=False)
     if gif_path:
         plotter.open_gif(gif_path)
-        plotter.write_frame()
     for frame, item in enumerate(movement[0]):
         for plt_id in range(num_of_plots):
             plotter.update_coordinates(movement[plt_id][frame], mesh=pv_mesh[plt_id])

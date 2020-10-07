@@ -14,6 +14,7 @@ from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from datetime import datetime
 
+
 class TestMesh(unittest.TestCase):
     class Config:
         num_of_vertices_wing = 7724
@@ -150,24 +151,26 @@ class TestMesh(unittest.TestCase):
             print(plotter.camera_position)
 
     def test_Texture(self):
-        plotter = pv.Plotter()
-        plotter.set_background("white",top="blue")
-        tex = "data/textures/checkers_dark_blue.png"
+        plotter = pv.Plotter(shape=(1,2))
+        plotter.set_background("white")
+        plotter2 = pv.Plotter(shape=(1,2))
+        plotter2.set_background("white")
+
+        tex = "data/textures/circles_normal.png"
+        tex2 = "data/textures/circles3.png"
         mesh = Mesh("data/wing_off_files/synth_wing_v3.off")
-        tip = Mesh("data/wing_off_files/fem_tip.off")
+        mesh2 = Mesh("data/wing_off_files/fem_tip.off")
         camera =  [(0.047, -0.053320266561896174, 0.026735639600027315),
                           (0.05, 0.3, 0.02),
                           (0, 0, 1)]
-
-        plotter.set_position(camera[0])
-        plotter.set_focus(camera[1])
-        plotter.set_viewup(camera[2])
-        tex = pv.read_texture(tex)
-        mesh.pv_mesh.texture_map_to_plane(inplace=True)
-        plotter.show_bounds(mesh=mesh.pv_mesh)
-        plotter.add_mesh(mesh.pv_mesh, texture=tex)
-        plotter.show()
-        print(plotter.camera_position)
+        mesh2.plot_faces(plotter=plotter2, show=False,camera=camera)
+        mesh2.plot_faces(plotter=plotter2, show=False, camera=camera, index_col=1)
+        mesh.plot_faces(plotter=plotter2, texture="data/textures/checkers_blue_dot.png",show=False)
+        mesh.plot_faces(plotter=plotter2, texture="data/textures/checkers_blue_dot.png", index_col=1)
+        mesh2.plot_faces(plotter=plotter, camera=camera, show=False)
+        mesh2.plot_faces(plotter=plotter,camera=camera, show=False, index_col=1)
+        mesh.plot_faces(plotter=plotter, texture=tex, camera=camera, title="normal ratio",show=False)
+        mesh.plot_faces(plotter=plotter, texture=tex2, camera=camera, title="3:1 ratio", index_col=1)
 
     def test_make_tip(self):  # the creation of the tip
         unwanted_points_axis = 0.095
@@ -321,7 +324,32 @@ class TestMesh(unittest.TestCase):
         #synth_ir_video("src/tests/temp/ir_synth.mp4")
 
     def test_animate(self):
-        synth_wing_animation("src/tests/temp/animation_synth.mp4")
+        #synth_wing_animation("src/tests/temp/animation_synth.mp4")
+        plotter = pv.Plotter(shape=(1,3))
+        plotter.set_background("white")
+        mesh = Mesh("data/wing_off_files/synth_wing_v3.off")
+        tip = Mesh("data/wing_off_files/fem_tip.off")
+        A = colored_checkerboard(tile_size=70, h=640, w=480, rgb1=(1.0,1.0,1.0), rgb2=(0,0,0))
+        A = (A * 255).astype(np.uint8)
+        B = colored_checkerboard(tile_size=15, h=100, w=300, rgb1=(1.0,1.0,1.0), rgb2=(0,0,0))
+        B = (B * 255).astype(np.uint8)
+        C = colored_checkerboard(tile_size=15, h=100, w=600, rgb1=(1.0,1.0,1.0), rgb2=(0,0,0))
+        C = (C * 255).astype(np.uint8)
+        tex1 = pv.numpy_to_texture(A)
+        tex2 = pv.numpy_to_texture(B)
+        tex3 = pv.numpy_to_texture(C)
+        tip.plot_faces(show=False,plotter=plotter,camera=camera_pos["up_middle"], title="480:640")
+        tip.plot_faces(show=False, plotter=plotter, camera=camera_pos["up_middle"], index_col=1,title="1:3")
+        tip.plot_faces(show=False, plotter=plotter, camera=camera_pos["up_middle"], index_col=2, title="1:6")
+        mesh.pv_mesh.texture_map_to_plane(inplace=True)
+        plotter.subplot(0,0)
+        plotter.add_mesh(mesh.pv_mesh,texture=tex1)
+        plotter.subplot(0,1)
+        plotter.add_mesh(mesh.pv_mesh,texture=tex2)
+        plotter.subplot(0,2)
+        plotter.add_mesh(mesh.pv_mesh,texture=tex3)
+        plotter.show()
+
 
     def test_improve_synth_wing(self):
         v, f, _ = read_off("data/wing_off_files/synth_wing_v1.off")
@@ -343,12 +371,9 @@ def colored_checkerboard(h=640, w=480, tile_size=5, rgb1=(0.5, 0, 0.5), rgb2=(0,
     B = np.kron(zero_one_grid, np.ones((tile_size, tile_size), dtype=bool))
     B = B[:h, :w, None]
     return B * np.reshape(rgb1, (1, 1, 3)) + (~B) * np.reshape(rgb2, (1, 1, 3))
-    # plt.imshow(colored_checkerboard(tile_size=10))
-    # plt.show()
 
 
-if __name__ == '__main__':
-    unittest.main()
+
 
 def homogenize(v, value=1):
     v = np.asanyarray(v)
@@ -365,3 +390,7 @@ def dehomogenize(a):
     """
     a = np.asfarray(a)
     return a[..., :-1] / a[..., np.newaxis, -1]
+
+
+if __name__ == '__main__':
+    unittest.main()
