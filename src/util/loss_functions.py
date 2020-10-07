@@ -20,6 +20,8 @@ def vertice_mean_rms(mode_shapes, pow, scale_a: torch.tensor, scale_b: torch.ten
            Returns:
               RMS between the vertex positions calculated from scales
            """
+    scale_a=torch.Tensor(scale_a).detach()
+    scale_b=torch.Tensor(scale_b).detach()
     scale_a *= 10 ** -pow
     scale_b *= 10 ** -pow
     scale_a=scale_a.to(torch.float64).T
