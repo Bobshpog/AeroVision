@@ -64,7 +64,7 @@ class CustomInputResnet(pl.LightningModule):
             scheduler = optim.lr_scheduler.CosineAnnealingLR(adam, self.cosine_annealing_steps,
                                                              self.learning_rate / 1000)
         else:
-            scheduler = None
+            return adam
         return [adam], [scheduler]
 
     def training_step(self, batch, batch_idx):
