@@ -17,7 +17,7 @@ from torchvision import transforms
 
 from src.model_datasets.image_dataset import ImageDataset
 import src.util.image_transforms as my_transforms
-from src.util.loss_functions import MSE_Weighted
+from src.util.loss_functions import mse_weighted
 
 
 class CustomInputResnet(pl.LightningModule):
