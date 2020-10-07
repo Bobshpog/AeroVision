@@ -208,7 +208,7 @@ if __name__ == '__main__':
         raise ValueError('Config not fully initialized')
     out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power, OUTPUT_SCALING)])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
-        mean_image = my_transforms.slice_first_position_no_depth(hf['generator metadata']['mean images'])
+        mean_image = hf['generator metadata']['mean images'].value
         vertice_mean_rms_loss_func = partial(vertice_mean_rms, hf['generator metadata']['modal shapes'], OUTPUT_SCALING)
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
         max_scales = out_transform(np.max(hf['data']['scales'], axis=0))
