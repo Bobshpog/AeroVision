@@ -15,6 +15,12 @@ class TestCustomInputResnet(TestCase):
 
     def test_run_model(self):
         CHECKPOINT_PATH = ""
+        mode_shape_path = "data/synt_data_mat_files/modes.mat"
+        vid_path = "src/tests/temp/creation_of_modees.mp4"
+        trash_path = "src/tests/temp/video_frames/"
+        texture_path = "data/textures/checkers_dark_blue.png"
+        frames = 1000
+        num_of_scales = 5
         model = CustomInputResnet.load_from_checkpoint(CHECKPOINT_PATH)
         model.eval()
 
@@ -28,20 +34,15 @@ class TestCustomInputResnet(TestCase):
         val_loader = DataLoader(val_dset, 1, shuffle=False, num_workers=0)
         scale1 = np.zeros((5,2000))
         scale2 = np.zeros((5, 2000))
-
+        name_of_picture = "depth_frameZ"
         for i,x,y in enumerate(val_loader):
             scale1[:,i] = y.numpy()
             scale2[:,i] = model(x).numpy()
+            X = x + mean_image
+            #todo reconstruct X
+            cv2.imwrite(trash_path + name_of_picture + str(i) + ".png", np.asarray(X * 255, np.uint8))
 
-        mode_shape_path = "data/synt_data_mat_files/modes.mat"
-        scale1 = loadmat("data/synt_data_mat_files/data.mat")["xi"]
-        scale2 = loadmat("data/synt_data_mat_files/data.mat")["xi"]
-        vid_path = "src/tests/temp/creation_of_modees.mp4"
-        trash_path = "src/tests/temp/video_frames/"
-        texture_path = "data/textures/checkers_dark_blue.png"
-        frames = 1000
-        num_of_scales = 5
         create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                             show_ssim=True)
+                             name_of_picture, show_ssim=True)
 
 

@@ -65,12 +65,15 @@ class Test(TestCase):
         vid_path = "src/tests/temp/creation_of_modees.mp4"
         trash_path = "src/tests/temp/video_frames/"
         texture_path = "data/textures/checkers_dark_blue.png"
-        frames = 2
+        frames = 10
         num_of_scales = 5
-        print(scale1.shape)
-        y=np.array([])
-        y.append([1,1,1])
-        y.append([1, 1, 1])
-        #create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-        #                     show_ssim=True)
 
+        create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
+                             show_ssim=True)
+        plotter = pv.Plotter()
+        plotter.set_background("white")
+        tip2 = Mesh('data/wing_off_files/fem_tip.off')
+        mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
+        #tip2.plot_faces(plotter=plotter,show=False)
+        #mesh.plot_faces(plotter=plotter,texture=texture_path,camera=camera_pos["up_high"])
+        #print(plotter.camera_position)
