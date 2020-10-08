@@ -9,6 +9,8 @@ from src.geometry.numpy.transforms import *
 from src.geometry.numpy.wing_models import *
 from src.geometry.spod import *
 from src.geometry.numpy.lbo import *
+from SSIM_PIL import compare_ssim
+from tqdm import trange
 camera_pos = {
             'up_middle': [(0.047, -0.053320266561896174, 0.026735639600027315),
                           (0.05, 0.3, 0.02),
@@ -45,6 +47,9 @@ camera_pos = {
             'rotated_down_right': [(0.11460619078012961, -0.04553696541254279, -0.038810512823530784),
                                     (0.05, 0.3, 0.02),
                                      (0, 0.16643488101070833, 1)],
+            'up_high': [(-1.1317097577972088, -0.6611046370580096, 0.5827882608373682),
+                        (0.05, 0.3, 0.02),
+                        (0.18216637888466586, 0.32036813133340425, 0.9296126455841653)]
         }
 
 
@@ -214,6 +219,7 @@ def synth_ir_video(path):
 
 def modal_animation(path):
     wing_path = "data/wing_off_files/synth_wing_v3.off"
+    tip_path = 'data/wing_off_files/fem_tip.off'
     mesh = Mesh(wing_path)
     tip = Mesh('data/wing_off_files/fem_tip.off')
     TIP_RADIUS = 0.008
@@ -224,12 +230,16 @@ def modal_animation(path):
     new_tip_position3 = np.zeros((tip_vertices_num, 3), dtype='float')
     new_tip_position4 = np.zeros((tip_vertices_num, 3), dtype='float')
     new_tip_position5 = np.zeros((tip_vertices_num, 3), dtype='float')
-
+    new_tip_position6 = np.zeros((tip_vertices_num, 3), dtype='float')
     tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
     y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
     z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
     tip_index_arr = tip_arr_creation(mesh.vertices)
     mode_shapes = loadmat("data/synt_data_mat_files/mode_shapes.mat")["ModeShapes"]
+    modes = np.zeros((mesh.vertices.shape[0],6,3))
+    modes[:, :, 0] = loadmat("data/synt_data_mat_files/modes.mat")["T1"][:, 0:6]
+    modes[:, :, 1] = loadmat("data/synt_data_mat_files/modes.mat")["T2"][:, 0:6]
+    modes[:, :, 2] = loadmat("data/synt_data_mat_files/modes.mat")["T3"][:, 0:6]
     frames = 40
     g1 = np.zeros((frames,tip.vertices.shape[0],3))
     f1 = np.zeros((frames,mesh.vertices.shape[0],3))
@@ -241,70 +251,79 @@ def modal_animation(path):
     f4 = np.zeros((frames,mesh.vertices.shape[0],3))
     g5 = np.zeros((frames,tip.vertices.shape[0],3))
     f5 = np.zeros((frames,mesh.vertices.shape[0],3))
+    g6 = np.zeros((frames,tip.vertices.shape[0],3))
+    f6 = np.zeros((frames,mesh.vertices.shape[0],3))
     # we need to create 6 different meshes, three of tips and three for wing. Pyvista will not recognise the
     # meshes as different otherwise.
-    tip1 = Mesh('data/wing_off_files/fem_tip.off')
-    tip2 = Mesh('data/wing_off_files/fem_tip.off')
-    tip3 = Mesh('data/wing_off_files/fem_tip.off')
-    tip4 = Mesh('data/wing_off_files/fem_tip.off')
-    tip5 = Mesh('data/wing_off_files/fem_tip.off')
+    tip1 = Mesh(tip_path)
+    tip2 = Mesh(tip_path)
+    tip3 = Mesh(tip_path)
+    tip4 = Mesh(tip_path)
+    tip5 = Mesh(tip_path)
+    tip6 = Mesh(tip_path)
     mesh1 = Mesh(wing_path)
     mesh2 = Mesh(wing_path)
     mesh3 = Mesh(wing_path)
     mesh4 = Mesh(wing_path)
     mesh5 = Mesh(wing_path)
+    mesh6 = Mesh(wing_path)
     frames = 40
     # number of frames of the gif, if no gif should be created this number should be around the 4000~ to make it
     # the same as 60~ with gif is created
-    print(f1.shape)
-    for idx, phase in enumerate(np.linspace(0, np.pi, frames)):
-        f1[idx] = np.copy(mesh.vertices)
-        f1[idx, :, 2] = phase * np.real(mode_shapes[:, 0]) + mesh1.vertices[:, 2]
-        f2[idx] = np.copy(mesh.vertices)
-        f2[idx, :, 2] = phase * np.real(mode_shapes[:, 1]) + mesh2.vertices[:, 2]
-        f3[idx] = np.copy(mesh.vertices)
-        f3[idx, :, 2] = phase * np.real(mode_shapes[:, 2]) + mesh3.vertices[:, 2]
-        f4[idx] = np.copy(mesh.vertices)
-        f4[idx, :, 2] = phase * np.real(mode_shapes[:, 3]) + mesh4.vertices[:, 2]
-        f5[idx] = np.copy(mesh.vertices)
-        f5[idx, :, 2] = phase * np.real(mode_shapes[:, 4]) + mesh5.vertices[:, 2]
+    for idx, phase in enumerate(np.linspace(0, 0.02, frames)):
+
+        f1[idx, :, :] = phase * modes[:, 0, :] + mesh.vertices
+        f2[idx, :, :] = phase * modes[:, 1, :] + mesh.vertices
+        f3[idx, :, :] = phase * modes[:, 2, :] + mesh.vertices
+        f4[idx, :, :] = phase * modes[:, 3, :] + mesh.vertices
+        f5[idx, :, :] = phase * modes[:, 4, :] + mesh.vertices
+        f6[idx, :, :] = phase * modes[:, 5, :] + mesh.vertices
 
 
 
         for id in tip_index_arr:
             for i in range(30):
                 cord = mesh.vertices[id]
-                vec1 = np.array((cord[0], cord[1] + y_t[i], cord[2] + np.real(mode_shapes[id, 0]) * phase + z_t[i]))
+                vec1 = np.array((cord[0], cord[1] + y_t[i], cord[2] + z_t[i]))
+                vec1 += phase * modes[id,0,:]
+                vec2 = np.array((cord[0], cord[1] + y_t[i], cord[2] + z_t[i]))
+                vec2 += phase * modes[id, 1, :]
+                vec3 = np.array((cord[0], cord[1] + y_t[i], cord[2] + z_t[i]))
+                vec3 += phase * modes[id,2,:]
+                vec4 = np.array((cord[0], cord[1] + y_t[i], cord[2] + z_t[i]))
+                vec4 += phase * modes[id,3,:]
+                vec5 = np.array((cord[0], cord[1] + y_t[i], cord[2] + z_t[i]))
+                vec5 += phase * modes[id,4,:]
+                vec6 = np.array((cord[0], cord[1] + y_t[i], cord[2] + z_t[i]))
+                vec6 += phase * modes[id,5,:]
 
-                vec2 = np.array((cord[0], cord[1]+ y_t[i], cord[2] + np.real(mode_shapes[id, 1]) * phase + z_t[i]))
-                vec3 = np.array((cord[0], cord[1]+ y_t[i], cord[2] + np.real(mode_shapes[id, 2]) * phase + z_t[i]))
-                vec4 = np.array((cord[0], cord[1]+ y_t[i], cord[2] + np.real(mode_shapes[id, 3]) * phase + z_t[i]))
-                vec5 = np.array((cord[0], cord[1]+ y_t[i], cord[2] + np.real(mode_shapes[id, 4]) * phase + z_t[i]))
                 new_tip_position1[tip1.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vec1
                 new_tip_position2[tip1.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vec2
                 new_tip_position3[tip1.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vec3
                 new_tip_position4[tip1.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vec4
                 new_tip_position5[tip1.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vec5
+                new_tip_position6[tip1.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vec6
 
         g1[idx] = new_tip_position1
         g2[idx] = new_tip_position2
         g3[idx] = new_tip_position3
         g4[idx] = new_tip_position4
         g5[idx] = new_tip_position5
+        g6[idx] = new_tip_position6
 
-    fg = [f1, g1, f2, g2, f3, g3, f4, g4, f5, g5]
+    fg = [f1, g1, f2, g2, f3, g3, f4, g4, f5, g5, f6, g6]
     cords = [(0, 0), (0, 0), (0, 1), (0, 1), (0, 2), (0, 2), (1, 0), (1, 0), (1, 1), (1, 1), (1, 2), (1, 2), (2, 1),
              (2, 1)]
-    scalars = [None] * 10
-    textures = ["data/textures/checkers_dark_blue.png", None] * 5
-    color_maps = ["jet"] * 10
-    titles = ["first mode", "", "second mod", "", "third mode", "", "forth mode", "", "fifth mode", ""]
-    font_colors = ["black"] * 10
-    font_size = [10] * 10
-    cam = [camera_pos["up_middle"]] * 10
+    scalars = [None] * 12
+    textures = ["data/textures/checkers_dark_blue.png", None] * 6
+    color_maps = ["jet"] * 12
+    titles = ["first mode", "", "second mod", "", "third mode", "", "forth mode", "", "fifth mode", "", "sixth mode",""]
+    font_colors = ["black"] * 12
+    font_size = [10] * 12
+    cam = [camera_pos["up_middle"]] * 12
     plotter = pv.Plotter(shape=(2,3))
     plotter.set_background("white")
-    meshes = [mesh1, tip1, mesh2, tip2, mesh3, tip3, mesh4, tip4, mesh5, tip5]
+    meshes = [mesh1, tip1, mesh2, tip2, mesh3, tip3, mesh4, tip4, mesh5, tip5, mesh6, tip6]
 
     animate_few_meshes(mesh=meshes, movement=fg, f=scalars, subplot=cords,
                        texture=textures, cmap=color_maps, plotter=plotter,
@@ -318,12 +337,13 @@ def modal_animation(path):
 
 def scale_made_movement(path, amp):
     mat = loadmat("data/synt_data_mat_files/data.mat")
-    mode_shapes = np.real(loadmat("data/synt_data_mat_files/mode_shapes.mat")["ModeShapes"])
+    mode_x = loadmat("data/synt_data_mat_files/modes.mat")["T1"][:,0:5]
+    mode_y = loadmat("data/synt_data_mat_files/modes.mat")["T2"][:,0:5]
+    mode_z = loadmat("data/synt_data_mat_files/modes.mat")["T3"][:,0:5]
     x = mat['U1']
     y = mat['U2']
     z = mat['U3']
     scale = mat['xi']
-    distance=0
     tip = Mesh('data/wing_off_files/fem_tip.off')
     tip2 = Mesh('data/wing_off_files/fem_tip.off')
     mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
@@ -356,18 +376,22 @@ def scale_made_movement(path, amp):
         f1[:, 1] = y[:, phase] + mesh.vertices[:, 1]
         f1[:, 2] = z[:, phase] + mesh.vertices[:, 2]
 
-        difference = (mode_shapes[:, 0] * scale[0, phase] + mode_shapes[:, 1] * scale[1, phase] +
-                                mode_shapes[:, 2] * scale[2, phase] + mode_shapes[:, 3] * scale[3, phase] +
-                                mode_shapes[:, 4] * scale[4, phase]) * amp
-        f2[:,0] = mesh.vertices[:,0]
-        f2[:,1] = mesh.vertices[:,1]
-        f2[:,2] = mesh.vertices[:, 2] + difference
+        #difference = (mode_shapes[:, 0] * scale[0, phase] + mode_shapes[:, 1] * scale[1, phase] +
+        #                        mode_shapes[:, 2] * scale[2, phase] + mode_shapes[:, 3] * scale[3, phase] +
+        #                        mode_shapes[:, 4] * scale[4, phase]) * amp
+        difference_x = (scale[:,phase] * mode_x).sum(axis=1) * amp
+        difference_y = (scale[:, phase] * mode_y).sum(axis=1) * amp
+        difference_z = (scale[:, phase] * mode_z).sum(axis=1) * amp
+
+        f2[:,0] = mesh.vertices[:,0] + difference_x
+        f2[:,1] = mesh.vertices[:,1] + difference_y
+        f2[:,2] = mesh.vertices[:, 2] + difference_z
 
         for id in tip_index_arr:
             for i in range(30):
                 cord = mesh2.vertices[id]
-                vec = np.array((cord[0], cord[1] + y_t[i], cord[2] + z_t[i] + difference[id]
-                                ))
+                vec = np.array((cord[0] + difference_x[id], cord[1] + y_t[i] + difference_y[id],
+                                cord[2] + z_t[i] + difference_z[id]))
 
                 new_tip_position2[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vec
 
@@ -382,7 +406,7 @@ def scale_made_movement(path, amp):
         depth11[:, :, 0] = r
         cv2.imwrite(url + "depth_frameA" + str(i) + ".jpg", np.asarray(depth11 * 255, np.uint8))
         photo = Mesh.get_photo([mesh, tip], [f1, new_tip_position], plotter=plotter2, texture=[tex2, None],
-                               cmap=None, camera=camera_pos["up_middle"], resolution=res, title="made by displacement")
+                               cmap=None, camera=camera_pos["up_middle"], resolution=res, title=None)
         depth12 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
         depth12[:, :, 2] = depth12[:, :, 0]
@@ -399,6 +423,8 @@ def scale_made_movement(path, amp):
         img1 = cv2.imread(url + "depth_frameA" + str(i) + ".jpg")
         img2 = cv2.imread(url + "depth_frameB" + str(i) + ".jpg")
         img3 = cv2.imread(url + "depth_frameC" + str(i) + ".jpg")
+        cv2.putText(img2, "created by displacement", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.75, (0, 0, 0),
+                    lineType=2)
         img_u = cv2.hconcat([img3, img2, img1])
 
         photo = Mesh.get_photo([mesh2, tip2], [f2, new_tip_position2], plotter=plotter, texture=[tex, None],
@@ -411,7 +437,7 @@ def scale_made_movement(path, amp):
 
         cv2.imwrite(url + "depth_frameD" + str(i) + ".jpg", np.asarray(depth21 * 255, np.uint8))
         photo = Mesh.get_photo([mesh2, tip2], [f2, new_tip_position2], plotter=plotter, texture=[tex2, None], cmap=None,
-                               camera=camera_pos["up_middle"], resolution=res, title="created by the mode shapes",
+                               camera=camera_pos["up_middle"], resolution=res, title=None,
                                )
         depth22 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
@@ -432,18 +458,25 @@ def scale_made_movement(path, amp):
         img22 = cv2.imread(url + "depth_frameE" + str(i) + ".jpg")
         img32 = cv2.imread(url + "depth_frameF" + str(i) + ".jpg")
 
-        dist1 = np.linalg.norm(depth11 - depth21)
+        pil_img1 = Image.fromarray(np.uint8(depth11 * 255))
+        pil_img2 = Image.fromarray(np.uint8(depth21 * 255))
+        dist1 = compare_ssim(pil_img1, pil_img2)
+        pil_img1 = Image.fromarray(np.uint8(depth12 * 255))
+        pil_img2 = Image.fromarray(np.uint8(depth22 * 255))
+        dist2 = compare_ssim(pil_img1, pil_img2)
+        pil_img1 = Image.fromarray(np.uint8(depth13 * 255))
+        pil_img2 = Image.fromarray(np.uint8(depth23 * 255))
+        dist3 = compare_ssim(pil_img1, pil_img2)
 
-        dist2 = np.linalg.norm(depth12 - depth22)
-        dist3 = np.linalg.norm(depth13 - depth23)
 
-        cv2.putText(img12, "L2 norm = " + str(dist1), (50, 100), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+        cv2.putText(img12, "ssim value = " + str(dist1), (50, 100), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
                     lineType=2)
-        cv2.putText(img22, "L2 norm = " + str(dist2), (50, 100), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+        cv2.putText(img22, "ssim value = " + str(dist2), (50, 100), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
                     lineType=2)
-        cv2.putText(img32, "L2 norm = " + str(dist3), (50, 100), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+        cv2.putText(img32, "ssim value = " + str(dist3), (50, 100), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
                     lineType=2)
-
+        cv2.putText(img22, "created by the mode shapes", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.75, (0, 0, 0),
+                    lineType=2)
         img_d = cv2.hconcat([img32, img22, img12])
         img_f = cv2.vconcat([img_u, img_d])
         # 7,cv2.imshow("frame", img_f)
@@ -460,4 +493,143 @@ def scale_made_movement(path, amp):
     for f in glob.glob(url + '*.jpg'):
         os.remove(f)
     cv2.destroyAllWindows()
+
+
+def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
+                         saved_name=None, show_ssim=True):
+    #mat = loadmat("data/synt_data_mat_files/data.mat")
+
+    mode_x = loadmat(mode_shape_path)["T1"][:, 0:num_of_scales]
+    mode_y = loadmat(mode_shape_path)["T2"][:, 0:num_of_scales]
+    mode_z = loadmat(mode_shape_path)["T3"][:, 0:num_of_scales]
+    #x = mat['U1']
+    #y = mat['U2']
+    #z = mat['U3']
+    #scale = mat['xi']
+    tip = Mesh('data/wing_off_files/fem_tip.off')
+    tip2 = Mesh('data/wing_off_files/fem_tip.off')
+    mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mesh2 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mode_shape = np.zeros((mesh.vertices.shape[0],3,5))
+    mode_shape[:, 0] = loadmat(mode_shape_path)["T1"][:, 0:num_of_scales]
+    mode_shape[:, 1] = loadmat(mode_shape_path)["T2"][:, 0:num_of_scales]
+    mode_shape[:, 2] = loadmat(mode_shape_path)["T3"][:, 0:num_of_scales]
+    TIP_RADIUS = 0.008
+    NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
+    tip_vertices_num = 930
+    tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
+    y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
+    z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
+    tip_index_arr = tip_arr_creation(mesh.vertices)
+    res = [480, 480]
+    white_img = np.ones(shape=res) * 255
+    plotter = pv.Plotter(off_screen=True)
+    plotter2 = pv.Plotter(off_screen=True)
+    k = 0
+    im_frames = []
+    h1 = np.zeros((tip_vertices_num, 3), dtype='float')
+    h2 = np.zeros((tip_vertices_num, 3), dtype='float')
+    difference = np.zeros((2,mesh.vertices.shape[0],3))
+    for phase in trange(frames):
+
+        difference[0,:,:] = (scale1[:,phase] * mode_shape).sum(axis=2)
+        difference[1, :, :] = (scale2[:, phase] * mode_shape).sum(axis=2)
+        norm = np.linalg.norm(difference[0] - difference[1])
+        g1 = mesh.vertices + difference[0,:,:]
+        g2 = mesh.vertices + difference[1,:,:]
+        for id in tip_index_arr:
+            for i in range(30):
+                cord = mesh2.vertices[id]
+                vector = np.array((cord[0] + difference[0,id,0], cord[1] + y_t[i] + difference[0,id,1],
+                                 cord[2] + z_t[i] + difference[0,id,2]))
+                vector2 = np.array((cord[0] + difference[1,id,0], cord[1] + y_t[i] + difference[1,id,1],
+                                 cord[2] + z_t[i] + difference[1,id,2]))
+                h1[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
+                h2[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector2
+
+        photo = Mesh.get_photo([mesh2, tip2], [g2,h2], plotter=plotter, texture=[texture_path, None],
+                               cmap=None, camera=camera_pos["up_middle"], resolution=res)
+        depth11 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth11[:, :, 2] = depth11[:, :, 0]
+        depth11[:, :, 0] = r
+        cv2.imwrite(trash_path + "depth_frameA" + str(k) + ".png", np.asarray(depth11 * 255, np.uint8))
+        photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter2, texture=[texture_path, None],
+                               cmap=None, camera=camera_pos["up_middle"], resolution=res, title=None)
+        depth12 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth12[:, :, 2] = depth12[:, :, 0]
+        depth12[:, :, 0] = r
+        cv2.imwrite(trash_path + "depth_frameB" + str(k) + ".png", np.asarray(depth12 * 255, np.uint8))
+
+        img1 = cv2.imread(trash_path + "depth_frameA" + str(k) + ".png")
+        img2 = cv2.imread(trash_path + "depth_frameB" + str(k) + ".png")
+        if saved_name is not None:
+            img3 = cv2.imread(trash_path + saved_name + str(k) + ".png")
+        else:
+            cv2.imwrite(trash_path + "depth_frameC" + str(k) + ".png", white_img)
+            img3 = cv2.imread(trash_path + "depth_frameC" + str(k) + ".png")
+        cv2.putText(img3, "given photo", (70, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+                    lineType=2)
+        cv2.putText(img2, "NN made scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+                    lineType=2)
+        cv2.putText(img1, "ground truth scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+                    lineType=2)
+        img_u = cv2.hconcat([img3, img2, img1])
+
+        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=[texture_path, None],
+                               cmap=None, camera=camera_pos["up_high"], resolution=res)
+        depth21 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth21[:, :, 2] = depth21[:, :, 0]
+        depth21[:, :, 0] = r
+
+        cv2.imwrite(trash_path + "depth_frameD" + str(k) + ".png", np.asarray(depth21 * 255, np.uint8))
+
+        photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter2, texture=[texture_path, None],
+                               cmap=None, camera=camera_pos["up_high"], resolution=res)
+        depth22 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth22[:, :, 2] = depth22[:, :, 0]
+        depth22[:, :, 0] = r
+        cv2.imwrite(trash_path + "depth_frameE" + str(k) + ".png", np.asarray(depth22 * 255, np.uint8))
+
+        cv2.imwrite(trash_path + "depth_frameF" + str(k) + ".png", white_img)
+
+        img12 = cv2.imread(trash_path + "depth_frameD" + str(k) + ".png")
+        img22 = cv2.imread(trash_path + "depth_frameE" + str(k) + ".png")
+        img32 = cv2.imread(trash_path + "depth_frameF" + str(k) + ".png")
+        if show_ssim:
+            pil_img1 = Image.fromarray(np.uint8(depth12 * 255))
+            pil_img2 = Image.fromarray(np.uint8(depth11 * 255))
+            dist = compare_ssim(pil_img1, pil_img2)
+            cv2.putText(img32, "ssim value:" + f'{dist: .3e}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+                        lineType=2)
+
+        cv2.putText(img22, "NN made scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+                    lineType=2)
+        cv2.putText(img12, "ground truth scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+                    lineType=2)
+        cv2.putText(img32, "L2 norm:"+f'{norm: .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 1,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img32, "frame: "+f'{k+1}', (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 1,
+                    (0, 0, 0), lineType=2)
+        img_d = cv2.hconcat([img32, img22, img12])
+        img_f = cv2.vconcat([img_u, img_d])
+        # 7,cv2.imshow("frame", img_f)
+        im_frames.append(img_f)
+        # cv2 does not support making video from np array...
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        k = k + 1
+
+    out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (1440, 960))
+
+    for i in range(len(im_frames)):
+        out.write(im_frames[i])
+    out.release()
+    for f in glob.glob(trash_path + '*.png'):
+        os.remove(f)
+    cv2.destroyAllWindows()
+
 

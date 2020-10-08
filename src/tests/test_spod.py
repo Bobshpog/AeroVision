@@ -6,6 +6,7 @@ from src.geometry.spod import *
 from src.geometry.animations.synth_wing_animations import *
 from src.geometry.numpy.mesh import *
 
+
 class Test(TestCase):
 
     def test_SPOD(self):
@@ -58,5 +59,21 @@ class Test(TestCase):
         plotter.show()
 
     def test_mode_shapes_vis(self):
-        scale_made_movement("src/tests/temp/scale_made_circles.mp4",300)
+        mode_shape_path = "data/synt_data_mat_files/modes.mat"
+        scale1 = loadmat("data/synt_data_mat_files/data.mat")["xi"]
+        scale2 = loadmat("data/synt_data_mat_files/data.mat")["xi"]
+        vid_path = "src/tests/temp/creation_of_modees.mp4"
+        trash_path = "src/tests/temp/video_frames/"
+        texture_path = "data/textures/checkers_dark_blue.png"
+        frames = 10
+        num_of_scales = 5
 
+        create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
+                             show_ssim=True)
+        plotter = pv.Plotter()
+        plotter.set_background("white")
+        tip2 = Mesh('data/wing_off_files/fem_tip.off')
+        mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
+        #tip2.plot_faces(plotter=plotter,show=False)
+        #mesh.plot_faces(plotter=plotter,texture=texture_path,camera=camera_pos["up_high"])
+        #print(plotter.camera_position)

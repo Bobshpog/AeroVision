@@ -22,7 +22,7 @@ class Test(TestCase):
         # The triangulation has texture coordinates generated so we can map
         # a texture onto it.
         tmapper = vtk.vtkTextureMapToCylinder()
-        tmapper.SetInputConnection(mesh.pv_mesh.GetPointData().GetOutputPort())
+        tmapper.SetInputDataObject(mesh.pv_mesh.GetPointData().GetOutputPort())
         tmapper.PreventSeamOn()
 
         # We scale the texture coordinate to get some repeat patterns.
