@@ -496,16 +496,8 @@ def scale_made_movement(path, amp):
 
 
 def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                         saved_name=None, show_ssim=True):
-    #mat = loadmat("data/synt_data_mat_files/data.mat")
-
-    mode_x = loadmat(mode_shape_path)["T1"][:, 0:num_of_scales]
-    mode_y = loadmat(mode_shape_path)["T2"][:, 0:num_of_scales]
-    mode_z = loadmat(mode_shape_path)["T3"][:, 0:num_of_scales]
-    #x = mat['U1']
-    #y = mat['U2']
-    #z = mat['U3']
-    #scale = mat['xi']
+                         saved_name=None, show_ssim=True, res=[480,480]):
+    #   scale 2 is THE NN SCALES
     tip = Mesh('data/wing_off_files/fem_tip.off')
     tip2 = Mesh('data/wing_off_files/fem_tip.off')
     mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
@@ -521,7 +513,6 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
     z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
     tip_index_arr = tip_arr_creation(mesh.vertices)
-    res = [480, 480]
     white_img = np.ones(shape=res) * 255
     plotter = pv.Plotter(off_screen=True)
     plotter2 = pv.Plotter(off_screen=True)
@@ -530,11 +521,14 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     h1 = np.zeros((tip_vertices_num, 3), dtype='float')
     h2 = np.zeros((tip_vertices_num, 3), dtype='float')
     difference = np.zeros((2,mesh.vertices.shape[0],3))
+    total_rms = 0
+    total_ssim = 0
     for phase in trange(frames):
 
         difference[0,:,:] = (scale1[:,phase] * mode_shape).sum(axis=2)
         difference[1, :, :] = (scale2[:, phase] * mode_shape).sum(axis=2)
         norm = np.linalg.norm(difference[0] - difference[1])
+        total_rms += norm
         g1 = mesh.vertices + difference[0,:,:]
         g2 = mesh.vertices + difference[1,:,:]
         for id in tip_index_arr:
@@ -547,14 +541,14 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
                 h1[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
                 h2[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector2
 
-        photo = Mesh.get_photo([mesh2, tip2], [g2,h2], plotter=plotter, texture=[texture_path, None],
+        photo = Mesh.get_photo([mesh, tip], [g1,h1], plotter=plotter2, texture=[texture_path, None],
                                cmap=None, camera=camera_pos["up_middle"], resolution=res)
         depth11 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
         depth11[:, :, 2] = depth11[:, :, 0]
         depth11[:, :, 0] = r
         cv2.imwrite(trash_path + "depth_frameA" + str(k) + ".png", np.asarray(depth11 * 255, np.uint8))
-        photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter2, texture=[texture_path, None],
+        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=[texture_path, None],
                                cmap=None, camera=camera_pos["up_middle"], resolution=res, title=None)
         depth12 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
@@ -577,7 +571,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
                     lineType=2)
         img_u = cv2.hconcat([img3, img2, img1])
 
-        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=[texture_path, None],
+        photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter2, texture=[texture_path, None],
                                cmap=None, camera=camera_pos["up_high"], resolution=res)
         depth21 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
@@ -586,7 +580,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
 
         cv2.imwrite(trash_path + "depth_frameD" + str(k) + ".png", np.asarray(depth21 * 255, np.uint8))
 
-        photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter2, texture=[texture_path, None],
+        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=[texture_path, None],
                                cmap=None, camera=camera_pos["up_high"], resolution=res)
         depth22 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
@@ -603,16 +597,22 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
             pil_img1 = Image.fromarray(np.uint8(depth12 * 255))
             pil_img2 = Image.fromarray(np.uint8(depth11 * 255))
             dist = compare_ssim(pil_img1, pil_img2)
-            cv2.putText(img32, "ssim value:" + f'{dist: .3e}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+            total_ssim += dist
+            cv2.putText(img32, "ssim value:" + f'{dist: .3e}', (0, 160), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
                         lineType=2)
+            cv2.putText(img32, "avg ssim:" + f'{total_ssim/(k+1): .3e}', (0, 200), cv2.FONT_HERSHEY_TRIPLEX, 1,
+                        (0, 0, 0), lineType=2)
 
         cv2.putText(img22, "NN made scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
                     lineType=2)
         cv2.putText(img12, "ground truth scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
                     lineType=2)
+
+        cv2.putText(img32, "frame: "+f'{k+1}', (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 1,
+                    (0, 0, 0), lineType=2)
         cv2.putText(img32, "L2 norm:"+f'{norm: .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 1,
                     (0, 0, 0), lineType=2)
-        cv2.putText(img32, "frame: "+f'{k+1}', (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 1,
+        cv2.putText(img32, "avg norm:" + f'{total_rms/(k+1): .3e}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 1,
                     (0, 0, 0), lineType=2)
         img_d = cv2.hconcat([img32, img22, img12])
         img_f = cv2.vconcat([img_u, img_d])
@@ -623,7 +623,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
             break
         k = k + 1
 
-    out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (1440, 960))
+    out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (res[0] * 3,res[1] * 2))
 
     for i in range(len(im_frames)):
         out.write(im_frames[i])
