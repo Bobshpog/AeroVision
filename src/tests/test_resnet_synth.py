@@ -43,6 +43,6 @@ class TestCustomInputResnet(TestCase):
             cv2.imwrite(trash_path + name_of_picture + str(i) + ".png", np.asarray(X * 255, np.uint8))
 
         create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                             name_of_picture, show_ssim=True)
+                             name_of_picture, show_ssim=True,res=[100,400])
 
 
