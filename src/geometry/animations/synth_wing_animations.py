@@ -533,7 +533,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
 
         g1 = mesh.vertices + difference[0,:,:]
         g2 = mesh.vertices + difference[1,:,:]
-        norm = np.linalg.norm(g1 - g2)
+        norm = np.linalg.norm(g1 - g2) / mesh.vertices.shape[0]
         total_rms += norm
         for id in tip_index_arr:
             for i in range(30):
@@ -544,7 +544,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
                                  cord[2] + z_t[i] + difference[1,id,2]))
                 h1[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
                 h2[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector2
-
+        norm += np.linalg.norm(h1 - h2) / tip.vertices.shape[0]
         photo = Mesh.get_photo([mesh, tip], [g1,h1], plotter=plotter2, texture=[texture_path, None],
                                cmap=None, camera=camera_pos["up_middle"], resolution=(res[1],res[0]))
         depth11 = photo[:, :, 0:3]
@@ -602,21 +602,25 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
             pil_img2 = Image.fromarray(np.uint8(depth11 * 255))
             dist = compare_ssim(pil_img1, pil_img2)
             total_ssim += dist
-            cv2.putText(img32, "ssim between both pictures:" + f'{dist: .2f}', (0, 160), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (0, 0, 0),
+            cv2.putText(img32, "ssim between both pictures:", (0, 200), cv2.FONT_HERSHEY_TRIPLEX, 0.9,  (30, 13, 166),
                         lineType=2)
-            cv2.putText(img32, "avg ssim:" + f'{total_ssim/(k+1): .2f}', (0, 200), cv2.FONT_HERSHEY_TRIPLEX, 1,
+            cv2.putText(img32, "current:" + f'{dist: .2f}', (0, 240), cv2.FONT_HERSHEY_TRIPLEX, 0.9, (0, 0, 0),
+                        lineType=2)
+            cv2.putText(img32, "running avg:" + f'{total_ssim/(k+1): .2f}', (0, 280), cv2.FONT_HERSHEY_TRIPLEX, 0.9,
                         (0, 0, 0), lineType=2)
 
-        cv2.putText(img22, "NN made scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+        cv2.putText(img22, "NN made scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.9, (0, 0, 0),
                     lineType=2)
-        cv2.putText(img12, "ground truth scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
+        cv2.putText(img12, "ground truth scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.9, (0, 0, 0),
                     lineType=2)
 
-        cv2.putText(img32, "frame: "+f'{k+1}', (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 1,
+        cv2.putText(img32, "frame: "+f'{k+1}', (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.9,
                     (0, 0, 0), lineType=2)
-        cv2.putText(img32, "vertices L2 norm:"+f'{norm: .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 1,
+        cv2.putText(img32, "mean vertices L2 norm:", (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.9,
+                    (30, 13, 166), lineType=2)
+        cv2.putText(img32, "current:"+f'{norm: .3e}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 0.9,
                     (0, 0, 0), lineType=2)
-        cv2.putText(img32, "avg norm:" + f'{total_rms/(k+1): .3e}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 1,
+        cv2.putText(img32, "running avg:" + f'{total_rms/(k+1): .3e}', (0, 160), cv2.FONT_HERSHEY_TRIPLEX, 1,
                     (0, 0, 0), lineType=2)
         img_d = cv2.hconcat([img32, img22, img12])
         img_f = cv2.vconcat([img_u, img_d])
