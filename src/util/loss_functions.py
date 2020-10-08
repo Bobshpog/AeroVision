@@ -20,10 +20,7 @@ def vertice_mean_rms(mode_shapes, pow, x: torch.tensor, y: torch.tensor):
            Returns:
               RMS between the vertex positions calculated from scales
            """
-    if len(mode_shapes.shape)==2:
-        num_vertices=mode_shapes.shape[0]
-    if len(mode_shapes.shape) == 3:
-        num_vertices = mode_shapes.shape[1]
+    num_vertices=mode_shapes.size/(3*x.shape[-1])
 
     device = x.device
     with torch.no_grad():
