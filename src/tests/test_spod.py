@@ -65,11 +65,11 @@ class Test(TestCase):
         vid_path = "src/tests/temp/creation_of_modees.mp4"
         trash_path = "src/tests/temp/video_frames/"
         texture_path = "data/textures/checkers_dark_blue.png"
-        frames = 10
+        frames = 4
         num_of_scales = 5
 
         create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                             show_ssim=True)
+                             show_ssim=True, res=[480,480])
         plotter = pv.Plotter()
         plotter.set_background("white")
         tip2 = Mesh('data/wing_off_files/fem_tip.off')
