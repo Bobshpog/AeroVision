@@ -68,13 +68,15 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
         dset_displacements = group.create_dataset('displacements', data=self.disp_arr, dtype=np.float)
         dset_mean_images = group.create_dataset('mean images', dtype=np.float32,
                                                 data=self.wing_model(np.zeros(self.cords.shape, dtype=np.float32))[0])
-        group.create_dataset('modal shapes',dtype=np.float64,data=read_modal_shapes(self.modal_shape_mat_path,num_scales=self.num_scales))
+        group.create_dataset('modal shapes', dtype=np.float64,
+                             data=read_modal_shapes(self.modal_shape_mat_path, num_scales=self.num_scales))
 
         group.attrs['cameras'] = self.cameras
         group.attrs['mesh_wing_path'] = self.mesh_wing_path.name
         group.attrs['mesh_tip_path'] = self.mesh_tip_path.name
         group.attrs['resolution'] = self.resolution
         group.attrs['texture'] = self.texture_path.name
+        group.attrs['ir'] = self.ir_list
 
     @cached(max_size=1)
     def get_data_sizes(self) -> (int, int):

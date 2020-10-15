@@ -107,12 +107,7 @@ class DatabaseBuilder:
                                                        maxshape=(num_datapoints,),
                                                        compression=self.compression,
                                                        dtype=h5py.string_dtype(encoding='ascii'))
-            dset_ir = data_grp.create_dataset('ir',
-                                              shape=(num_datapoints, num_ir, 3),
-                                              maxshape=(num_datapoints, num_ir, 3),
-                                              chunks=(1, num_ir, 3),
-                                              compression=self.compression,
-                                              dtype=DTYPE)
+
 
             progress_bar = tqdm(enumerate(self.data_generator), desc='Building Database', total=num_datapoints,
                                 file=sys.stdout)
@@ -126,7 +121,6 @@ class DatabaseBuilder:
                 if idx % self.batch_size== 0:
                     dset_video_names[cache_idx:idx + 1] = names
                     dset_images[cache_idx:idx + 1] = images
-                    dset_ir[cache_idx:idx + 1] = ir
                     dset_scales[cache_idx:idx + 1] = scales
                     cache_idx = idx + 1
                     names, images, ir, scales = [], [], [], []
@@ -134,6 +128,5 @@ class DatabaseBuilder:
 
             dset_video_names[cache_idx:] = names
             dset_images[cache_idx:] = images
-            dset_ir[cache_idx:] = ir
             dset_scales[cache_idx:] = scales
             return db_name
