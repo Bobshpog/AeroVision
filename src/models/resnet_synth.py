@@ -17,7 +17,7 @@ from torchvision import transforms
 
 from src.model_datasets.image_dataset import ImageDataset
 import src.util.image_transforms as my_transforms
-from src.util.loss_functions import mse_weighted, vertice_mean_rms
+from src.util.loss_functions import mse_weighted, vertex_mean_rms
 
 
 class CustomInputResnet(pl.LightningModule):
@@ -213,7 +213,7 @@ if __name__ == '__main__':
     out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power, OUTPUT_SCALING)])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = hf['generator metadata']['mean images'][()]
-        vertice_mean_rms_loss_func = partial(vertice_mean_rms, hf['generator metadata']['modal shapes'][()],
+        vertice_mean_rms_loss_func = partial(vertex_mean_rms, hf['generator metadata']['modal shapes'][()],
                                              OUTPUT_SCALING)
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
         max_scales = out_transform(np.max(hf['data']['scales'], axis=0))
