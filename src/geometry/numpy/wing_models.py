@@ -1,13 +1,15 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Union
 
-from src.geometry.numpy.mesh import *
+from src.geometry.numpy.mesh import *   
 
 
 @dataclass
 class FiniteElementWingModel:
     coordinates: np.ndarray
     ir_idx_list: list
-    texture: str
+    texture_wing: str
+    texture_tip: Union[str, None]
     wing_path: str
     tip_path: str
     cameras: list
@@ -37,26 +39,26 @@ class FiniteElementWingModel:
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
         wing_table = self.wing.table
         tip_table = self.tip.table
-        new_tip_position = np.zeros((self.tip_vertices_num, 3),dtype='float')
-        new_wing_position = np.zeros((self.wing_vertices_num, 3),dtype='float')
-        tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE,endpoint=False)
+        new_tip_position = np.zeros((self.tip_vertices_num, 3), dtype='float')
+        new_wing_position = np.zeros((self.wing_vertices_num, 3), dtype='float')
+        tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
         x = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         y = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
-        count,tip_count,wing_count=0,0,0
+        count, tip_count, wing_count = 0, 0, 0
         for idx, cord in enumerate(self.coordinates):
-            if cord[1]>=0.605:
+            if cord[1] >= 0.605:
                 for i in range(30):
-                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = 0*cord + displacement[idx]
-                tip_count+=1
+                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = 0 * cord + displacement[idx]
+                tip_count += 1
             elif cord2index(cord) in wing_table:
-                new_wing_position[wing_table[cord2index(cord)]] = 0*cord + displacement[idx]
-                wing_count+=1
+                new_wing_position[wing_table[cord2index(cord)]] = 0 * cord + displacement[idx]
+                wing_count += 1
             else:
-                count+=1
+                count += 1
         # TODO: Ido, Runs fine without Assertions
         # assert(wing_count==self.wing_vertices_num-self.tip_vertices_num/30)
         # assert(tip_count==self.tip_vertices_num/30)
-        return self.wing.vertices+new_wing_position, self.tip.vertices+new_tip_position
+        return self.wing.vertices + new_wing_position, self.tip.vertices + new_tip_position
 
     def _get_ir_cords(self, displacement):
         """
@@ -82,9 +84,9 @@ class FiniteElementWingModel:
         """
         cameras = self.cameras
         photos = Mesh.get_photo((self.wing, self.tip),
-                                         movement=movement, resolution=self.resolution, camera=cameras,
-                                         cmap=self.cmap,
-                                         texture=[self.texture, None], plotter=self.plotter)
+                                movement=movement, resolution=self.resolution, camera=cameras,
+                                cmap=self.cmap,
+                                texture=[self.texture_wing, self.texture_tip], plotter=self.plotter)
         return photos
 
     def __call__(self, displacement):
@@ -103,12 +105,12 @@ class FiniteElementWingModel:
         return photo, ir
 
 
-
 @dataclass
 class SyntheticWingModel:
     coordinates: np.ndarray
     ir_idx_list: list
-    texture: str
+    texture_wing: str
+    texture_tip: Union[str, None]
     wing_path: str
     tip_path: str
     cameras: list
@@ -138,25 +140,25 @@ class SyntheticWingModel:
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
         wing_table = self.wing.table
         tip_table = self.tip.table
-        new_tip_position = np.zeros((self.tip_vertices_num, 3),dtype='float')
+        new_tip_position = np.zeros((self.tip_vertices_num, 3), dtype='float')
         new_wing_position = self.coordinates + displacement
-        tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE,endpoint=False)
+        tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
         x = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         y = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
-        count,tip_count,wing_count=0,0,0
+        count, tip_count, wing_count = 0, 0, 0
         for idx, cord in enumerate(self.coordinates):
-            if cord[1]>=0.605:
+            if cord[1] >= 0.605:
                 for i in range(30):
-                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] =  displacement[idx]
-                tip_count+=1
+                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
+                tip_count += 1
             elif cord2index(cord) in wing_table:
-                wing_count+=1
+                wing_count += 1
             else:
-                count+=1
+                count += 1
         # TODO: Ido, Runs fine without Assertions
         # assert(wing_count==self.wing_vertices_num-self.tip_vertices_num/30)
         # assert(tip_count==self.tip_vertices_num/30)
-        return new_wing_position, self.tip.vertices+new_tip_position
+        return new_wing_position, self.tip.vertices + new_tip_position
 
     def _get_ir_cords(self, displacement):
         """
@@ -182,9 +184,9 @@ class SyntheticWingModel:
         """
         cameras = self.cameras
         photos = Mesh.get_many_photos((self.wing, self.tip),
-                                         movement=movement, resolution=self.resolution, camera=cameras,
-                                         cmap=self.cmap,
-                                         texture=[self.texture, None], plotter=self.plotter)
+                                      movement=movement, resolution=self.resolution, camera=cameras,
+                                      cmap=self.cmap,
+                                      texture=[self.texture_wing, self.texture_tip], plotter=self.plotter)
         return photos
 
     def __call__(self, displacement):

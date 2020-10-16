@@ -1,5 +1,3 @@
-import csv
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Union
@@ -11,8 +9,8 @@ from memoization import cached
 
 import src.data.data_generators.data_gen as data_gen
 from src.data.matlab_reader import read_data, read_modal_shapes
-from src.geometry.numpy.mesh import read_off_size, Mesh
-from src.geometry.numpy.wing_models import FiniteElementWingModel, SyntheticWingModel
+from src.geometry.numpy.mesh import read_off_size
+from src.geometry.numpy.wing_models import SyntheticWingModel
 
 
 @dataclass(repr=False)
@@ -26,10 +24,12 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
     resolution: list  # [Width, Height]
     # cameras in pyvista format
     cameras: list = field(repr=False)
-    texture_path: Union[str, Path]
+    texture_path_wing: Union[str, Path]
+
     cmap: str = field(repr=False)
     mesh_wing_path: Union[Path, str]
     mesh_tip_path: Union[Path, str]
+    texture_path_tip: Union[None, str, Path] = field(repr=False, default=None)
 
     def __post_init__(self):
         if isinstance(self.mat_path, str):
@@ -40,14 +40,17 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
             self.mesh_wing_path = Path(self.mesh_wing_path)
         if isinstance(self.mesh_tip_path, str):
             self.mesh_tip_path = Path(self.mesh_tip_path)
-        if isinstance(self.texture_path, str):
-            self.texture_path = Path(self.texture_path)
+        if isinstance(self.texture_path_wing, str):
+            self.texture_path_wing = Path(self.texture_path_wing)
+        if isinstance(self.texture_path_tip, str):
+            self.texture_path_tip = Path(self.texture_path_tip)
         self.num_vertices_wing, _ = read_off_size(self.mesh_wing_path)
         self.num_vertices_tip, _ = read_off_size(self.mesh_tip_path)
         plotter = pv.Plotter(off_screen=True)
         self.cords, self.disp_arr, self.scales_arr = read_data(str(self.mat_path))
         self.num_frames, self.num_scales = self.scales_arr.shape
-        self.wing_model = SyntheticWingModel(self.cords, self.ir_list, self.texture_path, self.mesh_wing_path,
+        self.wing_model = SyntheticWingModel(self.cords, self.ir_list, self.texture_path_wing, self.texture_path_tip,
+                                             self.mesh_wing_path,
                                              self.mesh_tip_path, self.cameras, self.num_vertices_wing,
                                              self.num_vertices_tip, plotter, self.resolution, self.cmap)
 
@@ -56,7 +59,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
 
     def __repr__(self):
         return f"{self.__class__.__name__}(mesh_wing='{self.mesh_wing_path.name}', mesh_tip='{self.mesh_tip_path.name}'" \
-               f", resolution={self.resolution}, texture_path='{self.texture_path.name}'"
+               f", resolution={self.resolution}, texture_path='{self.texture_path_wing.name}'"
 
     def save_metadata(self, hdf5: h5py.File, group_name: str) -> None:
         group = hdf5.create_group(group_name)
@@ -75,7 +78,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
         group.attrs['mesh_wing_path'] = self.mesh_wing_path.name
         group.attrs['mesh_tip_path'] = self.mesh_tip_path.name
         group.attrs['resolution'] = self.resolution
-        group.attrs['texture'] = self.texture_path.name
+        group.attrs['texture'] = self.texture_path_wing.name
         group.attrs['ir'] = self.ir_list
 
     @cached(max_size=1)
