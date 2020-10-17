@@ -1,6 +1,7 @@
 from functools import partial
 
 import cv2
+import numpy as np
 from torchvision.transforms import transforms
 
 
@@ -55,3 +56,8 @@ def top_middle_rgbd(mean_photos):
     return transforms.Compose([slice_first_position_with_depth,
                                remove_mean,
                                ])
+
+
+def whiten_half_picture(img):
+    img[:, int(img.shape[1]/2), 0:3] = np.max(img[:, :, 0:3])
+    return img

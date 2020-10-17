@@ -5,7 +5,7 @@ from scipy.io import loadmat
 from src.geometry.spod import *
 from src.geometry.animations.synth_wing_animations import *
 from src.geometry.numpy.mesh import *
-
+import cv2
 
 class Test(TestCase):
 
@@ -74,3 +74,32 @@ class Test(TestCase):
         create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
                              show_ssim=True, res=[480,480], ir=ids)
 
+    def test_xyz(self):
+        plotter = pv.Plotter(off_screen=True)
+        plotter.set_background("white")
+        mesh = Mesh("data/wing_off_files/synth_wing_v3.off")
+        tip = Mesh("data/wing_off_files/fem_tip.off")
+        #tip.plot_faces(plotter=plotter,show=False)
+        v = np.zeros(shape=(mesh.vertices.shape[0]))
+        cam =  [(0.047, -0.053320266561896174, 0.026735639600027315),
+                          (-0.12, 0.3, 0.02),
+                          (0, 0, 1)]
+        #cam = camera_pos["up_middle"]
+        ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
+               6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
+               6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
+        v[ids] = 1
+        texture_path = "data/textures/checkers_dark_blue.png"
+        #mesh.plot_faces(plotter=plotter,texture="data/textures/checkers_dark_blue.png",camera=cam)
+        #mesh.plot_faces(plotter=plotter, f=v, camera=camera_pos["up_middle"])
+        #print(plotter.camera_position)
+        photo = Mesh.get_photo([mesh, tip], [mesh.vertices, tip.vertices], plotter=plotter, texture=[texture_path, None],
+                               cmap=None, camera=camera_pos["up_middle"], resolution=(900,480))
+        depth22 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth22[:, :, 2] = depth22[:, :, 0]
+        depth22[:, :, 0] = r
+        depth22[:,int(depth22.shape[1]/2):depth22.shape[1],0:3] = np.max(depth22[:,:,0:3])
+
+        cv2.imshow("frame",depth22)
+        cv2.waitKey()
