@@ -12,7 +12,7 @@ def mse_weighted(weights, a, b):
     return torch.sqrt(torch.sum(loss))
 
 
-def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.array], y: Union[torch.tensor, np.array]):
+def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
     """
         return loss between movement (based on the scales) we received and the movement we calculated by our own scales
           Args:
@@ -23,7 +23,7 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.array], y: Union
            Returns:
               RMS between the vertex positions calculated from scales
            """
-    if x is np.array or y is np.array:
+    if x is np.ndarray or y is np.ndarray:
         device = 'cpu'
         return vertex_mean_rms(mode_shapes, pow, torch.tensor(x, device=device),
                                torch.tensor(y, device=device)).detach().numpy()
