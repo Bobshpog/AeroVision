@@ -11,6 +11,8 @@ from src.geometry.spod import *
 from src.geometry.numpy.lbo import *
 from SSIM_PIL import compare_ssim
 from tqdm import trange
+import torch
+from src.util import loss_functions
 camera_pos = {
             'up_middle': [(0.047, -0.053320266561896174, 0.026735639600027315),
                           (0.05, 0.3, 0.02),
@@ -496,7 +498,7 @@ def scale_made_movement(path, amp):
 
 
 def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                         saved_name=None, show_ssim=True, res=None):
+                         saved_name=None, show_ssim=True, res=None, ir = None):
     #   scale 2 is THE NN SCALES
     if res is None:
         res = [480,480]
@@ -528,12 +530,17 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     total_ssim = 0
     for phase in trange(frames):
 
-        difference[0,:,:] = (scale1[:,phase] * mode_shape).sum(axis=2)
+        difference[0, :, :] = (scale1[:,phase] * mode_shape).sum(axis=2)
         difference[1, :, :] = (scale2[:, phase] * mode_shape).sum(axis=2)
 
         g1 = mesh.vertices + difference[0,:,:]
         g2 = mesh.vertices + difference[1,:,:]
-        norm = np.linalg.norm(g1 - g2) / mesh.vertices.shape[0]
+        if ir is None:
+            norm = loss_functions.vertex_mean_rms(mode_shape, 0, scale1[:, phase],
+                                                  scale2[:, phase])
+        else:
+            norm = loss_functions.vertex_mean_rms(mode_shape[ir], 0, scale1[:, phase],
+                                                  scale2[:, phase])
         total_rms += norm
         for id in tip_index_arr:
             for i in range(30):
