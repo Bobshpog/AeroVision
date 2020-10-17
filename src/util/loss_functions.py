@@ -23,6 +23,8 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
            Returns:
               RMS between the vertex positions calculated from scales
            """
+
+        
     if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
         device = 'cpu'
         return vertex_mean_rms(mode_shapes, pow, torch.tensor(x, device=device),
@@ -34,8 +36,8 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
     with torch.no_grad():
         _x = x * 10 ** -pow
         _y = y * 10 ** -pow
-        _x = _x.to(torch.float64).T
-        _y = _y.to(torch.float64).T
+        _x = _x.view(-1,_x.shape[-1]).to(torch.float64).T
+        _y = _y.view(-1,_y.shape[-1]).to(torch.float64).T
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).view(-1, len(_x))
         pos_a = (mode_shapes @ _x).sum(dim=1)
         pos_b = (mode_shapes @ _y).sum(dim=1)
