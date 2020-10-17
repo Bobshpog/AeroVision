@@ -5,6 +5,8 @@ import os
 import cv2
 from scipy.io import loadmat
 from PIL import Image
+
+from src.data.matlab_reader import read_modal_shapes
 from src.geometry.numpy.transforms import *
 from src.geometry.numpy.wing_models import *
 from src.geometry.spod import *
@@ -507,10 +509,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     tip2 = Mesh('data/wing_off_files/fem_tip.off')
     mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
     mesh2 = Mesh('data/wing_off_files/synth_wing_v3.off')
-    mode_shape = np.zeros((mesh.vertices.shape[0],3,5))
-    mode_shape[:, 0] = loadmat(mode_shape_path)["T1"][:, 0:num_of_scales]
-    mode_shape[:, 1] = loadmat(mode_shape_path)["T2"][:, 0:num_of_scales]
-    mode_shape[:, 2] = loadmat(mode_shape_path)["T3"][:, 0:num_of_scales]
+    mode_shape = read_modal_shapes(mode_shape_path,num_of_scales)
     TIP_RADIUS = 0.008
     NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
     tip_vertices_num = 930
@@ -530,8 +529,8 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     total_ssim = 0
     for phase in trange(frames):
 
-        difference[0, :, :] = (scale1[:,phase] * mode_shape).sum(axis=2)
-        difference[1, :, :] = (scale2[:, phase] * mode_shape).sum(axis=2)
+        difference[0, :, :] = (scale1[:,phase] * mode_shape).sum(axis=2).T
+        difference[1, :, :] = (scale2[:, phase] * mode_shape).sum(axis=2).T
 
         g1 = mesh.vertices + difference[0,:,:]
         g2 = mesh.vertices + difference[1,:,:]
@@ -539,7 +538,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
             norm = loss_functions.vertex_mean_rms(mode_shape, 0, scale1[:, phase],
                                                   scale2[:, phase])
         else:
-            norm = loss_functions.vertex_mean_rms(mode_shape[ir], 0, scale1[:, phase],
+            norm = loss_functions.vertex_mean_rms(mode_shape[:,ir,:], 0, scale1[:, phase],
                                                   scale2[:, phase])
         total_rms += norm
         for id in tip_index_arr:

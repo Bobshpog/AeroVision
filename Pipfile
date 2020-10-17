@@ -26,6 +26,7 @@ py-cpuinfo = "*"
 psutil = "*"
 scikit-image = "*"
 pytorch-ssim = "*"
+ssim-pil = "*"
 
 [requires]
 python_version = "3.8"
