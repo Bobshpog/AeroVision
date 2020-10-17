@@ -61,19 +61,16 @@ class Test(TestCase):
     def test_mode_shapes_vis(self):
         mode_shape_path = "data/synt_data_mat_files/modes.mat"
         scale1 = loadmat("data/synt_data_mat_files/data.mat")["xi"]
-        scale2 = loadmat("data/synt_data_mat_files/data.mat")["xi"]
+        #scale2 = loadmat("data/synt_data_mat_files/data.mat")["xi"]
+        scale2 = np.zeros(scale1.shape)
         vid_path = "src/tests/temp/creation_of_modees.mp4"
         trash_path = "src/tests/temp/video_frames/"
         texture_path = "data/textures/checkers_dark_blue.png"
-        frames = 4
+        frames = 200
         num_of_scales = 5
-
+        ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
+               6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
+               6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
         create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                             show_ssim=True, res=[480,480])
-        plotter = pv.Plotter()
-        plotter.set_background("white")
-        tip2 = Mesh('data/wing_off_files/fem_tip.off')
-        mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
-        #tip2.plot_faces(plotter=plotter,show=False)
-        #mesh.plot_faces(plotter=plotter,texture=texture_path,camera=camera_pos["up_high"])
-        #print(plotter.camera_position)
+                             show_ssim=True, res=[480,480], ir=ids)
+
