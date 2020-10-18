@@ -510,6 +510,8 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     if res is None:
         res = [480,480]
     clean_up_batch = 1000
+    if isinstance(texture_path, str):
+        texture_path = [texture_path]
     tip = Mesh('data/wing_off_files/fem_tip.off')
     tip2 = Mesh('data/wing_off_files/fem_tip.off')
     mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
@@ -533,6 +535,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     difference = np.zeros((2,mesh.vertices.shape[0],3))
     total_rms = 0
     total_ssim = 0
+    out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (res[1] * 3, res[0] * 2))
     for phase in trange(frames):
 
         difference[0, :, :] = (scale1[:,phase] * mode_shape).sum(axis=2).T
@@ -557,14 +560,14 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
                 h1[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
                 h2[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector2
         norm += np.linalg.norm(h1 - h2) / tip.vertices.shape[0]
-        photo = Mesh.get_photo([mesh, tip], [g1,h1], plotter=plotter2, texture=[texture_path, None],
+        photo = Mesh.get_photo([mesh, tip], [g1,h1], plotter=plotter2, texture=texture_path,
                                cmap=None, camera=camera_pos["up_middle"], resolution=(res[1],res[0]))
         depth11 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
         depth11[:, :, 2] = depth11[:, :, 0]
         depth11[:, :, 0] = r
         cv2.imwrite(trash_path + "depth_frameA" + str(k) + ".png", np.asarray(depth11 * 255, np.uint8))
-        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=[texture_path, None],
+        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=texture_path,
                                cmap=None, camera=camera_pos["up_middle"], resolution=(res[1],res[0]), title=None)
         depth12 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
@@ -587,7 +590,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
                     lineType=2)
         img_u = cv2.hconcat([img3, img2, img1])
 
-        photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter2, texture=[texture_path, None],
+        photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter2, texture=texture_path,
                                cmap=None, camera=camera_pos["up_high"], resolution=(res[1],res[0]))
         depth21 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
@@ -596,7 +599,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
 
         cv2.imwrite(trash_path + "depth_frameD" + str(k) + ".png", np.asarray(depth21 * 255, np.uint8))
 
-        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=[texture_path, None],
+        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=texture_path,
                                cmap=None, camera=camera_pos["up_high"], resolution=(res[1],res[0]))
         depth22 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
@@ -637,7 +640,8 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
         img_d = cv2.hconcat([img32, img22, img12])
         img_f = cv2.vconcat([img_u, img_d])
         # 7,cv2.imshow("frame", img_f)
-        im_frames.append(img_f)
+        #im_frames.append(img_f)
+        out.write(img_f)
         # cv2 does not support making video from np array...
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -645,7 +649,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
         if k % clean_up_batch == 0:
             for f in glob.glob(trash_path + '*.png'):
                 os.remove(f)
-    out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (res[1] * 3, res[0] * 2))
+
     for i in range(len(im_frames)):
         out.write(im_frames[i])
     out.release()
