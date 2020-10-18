@@ -24,7 +24,6 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
               RMS between the vertex positions calculated from scales
            """
 
-        
     if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
         device = 'cpu'
         return vertex_mean_rms(mode_shapes, pow, torch.tensor(x, device=device),
@@ -36,9 +35,25 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
     with torch.no_grad():
         _x = x * 10 ** -pow
         _y = y * 10 ** -pow
-        _x = _x.view(-1,_x.shape[-1]).to(torch.float64).T
-        _y = _y.view(-1,_y.shape[-1]).to(torch.float64).T
+        _x = _x.view(-1, _x.shape[-1]).to(torch.float64).T
+        _y = _y.view(-1, _y.shape[-1]).to(torch.float64).T
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
         pos_a = (mode_shapes @ _x).sum(dim=1)
         pos_b = (mode_shapes @ _y).sum(dim=1)
         return torch.norm(pos_a - pos_b, 2) / num_vertices
+
+
+def calc_max_errors(loss_function, scales: np.ndarray):
+    """
+
+    Args:
+        loss_function: The loss function between two scale vectors
+        scales: Scale ndarray in (n x num_scales)
+
+    Returns:
+        maximum error values in the following error
+        (Average 3D Reconstruction Error,Average 3D IR Reconstruction Error,
+        	Regression 0,	Regression 1,	Regression 2,	Regression 3,	Regression 4,	Regression 5,	Regression 6,
+        		Regression 7,	Regression 8,	Regression 9,	Average Regression)
+    """
+    pass
