@@ -215,12 +215,14 @@ def synth_ir_video(path):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
+
+
     out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (480, 480))
     for i in range(len(im_frames)):
         out.write(im_frames[i])
     out.release()
-    # for f in glob.glob(url + '*.jpg'):
-    # os.remove(f)
+    for f in glob.glob(url + '*.jpg'):
+         os.remove(f)
     cv2.destroyAllWindows()
 
 
@@ -507,13 +509,14 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     #   scale 2 is THE NN SCALES
     if res is None:
         res = [480,480]
-
+    clean_up_batch = 1000
     tip = Mesh('data/wing_off_files/fem_tip.off')
     tip2 = Mesh('data/wing_off_files/fem_tip.off')
     mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
     mesh2 = Mesh('data/wing_off_files/synth_wing_v3.off')
     mode_shape = read_modal_shapes(mode_shape_path,num_of_scales)
     TIP_RADIUS = 0.008
+
     NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
     tip_vertices_num = 930
     tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
@@ -639,7 +642,9 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         k = k + 1
-
+        if k % clean_up_batch == 0:
+            for f in glob.glob(trash_path + '*.png'):
+                os.remove(f)
     out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (res[1] * 3, res[0] * 2))
     for i in range(len(im_frames)):
         out.write(im_frames[i])
