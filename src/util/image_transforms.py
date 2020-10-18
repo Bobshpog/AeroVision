@@ -30,7 +30,7 @@ def mul_by_10_power(pow, x):
 
 
 def single_rgb_to_bw(img):
-    return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    return np.expand_dims(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY),axis=0)
 
 
 def top_middle_rgb(mean_photos):
