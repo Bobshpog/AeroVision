@@ -58,10 +58,8 @@ def calc_max_errors(loss_function, scales: np.ndarray, ir_indices: tuple, mode_s
     """
     return (calc_max_3d_reconstruction_error(loss_function, scales, mode_shape),
             calc_max_ir_reconstruction_error(loss_function, scales, ir_indices, mode_shape)) + \
-           tuple(calc_max_per_param_error(loss_function,scales,range(scales.shape[0])).append(
+            tuple(calc_max_per_param_error(loss_function,scales,range(scales.shape[0])).append(
                calc_max_regression_error(loss_function,scales)))
-
-    pass
 
 
 def calc_max_3d_reconstruction_error(loss_function, scales, mode_shape):
@@ -80,7 +78,7 @@ def calc_max_3d_reconstruction_error(loss_function, scales, mode_shape):
 
 
 def calc_max_ir_reconstruction_error(loss_function, scales, ir_indices, mode_shape):
-    return calc_max_3d_reconstruction_error(loss_function, scales, mode_shape[ir_indices])
+    return calc_max_3d_reconstruction_error(loss_function, scales, mode_shape[:,ir_indices])
 
 
 def calc_max_per_param_error(loss_function, scales, ids):
@@ -102,4 +100,19 @@ def calc_max_per_param_error(loss_function, scales, ids):
 
 
 def calc_max_regression_error(loss_function, scales):
-    return np.sum(calc_max_per_param_error(loss_function, scales, range(scales[0]))) / scales.shape[0]
+
+    max_scale, min_scale, max_error = 0, 0, 0
+    for i in range(scales.shape[1]):
+        curr = loss_function(scales[:,i],0)
+        #   max based on given norm
+        if curr > max_scale:
+            max_scale = curr
+        if curr < min_scale:
+            min_scale = curr
+    for i in trange(scales.shape[1]):
+        for j in range(scales.shape[1]):
+            curr = loss_function(scales[:,i], scales[:,j]) / (max_scale-min_scale)
+            if curr > max_error:
+                max_error = curr
+    return max_error/scales.shape[0]
+
