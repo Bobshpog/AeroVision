@@ -46,9 +46,10 @@ def calc_max_errors(loss_function, scales: np.ndarray, ir_indices: tuple, mode_s
     """
 
     Args:
-        loss_function: The loss function between two scale vectors
+        loss_function: The loss function between two elements, should deal with vectors and single element.
         scales: Scale ndarray in (n x num_scales)
         ir_indices: tuple of ir indices
+        mode_shape: mode shape as read using matlab_reader.read_modal_shapes()
 
     Returns:
         maximum error values in the following error
