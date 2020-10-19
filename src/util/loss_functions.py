@@ -1,8 +1,7 @@
 from typing import Union
-
 import numpy as np
 import torch
-
+from tqdm import trange
 
 def mse_weighted(weights, a, b):
     loss = (a - b) ** 2
@@ -43,7 +42,7 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
         return torch.norm(pos_a - pos_b, 2) / num_vertices
 
 
-def calc_max_errors(loss_function, scales: np.ndarray, ir_indices: tuple):
+def calc_max_errors(loss_function, scales: np.ndarray, ir_indices: tuple, mode_shape):
     """
 
     Args:
@@ -57,4 +56,50 @@ def calc_max_errors(loss_function, scales: np.ndarray, ir_indices: tuple):
         	Regression 0,	Regression 1,	Regression 2,	Regression 3,	Regression 4,	Regression 5,	Regression 6,
         		Regression 7,	Regression 8,	Regression 9,	Average Regression)
     """
+    return (calc_max_3d_reconstruction_error(loss_function, scales, mode_shape),
+            calc_max_ir_reconstruction_error(loss_function, scales, ir_indices, mode_shape)) + \
+           tuple(calc_max_per_param_error(loss_function,scales,range(scales.shape[0])).append(
+               calc_max_regression_error(loss_function,scales)))
+
     pass
+
+
+def calc_max_3d_reconstruction_error(loss_function, scales, mode_shape):
+    max_3d = 0
+    ver = np.zeros(shape=(scales.shape[1], mode_shape.shape[1], mode_shape.shape[0]))
+    for i in range(scales.shape[1]):
+        #   creating deformation
+        ver[i] = (scales[:, i] * mode_shape).sum(axis=2).T
+
+    for i in trange(scales.shape[1]):
+        for j in range(scales.shape[1]):
+            curr = loss_function(ver[i], ver[j]) / mode_shape.shape[1]
+            if curr > max_3d:
+                max_3d = curr
+    return max_3d
+
+
+def calc_max_ir_reconstruction_error(loss_function, scales, ir_indices, mode_shape):
+    return calc_max_3d_reconstruction_error(loss_function, scales, mode_shape[ir_indices])
+
+
+def calc_max_per_param_error(loss_function, scales, ids):
+    if isinstance(ids, int):
+        ids = [ids]
+    max_err = np.zeros(len(ids))
+    max_scale = np.zeros(scales.shape[1])
+    min_scale = np.zeros(scales.shape[1])
+    for i in range(scales.shape[1]):
+        max_scale[ids] = np.maximum(scales[ids, i], max_scale[ids])
+        min_scale[ids] = np.minimum(scales[ids, i], max_scale[ids])
+    for i in trange(scales.shape[1]):
+        for j in range(scales.shape[1]):
+            for num in ids:
+                curr = loss_function(scales[num, i], scales[num, j]) / (max_scale[num] - min_scale[num])
+                if curr > max_err[num]:
+                    max_err[num] = curr
+    return max_err[ids]
+
+
+def calc_max_regression_error(loss_function, scales):
+    return np.sum(calc_max_per_param_error(loss_function, scales, range(scales[0]))) / scales.shape[0]

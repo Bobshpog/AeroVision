@@ -505,13 +505,13 @@ def scale_made_movement(path, amp):
 
 
 def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                         saved_name=None, show_ssim=True, res=None, ir = None):
+                         saved_name=None, show_ssim=True, res=None, ir=None):
     #   scale 2 is THE NN SCALES
     if res is None:
         res = [480,480]
     clean_up_batch = 1000
     if isinstance(texture_path, str):
-        texture_path = [texture_path]
+        texture_path = [texture_path, None]
     tip = Mesh('data/wing_off_files/fem_tip.off')
     tip2 = Mesh('data/wing_off_files/fem_tip.off')
     mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
@@ -537,10 +537,8 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     total_ssim = 0
     out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (res[1] * 3, res[0] * 2))
     for phase in trange(frames):
-
         difference[0, :, :] = (scale1[:,phase] * mode_shape).sum(axis=2).T
         difference[1, :, :] = (scale2[:, phase] * mode_shape).sum(axis=2).T
-
         g1 = mesh.vertices + difference[0,:,:]
         g2 = mesh.vertices + difference[1,:,:]
         if ir is None:
@@ -658,3 +656,262 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     cv2.destroyAllWindows()
 
 
+def create_animation_few_scales(scale1, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
+                                res=None):
+    if res is None:
+        res = [480,480]
+    clean_up_batch = 1000
+    if isinstance(texture_path, str):
+        texture_path = [texture_path, None]
+    tip = Mesh('data/wing_off_files/fem_tip.off')
+    tip2 = Mesh('data/wing_off_files/fem_tip.off')
+    tip3 = Mesh('data/wing_off_files/fem_tip.off')
+    tip4 = Mesh('data/wing_off_files/fem_tip.off')
+    tip5 = Mesh('data/wing_off_files/fem_tip.off')
+    tip6 = Mesh('data/wing_off_files/fem_tip.off')
+    mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mesh2 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mesh3 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mesh4 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mesh5 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mesh6 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mode_shape = read_modal_shapes(mode_shape_path,num_of_scales)
+    TIP_RADIUS = 0.008
+    NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
+    tip_vertices_num = 930
+    tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
+    y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
+    z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
+    tip_index_arr = tip_arr_creation(mesh.vertices)
+    plotter = pv.Plotter(off_screen=True)
+    plotter2 = pv.Plotter(off_screen=True)
+    plotter3 = pv.Plotter(off_screen=True)
+    plotter4 = pv.Plotter(off_screen=True)
+    plotter5 = pv.Plotter(off_screen=True)
+    plotter6 = pv.Plotter(off_screen=True)
+    k = 0
+    norm = [0] * 6
+    total_norm = [0] * 6
+    scaled_norm = [0] * 6
+    total_norm_change = [0] * 6
+    h = np.zeros((6, tip_vertices_num, 3), dtype='float')
+    difference = np.zeros((6, mesh.vertices.shape[0],3))
+    scales = np.zeros((6,scale1.shape[0],scale1.shape[1]))
+    scales[1, 0] = scale1[0]
+    scales[2, 0:2] = scale1[0:2]
+    scales[3, 0:3] = scale1[0:3]
+    scales[4, 0:4] = scale1[0:4]
+    scales[5, 0:5] = scale1[0:5]
+    out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (res[1] * 3, res[0] * 2))
+    max_elem = 0
+    #for i in trange(scale1.shape[1]):
+    #    for j in range(i, scale1.shape[1]):
+    #        curr = loss_functions.vertex_mean_rms(mode_shape, 0, scale1[:, i],scale1[:, j])
+    #        if curr > max_elem:
+    #            max_elem = curr
+    max_elem = 0.0004213359745166039
+    print(mode_shape.shape)
+    for phase in trange(frames):
+        difference[0, :, :] = (scales[0, :, phase] * mode_shape).sum(axis=2).T
+        difference[1, :, :] = (scales[1, :, phase] * mode_shape).sum(axis=2).T
+        difference[2, :, :] = (scales[2, :, phase] * mode_shape).sum(axis=2).T
+        difference[3, :, :] = (scales[3, :, phase] * mode_shape).sum(axis=2).T
+        difference[4, :, :] = (scales[4, :, phase] * mode_shape).sum(axis=2).T
+        difference[5, :, :] = (scales[5, :, phase] * mode_shape).sum(axis=2).T
+        g1 = mesh.vertices + difference[0, :, :]
+        g2 = mesh.vertices + difference[1, :, :]
+        g3 = mesh.vertices + difference[2, :, :]
+        g4 = mesh.vertices + difference[3, :, :]
+        g5 = mesh.vertices + difference[4, :, :]
+        g6 = mesh.vertices + difference[5, :, :]
+
+
+        for i in range(6):
+            norm[i] = loss_functions.vertex_mean_rms(mode_shape, 0, scale1[:, phase], scales[i,:, phase])
+            total_norm[i] += norm[i]
+            scaled_norm[i] = 1 - norm[i]/max_elem
+            total_norm_change[i] += scaled_norm[i]
+
+        for id in tip_index_arr:
+            for i in range(30):
+                cord = mesh2.vertices[id]
+                vector = np.array((cord[0] + difference[0,id,0], cord[1] + y_t[i] + difference[0,id,1],
+                                 cord[2] + z_t[i] + difference[0,id,2]))
+                vector2 = np.array((cord[0] + difference[1,id,0], cord[1] + y_t[i] + difference[1,id,1],
+                                 cord[2] + z_t[i] + difference[1,id,2]))
+                vector3 = np.array((cord[0] + difference[2,id,0], cord[1] + y_t[i] + difference[2,id,1],
+                                 cord[2] + z_t[i] + difference[2,id,2]))
+                vector4 = np.array((cord[0] + difference[3,id,0], cord[1] + y_t[i] + difference[3,id,1],
+                                 cord[2] + z_t[i] + difference[3,id,2]))
+                vector5 = np.array((cord[0] + difference[4,id,0], cord[1] + y_t[i] + difference[4,id,1],
+                                 cord[2] + z_t[i] + difference[4,id,2]))
+                vector6 = np.array((cord[0] + difference[5,id,0], cord[1] + y_t[i] + difference[5,id,1],
+                                 cord[2] + z_t[i] + difference[5,id,2]))
+                h[0, tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
+                h[1, tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector2
+                h[2, tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector3
+                h[3, tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector4
+                h[4, tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector5
+                h[5, tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector6
+
+        #norm += np.linalg.norm(h1 - h2) / tip.vertices.shape[0]
+        photo = Mesh.get_photo([mesh, tip], [g1,h[0]], plotter=plotter, texture=texture_path,
+                               cmap=None, camera=camera_pos["up_middle"], resolution=(res[1],res[0]),
+                               title="No movement")
+        depth11 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth11[:, :, 2] = depth11[:, :, 0]
+        depth11[:, :, 0] = r
+        cv2.imwrite(trash_path + "depth_frameA" + str(k) + ".png", np.asarray(depth11 * 255, np.uint8))
+        photo = Mesh.get_photo([mesh2, tip2], [g2, h[1]], plotter=plotter2, texture=texture_path,
+                               cmap=None, camera=camera_pos["up_middle"], resolution=(res[1],res[0]),
+                               title="first mode")
+        depth12 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth12[:, :, 2] = depth12[:, :, 0]
+        depth12[:, :, 0] = r
+        cv2.imwrite(trash_path + "depth_frameB" + str(k) + ".png", np.asarray(depth12 * 255, np.uint8))
+
+        photo = Mesh.get_photo([mesh3, tip3], [g3, h[2]], plotter=plotter3, texture=texture_path,
+                               cmap=None, camera=camera_pos["up_middle"], resolution=(res[1],res[0]),
+                               title="first two modes")
+        depth12 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth12[:, :, 2] = depth12[:, :, 0]
+        depth12[:, :, 0] = r
+        cv2.imwrite(trash_path + "depth_frameC" + str(k) + ".png", np.asarray(depth12 * 255, np.uint8))
+
+        img1 = cv2.imread(trash_path + "depth_frameA" + str(k) + ".png")
+        img2 = cv2.imread(trash_path + "depth_frameB" + str(k) + ".png")
+        img3 = cv2.imread(trash_path + "depth_frameC" + str(k) + ".png")
+
+        cv2.putText(img1, "mean vertices L2 norm:", (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (30, 13, 166), lineType=2)
+        cv2.putText(img1, "current:" + f'{norm[0]: .3e}', (0, 60), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img1, "running avg:" + f'{total_norm[0] / (k + 1): .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img1, "accuracy relative to worst case:", (0, 100), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (8, 102, 5), lineType=2)
+        cv2.putText(img1, "current:" + f'{scaled_norm[0]: .3f}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img1, "running avg:" + f'{total_norm_change[0] / (k + 1): .3f}', (0, 140),
+                    cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+
+        cv2.putText(img2, "mean vertices L2 norm:", (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (30, 13, 166), lineType=2)
+        cv2.putText(img2, "current:" + f'{norm[1]: .3e}', (0, 60), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img2, "running avg:" + f'{total_norm[1] / (k + 1): .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img2, "accuracy relative to worst case:", (0, 100), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (8, 102, 5), lineType=2)
+        cv2.putText(img2, "current:" + f'{scaled_norm[1]: .3f}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img2, "running avg:" + f'{total_norm_change[1] / (k + 1): .3f}', (0, 140),
+                    cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+
+        cv2.putText(img3, "mean vertices L2 norm:", (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (30, 13, 166), lineType=2)
+        cv2.putText(img3, "current:" + f'{norm[2]: .3e}', (0, 60), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img3, "running avg:" + f'{total_norm[2] / (k + 1): .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img3, "accuracy relative to worst case:", (0, 100), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (8, 102, 5), lineType=2)
+        cv2.putText(img3, "current:" + f'{scaled_norm[2]: .3f}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img3, "running avg:" + f'{total_norm_change[2] / (k + 1): .3f}', (0, 140),
+                    cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+
+        img_u = cv2.hconcat([img1, img2, img3])
+
+        photo = Mesh.get_photo([mesh4, tip4], [g4, h[3]], plotter=plotter4, texture=texture_path,
+                               cmap=None, camera=camera_pos["up_middle"], resolution=(res[1], res[0]),
+                               title="first three modes")
+        depth21 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth21[:, :, 2] = depth21[:, :, 0]
+        depth21[:, :, 0] = r
+
+        cv2.imwrite(trash_path + "depth_frameD" + str(k) + ".png", np.asarray(depth21 * 255, np.uint8))
+
+        photo = Mesh.get_photo([mesh5, tip5], [g5, h[4]], plotter=plotter5, texture=texture_path,
+                               cmap=None, camera=camera_pos["up_middle"], resolution=(res[1], res[0]),
+                               title="first four modes")
+        depth22 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth22[:, :, 2] = depth22[:, :, 0]
+        depth22[:, :, 0] = r
+        cv2.imwrite(trash_path + "depth_frameE" + str(k) + ".png", np.asarray(depth22 * 255, np.uint8))
+        photo = Mesh.get_photo([mesh6, tip6], [g6, h[5]], plotter=plotter6, texture=texture_path,
+                               cmap=None, camera=camera_pos["up_middle"], resolution=(res[1],res[0]),
+                               title="all modes")
+        depth22 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth22[:, :, 2] = depth22[:, :, 0]
+        depth22[:, :, 0] = r
+        cv2.imwrite(trash_path + "depth_frameF" + str(k) + ".png", np.asarray(depth22 * 255, np.uint8))
+
+        img12 = cv2.imread(trash_path + "depth_frameD" + str(k) + ".png")
+        img22 = cv2.imread(trash_path + "depth_frameE" + str(k) + ".png")
+        img32 = cv2.imread(trash_path + "depth_frameF" + str(k) + ".png")
+
+        cv2.putText(img12, "mean vertices L2 norm:", (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (30, 13, 166), lineType=2)
+        cv2.putText(img12, "current:"+f'{norm[3]: .3e}', (0, 60), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img12, "running avg:" + f'{total_norm[3]/(k+1): .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img12, "accuracy relative to worst case:", (0, 100), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (8, 102, 5), lineType=2)
+        cv2.putText(img12, "current:"+f'{scaled_norm[3]: .3f}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img12, "running avg:" + f'{total_norm_change[3]/(k+1): .3f}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+
+
+        cv2.putText(img22, "mean vertices L2 norm:", (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (30, 13, 166), lineType=2)
+        cv2.putText(img22, "current:"+f'{norm[4]: .3e}', (0, 60), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img22, "running avg:" + f'{total_norm[4]/(k+1): .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img22, "accuracy relative to worst case:", (0, 100), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (8, 102, 5), lineType=2)
+        cv2.putText(img22, "current:"+f'{scaled_norm[4]: .3f}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img22, "running avg:" + f'{total_norm_change[4]/(k+1): .3f}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+
+        cv2.putText(img32, "mean vertices L2 norm:", (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (30, 13, 166), lineType=2)
+        cv2.putText(img32, "current:"+f'{norm[5]: .3e}', (0, 60), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img32, "running avg:" + f'{total_norm[5]/(k+1): .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img32, "accuracy relative to worst case:", (0, 100), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (8, 102, 5), lineType=2)
+        cv2.putText(img32, "current:"+f'{scaled_norm[5]: .3f}', (0, 120), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+        cv2.putText(img32, "running avg:" + f'{total_norm_change[5]/(k+1): .3f}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
+                    (0, 0, 0), lineType=2)
+
+        img_d = cv2.hconcat([img12, img22, img32])
+        img_f = cv2.vconcat([img_u, img_d])
+        out.write(img_f)
+        # cv2 does not support making video from np array...
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        k = k + 1
+        if k % clean_up_batch == 0:
+            for f in glob.glob(trash_path + '*.png'):
+                os.remove(f)
+
+    out.release()
+    for f in glob.glob(trash_path + '*.png'):
+        os.remove(f)
+    cv2.destroyAllWindows()
