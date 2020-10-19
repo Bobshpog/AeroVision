@@ -43,12 +43,13 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
         return torch.norm(pos_a - pos_b, 2) / num_vertices
 
 
-def calc_max_errors(loss_function, scales: np.ndarray):
+def calc_max_errors(loss_function, scales: np.ndarray, ir_indices: tuple):
     """
 
     Args:
         loss_function: The loss function between two scale vectors
         scales: Scale ndarray in (n x num_scales)
+        ir_indices: tuple of ir indices
 
     Returns:
         maximum error values in the following error
