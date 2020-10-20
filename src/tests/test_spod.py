@@ -80,9 +80,9 @@ class Test(TestCase):
 
         print(scales.shape)
         mode_shape = matlab_reader.read_modal_shapes("data/synt_data_mat_files/modes.mat",10)
-        ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
+        ids = (6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
                6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
-               6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
+               6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782)
         #print(mode_shape.shape)
         def L2(a, b):
             return (a**2 - b**2)**0.5
@@ -90,10 +90,10 @@ class Test(TestCase):
         def v_L2(a,b):
             return np.linalg.norm(a-b)
 
-        print(np.linalg.norm(1))
         #res = loss_functions.calc_max_errors(v_L2,scales,ids,mode_shape)
+        res = loss_functions.calc_max_per_param_error(v_L2,scales,range(10))
 
-        #print(res)
+        print(res)
 
 
 
