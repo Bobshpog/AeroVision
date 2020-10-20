@@ -6,7 +6,8 @@ from src.geometry.spod import *
 from src.geometry.animations.synth_wing_animations import *
 from src.geometry.numpy.mesh import *
 import cv2
-
+from util import loss_functions
+from data import matlab_reader
 class Test(TestCase):
 
     def test_SPOD(self):
@@ -65,41 +66,34 @@ class Test(TestCase):
         scale2 = np.zeros(scale1.shape)
         vid_path = "src/tests/temp/creation_of_modees.mp4"
         trash_path = "src/tests/temp/video_frames/"
-        texture_path = "data/textures/checkers_dark_blue.png"
+        texture_path = "data/textures/spheres.png"
         frames = 200
         num_of_scales = 5
         ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
                6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
                6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
-        create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                             show_ssim=True, res=[480,480], ir=ids)
+        create_animation_few_scales(scale1, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
+                                    res=[480,480])
 
     def test_xyz(self):
-        plotter = pv.Plotter(off_screen=True)
-        plotter.set_background("white")
-        mesh = Mesh("data/wing_off_files/synth_wing_v3.off")
-        tip = Mesh("data/wing_off_files/fem_tip.off")
-        #tip.plot_faces(plotter=plotter,show=False)
-        v = np.zeros(shape=(mesh.vertices.shape[0]))
-        cam =  [(0.047, -0.053320266561896174, 0.026735639600027315),
-                          (-0.12, 0.3, 0.02),
-                          (0, 0, 1)]
-        #cam = camera_pos["up_middle"]
+        scales = matlab_reader.read_data("data/synt_data_mat_files/data_big.mat")[2]
+
+        print(scales.shape)
+        mode_shape = matlab_reader.read_modal_shapes("data/synt_data_mat_files/modes.mat",10)
         ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
                6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
                6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
-        v[ids] = 1
-        texture_path = "data/textures/checkers_dark_blue.png"
-        #mesh.plot_faces(plotter=plotter,texture="data/textures/checkers_dark_blue.png",camera=cam)
-        #mesh.plot_faces(plotter=plotter, f=v, camera=camera_pos["up_middle"])
-        #print(plotter.camera_position)
-        photo = Mesh.get_photo([mesh, tip], [mesh.vertices, tip.vertices], plotter=plotter, texture=[texture_path, None],
-                               cmap=None, camera=camera_pos["up_middle"], resolution=(900,480))
-        depth22 = photo[:, :, 0:3]
-        r = np.copy(photo[:, :, 2])
-        depth22[:, :, 2] = depth22[:, :, 0]
-        depth22[:, :, 0] = r
-        depth22[:,int(depth22.shape[1]/2):depth22.shape[1],0:3] = np.max(depth22[:,:,0:3])
+        #print(mode_shape.shape)
+        def L2(a, b):
+            return (a**2 - b**2)**0.5
 
-        cv2.imshow("frame",depth22)
-        cv2.waitKey()
+        def v_L2(a,b):
+            return np.linalg.norm(a-b)
+
+        print(np.linalg.norm(1))
+        #res = loss_functions.calc_max_errors(v_L2,scales,ids,mode_shape)
+
+        #print(res)
+
+
+

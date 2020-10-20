@@ -46,9 +46,10 @@ def calc_max_errors(loss_function, scales: np.ndarray, ir_indices: tuple, mode_s
     """
 
     Args:
-        loss_function: The loss function between two scale vectors
+        loss_function: The loss function between two elements, should deal with vectors and single element.
         scales: Scale ndarray in (n x num_scales)
         ir_indices: tuple of ir indices
+        mode_shape: mode shape as read using matlab_reader.read_modal_shapes()
 
     Returns:
         maximum error values in the following error
@@ -58,48 +59,61 @@ def calc_max_errors(loss_function, scales: np.ndarray, ir_indices: tuple, mode_s
     """
     return (calc_max_3d_reconstruction_error(loss_function, scales, mode_shape),
             calc_max_ir_reconstruction_error(loss_function, scales, ir_indices, mode_shape)) + \
-           tuple(calc_max_per_param_error(loss_function,scales,range(scales.shape[0])).append(
+            tuple(calc_max_per_param_error(loss_function,scales,range(scales.shape[1])).append(
                calc_max_regression_error(loss_function,scales)))
-
-    pass
 
 
 def calc_max_3d_reconstruction_error(loss_function, scales, mode_shape):
     max_3d = 0
-    ver = np.zeros(shape=(scales.shape[1], mode_shape.shape[1], mode_shape.shape[0]))
-    for i in range(scales.shape[1]):
+    ver = np.zeros(shape=(scales.shape[0], mode_shape.shape[1], mode_shape.shape[0]))
+    for i in range(scales.shape[0]):
         #   creating deformation
-        ver[i] = (scales[:, i] * mode_shape).sum(axis=2).T
+        ver[i] = (scales[i,:] * mode_shape).sum(axis=2).T
 
-    for i in trange(scales.shape[1]):
-        for j in range(scales.shape[1]):
-            curr = loss_function(ver[i], ver[j]) / mode_shape.shape[1]
+    for i in trange(scales.shape[0]):
+        for j in range(scales.shape[0]):
+            curr = loss_function(ver[i], ver[j]) / mode_shape.shape[0]
             if curr > max_3d:
                 max_3d = curr
     return max_3d
 
 
 def calc_max_ir_reconstruction_error(loss_function, scales, ir_indices, mode_shape):
-    return calc_max_3d_reconstruction_error(loss_function, scales, mode_shape[ir_indices])
+    return calc_max_3d_reconstruction_error(loss_function, scales, mode_shape[:,ir_indices])
 
 
 def calc_max_per_param_error(loss_function, scales, ids):
     if isinstance(ids, int):
         ids = [ids]
     max_err = np.zeros(len(ids))
-    max_scale = np.zeros(scales.shape[1])
-    min_scale = np.zeros(scales.shape[1])
-    for i in range(scales.shape[1]):
-        max_scale[ids] = np.maximum(scales[ids, i], max_scale[ids])
-        min_scale[ids] = np.minimum(scales[ids, i], max_scale[ids])
-    for i in trange(scales.shape[1]):
-        for j in range(scales.shape[1]):
+    max_scale = np.zeros(scales.shape[0])
+    min_scale = np.zeros(scales.shape[0])
+    for i in range(scales.shape[0]):
+        max_scale[ids] = np.maximum(scales[i, ids], max_scale[ids])
+        min_scale[ids] = np.minimum(scales[i, ids], max_scale[ids])
+    for i in trange(scales.shape[0]):
+        for j in range(scales.shape[0]):
             for num in ids:
-                curr = loss_function(scales[num, i], scales[num, j]) / (max_scale[num] - min_scale[num])
+                curr = loss_function(scales[i, num], scales[j, num]) / (max_scale[num] - min_scale[num])
                 if curr > max_err[num]:
                     max_err[num] = curr
     return max_err[ids]
 
 
 def calc_max_regression_error(loss_function, scales):
-    return np.sum(calc_max_per_param_error(loss_function, scales, range(scales[0]))) / scales.shape[0]
+
+    max_scale, min_scale, max_error = 0, 0, 0
+    for i in range(scales.shape[0]):
+        curr = loss_function(scales[i,:],0)
+        #   max based on given norm
+        if curr > max_scale:
+            max_scale = curr
+        if curr < min_scale:
+            min_scale = curr
+    for i in trange(scales.shape[0]):
+        for j in range(scales.shape[0]):
+            curr = loss_function(scales[i,:], scales[j,:]) / (max_scale-min_scale)
+            if curr > max_error:
+                max_error = curr
+    return max_error/scales.shape[1]
+
