@@ -75,6 +75,7 @@ def calc_max_3d_reconstruction_error(loss_function, scales, mode_shape):
             curr = loss_function(ver[i], ver[j]) / mode_shape.shape[0]
             if curr > max_3d:
                 max_3d = curr
+    print("max 3d/ir "+f'{max_3d: .4e}')
     return max_3d
 
 
@@ -94,26 +95,21 @@ def calc_max_per_param_error(loss_function, scales, ids):
     for i in trange(scales.shape[0]):
         for j in range(scales.shape[0]):
             for num in ids:
-                curr = loss_function(scales[i, num], scales[j, num]) / (max_scale[num] - min_scale[num])
+                curr = loss_function(scales[i, num], scales[j, num])
                 if curr > max_err[num]:
                     max_err[num] = curr
+    print("modes error: " + max_err)
     return max_err[ids]
 
 
 def calc_max_regression_error(loss_function, scales):
 
     max_scale, min_scale, max_error = 0, 0, 0
-    for i in range(scales.shape[0]):
-        curr = loss_function(scales[i,:],0)
-        #   max based on given norm
-        if curr > max_scale:
-            max_scale = curr
-        if curr < min_scale:
-            min_scale = curr
     for i in trange(scales.shape[0]):
         for j in range(scales.shape[0]):
-            curr = loss_function(scales[i,:], scales[j,:]) / (max_scale-min_scale)
+            curr = loss_function(scales[i,:], scales[j,:])
             if curr > max_error:
                 max_error = curr
+    print("regression: "+f'{max_error/scales.shape[1]: .4e}')
     return max_error/scales.shape[1]
 
