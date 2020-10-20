@@ -42,6 +42,26 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
         return torch.norm(pos_a - pos_b, 2) / num_vertices
 
 
+def threed_reconstruction_loss(loss_function, mode_shapes, pow,
+                               x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
+    """
+        return loss between shape (based on the scales) we received and the shape we calculated by our own scales
+          Args:
+              loss_function loss function takes two |V| vectors and calclate the loss between them
+              mode_shapes: a [V,n] tensor or np array representing the mode shapes (only the Z axis)
+              pow: the power of 10 used to scale the mode scales
+              x: first set of scales
+              y: second set of scales
+           Returns:
+              RMS between the vertex positions calculated from scales
+           """
+    _x = x * 10 ** -pow
+    _y = y * 10 ** -pow
+    ver_x = (_x * mode_shapes).sum(axis=2).T
+    ver_y = (_y * mode_shapes).sum(axis=2).T
+    return loss_function(ver_x, ver_y)
+
+
 def calc_max_errors(loss_function, scales: np.ndarray, ir_indices: tuple, mode_shape):
     """
 
@@ -103,7 +123,6 @@ def calc_max_per_param_error(loss_function, scales, ids):
 
 
 def calc_max_regression_error(loss_function, scales):
-
     max_scale, min_scale, max_error = 0, 0, 0
     for i in trange(scales.shape[0]):
         for j in range(scales.shape[0]):
