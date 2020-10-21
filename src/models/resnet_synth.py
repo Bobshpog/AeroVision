@@ -132,7 +132,7 @@ class LoggerCallback(Callback):
             error_dict[error_str] = curr_loss
             old_min = pl_module.train_min_errors[error_str]
             pl_module.train_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
-        for norm in ['l1,l2']:
+        for norm in ['l1','l2']:
             for i in range(pl_module.num_output_layers):
                 old_min = pl_module.train_min_errors[f'train_{norm}_scale{i}']
                 curr_error = error_dict[f'train_{norm}_scale{i}']
@@ -142,10 +142,19 @@ class LoggerCallback(Callback):
         self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss,
                                                     'train_min_loss': pl_module.train_min_errors['loss']},
                                            pl_module.current_epoch)
-        self.logger.experiment.add_scalars('errors',
-                                           error_dict, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('min_error',
-                                           pl_module.train_min_errors, pl_module.current_epoch)
+        l1_errors={k:v for k,v in error_dict.items() if 'l1' in k}
+        l2_errors={k:v for k,v in error_dict.items() if 'l2' in k}
+        l1_min_errors = {k: v for k, v in pl_module.train_min_errors.items() if 'l1' in k}
+        l2_min_errors = {k: v for k, v in pl_module.train_min_errors.items() if 'l2' in k}
+        self.logger.experiment.add_scalars('l1_errors',
+                                           l1_errors, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('l2_errors',
+                                           l2_errors, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('l1_min_error',
+                                           l1_min_errors, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('l2_min_error',
+                                           l2_min_errors, pl_module.current_epoch)
+
         self.logger.experiment.add_scalars('train_means',
                                            means_dict, pl_module.current_epoch)
         self.logger.experiment.add_scalars('train_variance',
@@ -172,7 +181,7 @@ class LoggerCallback(Callback):
             error_dict[error_str] = curr_loss
             old_min = pl_module.val_min_errors[error_str]
             pl_module.val_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
-        for norm in ['l1,l2']:
+        for norm in ['l1','l2']:
             for i in range(pl_module.num_output_layers):
                 old_min = pl_module.val_min_errors[f'val_{norm}_scale{i}']
                 curr_error = error_dict[f'val_{norm}_scale{i}']
@@ -182,10 +191,18 @@ class LoggerCallback(Callback):
         self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss,
                                                     'val_min_loss': pl_module.val_min_errors['loss']},
                                            pl_module.current_epoch)
-        self.logger.experiment.add_scalars('errors',
-                                           error_dict, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('min_error',
-                                           pl_module.val_min_errors, pl_module.current_epoch)
+        l1_errors = {k: v for k, v in error_dict.items() if 'l1' in k}
+        l2_errors = {k: v for k, v in error_dict.items() if 'l2' in k}
+        l1_min_errors = {k: v for k, v in pl_module.val_min_errors.items() if 'l1' in k}
+        l2_min_errors = {k: v for k, v in pl_module.val_min_errors.items() if 'l2' in k}
+        self.logger.experiment.add_scalars('l1_errors',
+                                           l1_errors, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('l2_errors',
+                                           l2_errors, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('l1_min_error',
+                                           l1_min_errors, pl_module.current_epoch)
+        self.logger.experiment.add_scalars('l2_min_error',
+                                           l2_min_errors, pl_module.current_epoch)
         self.logger.experiment.add_scalars('val_means',
                                            means_dict, pl_module.current_epoch)
         self.logger.experiment.add_scalars('val_variance',
@@ -201,19 +218,19 @@ def L1_normalized_loss(min, max):
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
-    NUM_EPOCHS = None
+    BATCH_SIZE = 64  # 16 for Resnet50, 64 for resnet 18
+    NUM_EPOCHS = 1000
     VAL_CACHE_SIZE = 1000
     TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
-    NUM_INPUT_LAYERS = 3
+    NUM_INPUT_LAYERS = 1
     NUM_OUTPUTS = 5
-    RESNET_TYPE = None  # '18', '50', '34'
+    RESNET_TYPE = '18' # '18', '50', '34'
     LOSS_FUNC = F.smooth_l1_loss
     EXPERIMENT_NAME = ""
-    TRAINING_DB_PATH = None
-    VALIDATION_DB_PATH = None
-    VAL_SPLIT = None
-    TRANSFORM = my_transforms.top_middle_rgb
+    TRAINING_DB_PATH = "data/databases/20201016-231007__SyntheticMatGenerator(mesh_wing='synth_wing_v3.off', mesh_tip='fem_tip.off', resolution=[640, 480], texture_path='full_black.png'.hdf5"
+    VALIDATION_DB_PATH = TRAINING_DB_PATH
+    VAL_SPLIT = 895
+    TRANSFORM = my_transforms.top_middle_bw
     OUTPUT_SCALING = 4
 
     if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT]:
