@@ -218,7 +218,7 @@ def L1_normalized_loss(min, max):
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 64  # 16 for Resnet50, 64 for resnet 18
+    BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
     NUM_EPOCHS = 1000
     VAL_CACHE_SIZE = 1000
     TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
@@ -227,9 +227,9 @@ if __name__ == '__main__':
     RESNET_TYPE = '18' # '18', '50', '34'
     LOSS_FUNC = F.smooth_l1_loss
     EXPERIMENT_NAME = ""
-    TRAINING_DB_PATH = "data/databases/20201016-231007__SyntheticMatGenerator(mesh_wing='synth_wing_v3.off', mesh_tip='fem_tip.off', resolution=[640, 480], texture_path='full_black.png'.hdf5"
+    TRAINING_DB_PATH = ""
     VALIDATION_DB_PATH = TRAINING_DB_PATH
-    VAL_SPLIT = 895
+    VAL_SPLIT = None
     TRANSFORM = my_transforms.top_middle_bw
     OUTPUT_SCALING = 4
 
