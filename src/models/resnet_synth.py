@@ -119,8 +119,8 @@ class LoggerCallback(Callback):
         means_dict = {}
         var_dict = {}
         for i in range(pl_module.num_output_layers):
-            error_dict[f'l1_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'l1_scale{i}']))
-            error_dict[f'l2_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'l2_scale{i}']))
+            error_dict[f'train_l1_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'l1_scale{i}']))
+            error_dict[f'train_l2_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'l2_scale{i}']))
             means_dict[f'mean{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'mean{i}']))
             var_dict[f'var{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'var{i}']))
 
