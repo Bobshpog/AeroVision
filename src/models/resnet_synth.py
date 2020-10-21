@@ -142,9 +142,9 @@ class LoggerCallback(Callback):
         self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss,
                                                     'train_min_loss': pl_module.train_min_errors['loss']},
                                            pl_module.current_epoch)
-        self.logger.experiment.add_scalars('train_error',
+        self.logger.experiment.add_scalars('errors',
                                            error_dict, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('train_min_error',
+        self.logger.experiment.add_scalars('min_error',
                                            pl_module.train_min_errors, pl_module.current_epoch)
         self.logger.experiment.add_scalars('train_means',
                                            means_dict, pl_module.current_epoch)
@@ -182,9 +182,9 @@ class LoggerCallback(Callback):
         self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss,
                                                     'val_min_loss': pl_module.val_min_errors['loss']},
                                            pl_module.current_epoch)
-        self.logger.experiment.add_scalars('val_error',
+        self.logger.experiment.add_scalars('errors',
                                            error_dict, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('val_min_error',
+        self.logger.experiment.add_scalars('min_error',
                                            pl_module.val_min_errors, pl_module.current_epoch)
         self.logger.experiment.add_scalars('val_means',
                                            means_dict, pl_module.current_epoch)
