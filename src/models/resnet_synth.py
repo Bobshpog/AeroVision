@@ -74,7 +74,7 @@ class CustomInputResnet(pl.LightningModule):
             variance = torch.var(y_hat, dim=0)
             for i in range(self.num_output_layers):
                 self.train_batch_list[f'l1_scale{i}'].append(l1_regression_list[i])
-                self.train_batch_list[f'l2_scale{i}'].append([l2_regression_list][i])
+                self.train_batch_list[f'l2_scale{i}'].append(l2_regression_list[i])
                 self.train_batch_list[f'mean{i}'].append(means[i])
                 self.train_batch_list[f'var{i}'].append(variance[i])
             self.train_batch_list['loss'].append(loss)
@@ -97,7 +97,7 @@ class CustomInputResnet(pl.LightningModule):
             variance = torch.var(y_hat, dim=0)
             for i in range(self.num_output_layers):
                 self.val_batch_list[f'l1_scale{i}'].append(l1_regression_list[i])
-                self.val_batch_list[f'l2_scale{i}'].append([l2_regression_list][i])
+                self.val_batch_list[f'l2_scale{i}'].append(l2_regression_list[i])
                 self.val_batch_list[f'mean{i}'].append(means[i])
                 self.val_batch_list[f'var{i}'].append(variance[i])
             self.val_batch_list['loss'].append(loss)
@@ -237,9 +237,9 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC,
-                              error_funcs=(l1_errors_func, l2_errors)
-    resnet_type = RESNET_TYPE,
-                  cosine_annealing_steps = 10)
+                              error_funcs=(l1_errors_func, l2_errors_func),
+                              resnet_type=RESNET_TYPE,
+                              cosine_annealing_steps=10)
     logger = TensorBoardLogger('lightning_logs', name=EXPERIMENT_NAME)
     mcp = ModelCheckpoint(
         filepath=f"{logger.log_dir}/checkpoints/"

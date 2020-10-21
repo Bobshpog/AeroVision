@@ -1,5 +1,5 @@
 import torch.nn.functional as F
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from src.util.loss_functions import *
 
@@ -25,7 +25,7 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x: torc
     vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x, y).mean()
     ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x, y).mean()
     regression_loss = torch.zeros(x.shape[1], device=device)
-    for i in trange(num_datapoints, ):
+    for i in range(num_datapoints ):
         for k in range(num_scales):
             regression_loss[k] += loss_function(x[i, k], y[i, k]).mean()
     regression_loss = regression_loss / num_datapoints
@@ -74,12 +74,12 @@ def batch_mat_pdist(a: torch.Tensor, b: torch.Tensor, p=2):
     def partial_dist_max(x, y):
         return (x - y.unsqueeze(0)).abs_().pow_(p).sum(2).pow(1 / p).max()
 
-    pbar = tqdm(enumerate(a), total=size, desc=max_val)
-    for idx, val in pbar:
+    # pbar = tqdm(enumerate(a), total=size, desc=max_val)
+    for idx, val in enumerate(a):
         for i in range(idx, size, step):
             end = max(idx + step, size)
             max_val = torch.max(max_val, partial_dist_max(val, b[i:end]))
-        pbar.set_description(f'max_val={max_val}')
+        # pbar.set_description(f'max_val={max_val}')
     return max_val
 
 
@@ -96,7 +96,6 @@ def calc_max_3d_reconstruction_error(loss_function, scales, mode_shapes):
             max_3d = batch_mat_pdist(point_clouds, point_clouds, p).item() / num_vertices
     else:
         raise NotImplementedError
-    print("max 3d/ir " + f'{max_3d: .4e}')
     return max_3d
 
 
@@ -126,7 +125,6 @@ def calc_max_regression_error(loss_function, scales):
             max_error = (batch_mat_pdist(scales, scales, p).max() / num_scales).item()
     else:
         raise NotImplementedError
-    print("max regression " + f'{max_error: .4e}')
     return max_error
 
 
