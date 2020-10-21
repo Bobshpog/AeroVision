@@ -80,8 +80,8 @@ class CustomInputResnet(pl.LightningModule):
             self.train_batch_list['loss'].append(loss)
             self.train_batch_list['train_l1_3d_loss'].append(l1_3d_err)
             self.train_batch_list['train_l2_3d_loss'].append(l2_3d_err)
-            self.train_batch_list['train_l1_3d_loss'].append(l1_3d_ir_err)
-            self.train_batch_list['train_l2_3d_loss'].append(l2_3d_ir_err)
+            self.train_batch_list['train_l1_3d_ir_loss'].append(l1_3d_ir_err)
+            self.train_batch_list['train_l2_3d_ir_loss'].append(l2_3d_ir_err)
             self.train_batch_list['train_l1_reg_avg'].append(l1_regression_avg)
             self.train_batch_list['train_l2_reg_avg'].append(l2_regression_avg)
         return loss
@@ -129,7 +129,7 @@ class LoggerCallback(Callback):
                   'train_l2_reg_avg']
         for error_str in errors:
             curr_loss = torch.mean(torch.stack(pl_module.train_batch_list[error_str]))
-            error_dict['error_str'] = curr_loss
+            error_dict[error_str] = curr_loss
             old_min = pl_module.train_min_errors[error_str]
             pl_module.train_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
         for norm in ['l1,l2']:
@@ -169,7 +169,7 @@ class LoggerCallback(Callback):
                   'val_l2_reg_avg']
         for error_str in errors:
             curr_loss = torch.mean(torch.stack(pl_module.val_batch_list[error_str]))
-            error_dict['error_str'] = curr_loss
+            error_dict[error_str] = curr_loss
             old_min = pl_module.val_min_errors[error_str]
             pl_module.val_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
         for norm in ['l1,l2']:
@@ -191,7 +191,7 @@ class LoggerCallback(Callback):
         self.logger.experiment.add_scalars('val_variance',
                                            var_dict, pl_module.current_epoch)
 
-        for i in pl_module.train_batch_list.values():
+        for i in pl_module.val_batch_list.values():
             i.clear()
 
 
