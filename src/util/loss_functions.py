@@ -1,7 +1,7 @@
 from typing import Union
+
 import numpy as np
 import torch
-from tqdm import trange
 
 
 def mse_weighted(weights, a, b):
@@ -10,6 +10,10 @@ def mse_weighted(weights, a, b):
         weights = torch.tensor(weights, dtype=a.dtype, device=a.device)
         loss = weights * loss
     return torch.sqrt(torch.sum(loss))
+
+
+def l2_norm(a, b):
+    return mse_weighted(1, a, b)
 
 
 def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
@@ -46,7 +50,7 @@ def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, pow: int,
         device = 'cpu'
         return reconstruction_loss_3d(mode_shapes, pow, torch.tensor(x, device=device),
                                       torch.tensor(y, device=device)).detach().numpy()
-    num_datapoints=1 if len(x.shape)==1 else x.shape[0]
+    num_datapoints = 1 if len(x.shape) == 1 else x.shape[0]
     num_vertices = mode_shapes.size / (3 * x.shape[-1])
     device = x.device
     with torch.no_grad():
@@ -57,4 +61,4 @@ def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, pow: int,
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
         pos_a = (mode_shapes @ _x).sum(dim=1)
         pos_b = (mode_shapes @ _y).sum(dim=1)
-        return loss_function(pos_a, pos_b)/(num_vertices*num_datapoints)
+        return loss_function(pos_a, pos_b) / (num_vertices * num_datapoints)

@@ -4,40 +4,34 @@ from tqdm import tqdm
 from src.util.loss_functions import *
 
 
-def calc_errors(loss_function, mode_shapes, pow, ir_indices, device, x, y):
+def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x: torch.Tensor, y: torch.Tensor):
     """
     return errors as written in the exel file format
     Args:
         loss_function: The loss function between two elements, should deal with vectors and single element,must work on tensors.
         ir_indices: tuple of ir indices
         mode_shapes: mode shape as read using matlab_reader.read_modal_shapes()
-        x: first set of scales (shape = num_datapoints, num_of_scales)
-        y: second set of scales (shape = num_datapoints, num_of_scales)
-        device: device to run on, used only if x,y is an ndarray
+        x: first set of scales (shape = num_datapoints, num_scales)
+        y: second set of scales (shape = num_datapoints, num_scales)
 
     Returns:
         error values in the following error
         (Average 3D Reconstruction Error,Average 3D IR Reconstruction Error, Average Regression
-        	Regression 0,	Regression 1,	Regression 2,	Regression 3,	Regression 4,	Regression 5,	Regression 6,
-        		Regression 7,	Regression 8,	Regression 9)
+        	(Regression 0,	Regression 1,	Regression 2,	Regression 3,	Regression 4,	Regression 5,	Regression 6,
+        		Regression 7,	Regression 8,	Regression 9))
     """
-    if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
-        _x = torch.tensor(x, device=device)
-        _y = torch.tensor(y, device=device)
-    else:
-        _x, _y = x, y
-    num_datapoints, num_of_scales = x.shape
-    device = _x.device
-    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, _x, _y)
-    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, _x, _y)
-    regression_loss = torch.zeros(_x.shape[1], device=device)
+    num_datapoints, num_scales = x.shape
+    device = x.device
+    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x, y).mean()
+    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x, y).mean()
+    regression_loss = torch.zeros(x.shape[1], device=device)
     for i in trange(num_datapoints, ):
-        for k in range(num_of_scales):
-            regression_loss[k] += loss_function(_x[i, k], _y[i, k])
+        for k in range(num_scales):
+            regression_loss[k] += loss_function(x[i, k], y[i, k]).mean()
     regression_loss = regression_loss / num_datapoints
-    avg_regression = regression_loss.sum() / num_of_scales
+    avg_regression = loss_function(x, y).mean() / num_scales
 
-    return (vertex_loss, ir_loss / len(ir_indices),
+    return (vertex_loss, ir_loss/ len(ir_indices),
             avg_regression, regression_loss)
 
 
