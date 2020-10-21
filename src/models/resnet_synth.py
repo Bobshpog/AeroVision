@@ -134,9 +134,9 @@ class LoggerCallback(Callback):
             pl_module.train_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
         for norm in ['l1,l2']:
             for i in range(pl_module.num_output_layers):
-                old_min = pl_module.train_min_errors[f'{norm}_scale{i}']
-                curr_error = error_dict[f'{norm}_scale{i}']
-                pl_module.train_min_errors[f'{norm}_scale{i}'] = torch.min(old_min,
+                old_min = pl_module.train_min_errors[f'train_{norm}_scale{i}']
+                curr_error = error_dict[f'train_{norm}_scale{i}']
+                pl_module.train_min_errors[f'train_{norm}_scale{i}'] = torch.min(old_min,
                                                                          curr_error) if old_min else curr_error
 
         self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss,
@@ -159,8 +159,8 @@ class LoggerCallback(Callback):
         means_dict = {}
         var_dict = {}
         for i in range(pl_module.num_output_layers):
-            error_dict[f'l1_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'l1_scale{i}']))
-            error_dict[f'l2_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'l2_scale{i}']))
+            error_dict[f'val_l1_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'l1_scale{i}']))
+            error_dict[f'val_l2_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'l2_scale{i}']))
             means_dict[f'mean{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'mean{i}']))
             var_dict[f'var{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'var{i}']))
 
@@ -174,9 +174,9 @@ class LoggerCallback(Callback):
             pl_module.val_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
         for norm in ['l1,l2']:
             for i in range(pl_module.num_output_layers):
-                old_min = pl_module.val_min_errors[f'{norm}_scale{i}']
-                curr_error = error_dict[f'{norm}_scale{i}']
-                pl_module.val_min_errors[f'{norm}_scale{i}'] = torch.min(old_min,
+                old_min = pl_module.val_min_errors[f'val_{norm}_scale{i}']
+                curr_error = error_dict[f'val_{norm}_scale{i}']
+                pl_module.val_min_errors[f'val_{norm}_scale{i}'] = torch.min(old_min,
                                                                          curr_error) if old_min else curr_error
 
         self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss,
