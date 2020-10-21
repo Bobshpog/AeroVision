@@ -137,7 +137,7 @@ class LoggerCallback(Callback):
                 old_min = pl_module.train_min_errors[f'{norm}_scale{i}']
                 curr_error = error_dict[f'{norm}_scale{i}']
                 pl_module.train_min_errors[f'{norm}_scale{i}'] = torch.min(old_min,
-                                                                           curr_error) if old_min else curr_error
+                                                                         curr_error) if old_min else curr_error
 
         self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss,
                                                     'train_min_loss': pl_module.train_min_errors['loss']},
