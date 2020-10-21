@@ -78,12 +78,12 @@ class CustomInputResnet(pl.LightningModule):
                 self.train_batch_list[f'mean{i}'].append(means[i])
                 self.train_batch_list[f'var{i}'].append(variance[i])
             self.train_batch_list['loss'].append(loss)
-            self.train_batch_list['l1_3d_loss'].append(l1_3d_err)
-            self.train_batch_list['l2_3d_loss'].append(l2_3d_err)
-            self.train_batch_list['l1_3d_loss'].append(l1_3d_ir_err)
-            self.train_batch_list['l2_3d_loss'].append(l2_3d_ir_err)
-            self.train_batch_list['l1_reg_avg'].append(l1_regression_avg)
-            self.train_batch_list['l2_reg_avg'].append(l2_regression_avg)
+            self.train_batch_list['train_l1_3d_loss'].append(l1_3d_err)
+            self.train_batch_list['train_l2_3d_loss'].append(l2_3d_err)
+            self.train_batch_list['train_l1_3d_loss'].append(l1_3d_ir_err)
+            self.train_batch_list['train_l2_3d_loss'].append(l2_3d_ir_err)
+            self.train_batch_list['train_l1_reg_avg'].append(l1_regression_avg)
+            self.train_batch_list['train_l2_reg_avg'].append(l2_regression_avg)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -101,12 +101,12 @@ class CustomInputResnet(pl.LightningModule):
                 self.val_batch_list[f'mean{i}'].append(means[i])
                 self.val_batch_list[f'var{i}'].append(variance[i])
             self.val_batch_list['loss'].append(loss)
-            self.val_batch_list['l1_3d_loss'].append(l1_3d_err)
-            self.val_batch_list['l2_3d_loss'].append(l2_3d_err)
-            self.val_batch_list['l1_3d_ir_loss'].append(l1_3d_ir_err)
-            self.val_batch_list['l2_3d_ir_loss'].append(l2_3d_ir_err)
-            self.val_batch_list['l1_reg_avg'].append(l1_regression_avg)
-            self.val_batch_list['l2_reg_avg'].append(l2_regression_avg)
+            self.val_batch_list['val_l1_3d_loss'].append(l1_3d_err)
+            self.val_batch_list['val_l2_3d_loss'].append(l2_3d_err)
+            self.val_batch_list['val_l1_3d_ir_loss'].append(l1_3d_ir_err)
+            self.val_batch_list['val_l2_3d_ir_loss'].append(l2_3d_ir_err)
+            self.val_batch_list['val_l1_reg_avg'].append(l1_regression_avg)
+            self.val_batch_list['val_l2_reg_avg'].append(l2_regression_avg)
         return loss
 
 
