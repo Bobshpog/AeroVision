@@ -10,7 +10,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
 from pytorch_lightning import Callback
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -113,6 +112,7 @@ class CustomInputResnet(pl.LightningModule):
 class LoggerCallback(Callback):
     def __init__(self, logger):
         self.logger = logger
+        self.metrics = {}
 
     def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
         error_dict = {}
@@ -134,12 +134,10 @@ class LoggerCallback(Callback):
         for norm in ['l1', 'l2']:
             for i in range(pl_module.num_output_layers):
                 old_min = pl_module.train_min_errors[f'min_train_{norm}_scale{i}']
-                curr_error = error_dict[f'train{norm}_scale{i}']
-                pl_module.train_min_errors[f'min_train{norm}_scale{i}'] = torch.min(old_min,
-                                                                                    curr_error) if old_min else curr_error
-
-        self.logger.experiment.log_metrics(error_dict, epoch=pl_module.current_epoch)
-        self.logger.experiment.log_metrics(pl_module.train_min_errors, epoch=pl_module.current_epoch)
+                curr_error = error_dict[f'train_{norm}_scale{i}']
+                pl_module.train_min_errors[f'min_train_{norm}_scale{i}'] = torch.min(old_min,
+                                                                                     curr_error) if old_min else curr_error
+        self.metrics = {**self.metrics, **error_dict, **pl_module.train_min_errors}
 
         for i in pl_module.train_batch_list.values():
             i.clear()
@@ -164,14 +162,19 @@ class LoggerCallback(Callback):
         for norm in ['l1', 'l2']:
             for i in range(pl_module.num_output_layers):
                 old_min = pl_module.val_min_errors[f'min_val_{norm}_scale{i}']
-                curr_error = error_dict[f'val{norm}_scale{i}']
-                pl_module.val_min_errors[f'min_val{norm}_scale{i}'] = torch.min(old_min,
-                                                                                    curr_error) if old_min else curr_error
+                curr_error = error_dict[f'val_{norm}_scale{i}']
+                pl_module.val_min_errors[f'min_val_{norm}_scale{i}'] = torch.min(old_min,
+                                                                                 curr_error) if old_min else curr_error
 
         self.logger.experiment.log_metrics(error_dict, epoch=pl_module.current_epoch)
-        self.logger.experiment.log_metrics(pl_module.val_min_errors, epoch=pl_module.current_epoch)
+
+        self.metrics = {**self.metrics, **error_dict, **pl_module.val_min_errors}
         for i in pl_module.val_batch_list.values():
             i.clear()
+
+        def on_epoch_end(self, trainer, pl_module):
+            self.logger.experiment.log_metrics(self.metrics, epoch=pl_module.current_epoch)
+            self.metrics.clear()
 
 
 def L1_normalized_loss(min, max):
@@ -231,17 +234,17 @@ if __name__ == '__main__':
                          experiment_name=EXPERIMENT_NAME)
 
     logger.log_hyperparams(params=params)
-    mcp = ModelCheckpoint(
-        filepath=f"{model.logger.log_dir}/checkpoints/"
-                 + "{epoch}",
-        save_last=True,
-        save_top_k=10,
-        period=-1,
-        monitor='val_loss',
-        verbose=True)
+    # mcp = ModelCheckpoint(
+    #     filepath=f"{model.logger.log_dir}/checkpoints/"
+    #              + "{epoch}",
+    #     save_last=True,
+    #     save_top_k=10,
+    #     period=-1,
+    #     monitor='val_loss',
+    #     verbose=True)
 
     trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger)],
-                         checkpoint_callback=mcp,
+                         # checkpoint_callback=mcp,
                          num_sanity_val_steps=0,
                          profiler=True)
     trainer.fit(model, train_loader, val_loader)
