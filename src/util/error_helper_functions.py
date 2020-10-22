@@ -18,16 +18,15 @@ def calc_errors(loss_function, mode_shape, pow, ir_indices, x, y):
         		Regression 7,	Regression 8,	Regression 9)
     """
     three_d_loss, ir_loss, avg_regression = 0, 0, 0
-    zero_scales = np.zeros(x.shape[1])
-    regression_loss = np.zeros((x.shape[1]))
     data_points = x.shape[0]
     num_of_scales = x.shape[1]
     num_verticies = mode_shape.shape[1]
+    regression_loss = np.zeros(num_of_scales)
     for i in trange(data_points):
         three_d_loss += threeD_reconstruction_loss(loss_function, mode_shape, pow, x[i], y[i])
         ir_loss += threeD_reconstruction_loss(loss_function, mode_shape[:,ir_indices], pow, x[i], y[i])
         for k in range(num_of_scales):
-            regression_loss[k] += loss_function(zero_scales + x[i, k], zero_scales + y[i, k])
+            regression_loss[k] += loss_function(x[i,k], y[i,k])
         avg_regression += loss_function(x[i], y[i])
     return (three_d_loss / (num_verticies * data_points), ir_loss / (len(ir_indices) * data_points),
             avg_regression/(num_of_scales * data_points)) + tuple(regression_loss / data_points)
@@ -62,7 +61,7 @@ def calc_max_3d_reconstruction_error(loss_function, scales, mode_shape):
         ver[i] = (scales[i,:] * mode_shape).sum(axis=2).T
 
     for i in trange(scales.shape[0]):
-        for j in range(scales.shape[0]):
+        for j in range(i, scales.shape[0]):
             curr = loss_function(ver[i], ver[j])
             if curr > max_3d:
                 max_3d = curr
@@ -77,26 +76,20 @@ def calc_max_ir_reconstruction_error(loss_function, scales, ir_indices, mode_sha
 def calc_max_per_param_error(loss_function, scales, ids):
     if isinstance(ids, int):
         ids = [ids]
-    max_err = np.zeros(len(ids))
-    max_scale = np.zeros(scales.shape[0])
-    min_scale = np.zeros(scales.shape[0])
-    for i in range(scales.shape[0]):
-        max_scale[ids] = np.maximum(scales[i, ids], max_scale[ids])
-        min_scale[ids] = np.minimum(scales[i, ids], max_scale[ids])
+    max_err = np.zeros(scales.shape[1])
     for i in trange(scales.shape[0]):
-        for j in range(scales.shape[0]):
+        for j in range(i, scales.shape[0]):
             for num in ids:
                 curr = loss_function(scales[i, num], scales[j, num])
                 if curr > max_err[num]:
                     max_err[num] = curr
-    print("modes error: " + max_err)
     return max_err[ids]
 
 
 def calc_max_regression_error(loss_function, scales):
     max_scale, min_scale, max_error = 0, 0, 0
     for i in trange(scales.shape[0]):
-        for j in range(scales.shape[0]):
+        for j in range(i, scales.shape[0]):
             curr = loss_function(scales[i,:], scales[j,:])
             if curr > max_error:
                 max_error = curr
