@@ -193,13 +193,17 @@ if __name__ == '__main__':
     VAL_SPLIT = None
     TRANSFORM = my_transforms.top_middle_bw
     OUTPUT_SCALING = 4
+    LEARNING_RATE = 1e-2
+    WEIGTH_DECAY = 0
+    COSINE_ANNEALING_STEPS = 10
 
     if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT]:
         raise ValueError('Config not fully initialized')
     params = {'batch_size': BATCH_SIZE, 'train_db': TRAINING_DB_PATH.split('/')[-1],
               'val_db': VALIDATION_DB_PATH.split('/')[-1], 'train-val_split_index': VAL_SPLIT,
               'loss_func': LOSS_FUNC.__name__, 'img_transform': TRANSFORM.__name__, 'num_outputs': NUM_OUTPUTS,
-              'output_scaling': OUTPUT_SCALING,'resnet_type':RESNET_TYPE}
+              'output_scaling': OUTPUT_SCALING, 'resnet_type': RESNET_TYPE, 'lr': LEARNING_RATE,
+              'weight_decay': WEIGTH_DECAY, 'cosine_annealing_steps': COSINE_ANNEALING_STEPS}
     out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power, OUTPUT_SCALING)])
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = hf['generator metadata']['mean images'][()]
@@ -220,8 +224,8 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC,
                               error_funcs=(l1_errors_func, l2_errors_func),
-                              resnet_type=RESNET_TYPE,
-                              cosine_annealing_steps=10)
+                              resnet_type=RESNET_TYPE,learning_rate=LEARNING_RATE,
+                              cosine_annealing_steps=10,weight_decay=WEIGTH_DECAY)
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
                          experiment_name=EXPERIMENT_NAME)
 
