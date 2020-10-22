@@ -127,15 +127,16 @@ class LoggerCallback(Callback):
         for error_str in pl_module.error_metrics:
             error_str = f'train_{error_str}'
             curr_loss = torch.mean(torch.stack(pl_module.train_batch_list[error_str]))
+            min_error_str = f'min_{error_str}'
             error_dict[error_str] = curr_loss
-            old_min = pl_module.train_min_errors[error_str]
-            pl_module.train_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
+            old_min = pl_module.train_min_errors[min_error_str]
+            pl_module.train_min_errors[min_error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
         for norm in ['l1', 'l2']:
             for i in range(pl_module.num_output_layers):
-                old_min = pl_module.train_min_errors[f'train_{norm}_scale{i}']
-                curr_error = error_dict[f'train_{norm}_scale{i}']
-                pl_module.train_min_errors[f'train_{norm}_scale{i}'] = torch.min(old_min,
-                                                                                 curr_error) if old_min else curr_error
+                old_min = pl_module.train_min_errors[f'min_train_{norm}_scale{i}']
+                curr_error = error_dict[f'train{norm}_scale{i}']
+                pl_module.train_min_errors[f'min_train{norm}_scale{i}'] = torch.min(old_min,
+                                                                                    curr_error) if old_min else curr_error
 
         self.logger.experiment.log_metrics(error_dict, epoch=pl_module.current_epoch)
         self.logger.experiment.log_metrics(pl_module.train_min_errors, epoch=pl_module.current_epoch)
@@ -156,20 +157,19 @@ class LoggerCallback(Callback):
         for error_str in pl_module.error_metrics:
             error_str = f'val_{error_str}'
             curr_loss = torch.mean(torch.stack(pl_module.val_batch_list[error_str]))
+            min_error_str = f'min_{error_str}'
             error_dict[error_str] = curr_loss
-            old_min = pl_module.val_min_errors[error_str]
-            pl_module.val_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
+            old_min = pl_module.val_min_errors[min_error_str]
+            pl_module.val_min_errors[min_error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
         for norm in ['l1', 'l2']:
             for i in range(pl_module.num_output_layers):
-                old_min = pl_module.val_min_errors[f'val_{norm}_scale{i}']
-                curr_error = error_dict[f'val_{norm}_scale{i}']
-                pl_module.val_min_errors[f'val_{norm}_scale{i}'] = torch.min(old_min,
-                                                                             curr_error) if old_min else curr_error
-
+                old_min = pl_module.val_min_errors[f'min_val_{norm}_scale{i}']
+                curr_error = error_dict[f'val{norm}_scale{i}']
+                pl_module.val_min_errors[f'min_val{norm}_scale{i}'] = torch.min(old_min,
+                                                                                    curr_error) if old_min else curr_error
 
         self.logger.experiment.log_metrics(error_dict, epoch=pl_module.current_epoch)
         self.logger.experiment.log_metrics(pl_module.val_min_errors, epoch=pl_module.current_epoch)
-
         for i in pl_module.val_batch_list.values():
             i.clear()
 
@@ -225,8 +225,8 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC,
                               error_funcs=(l1_errors_func, l2_errors_func),
-                              resnet_type=RESNET_TYPE,learning_rate=LEARNING_RATE,
-                              cosine_annealing_steps=10,weight_decay=WEIGTH_DECAY)
+                              resnet_type=RESNET_TYPE, learning_rate=LEARNING_RATE,
+                              cosine_annealing_steps=10, weight_decay=WEIGTH_DECAY)
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
                          experiment_name=EXPERIMENT_NAME)
 
