@@ -137,7 +137,7 @@ class LoggerCallback(Callback):
                 curr_error = error_dict[f'train_{norm}_scale{i}']
                 pl_module.train_min_errors[f'min_train_{norm}_scale{i}'] = torch.min(old_min,
                                                                                      curr_error) if old_min else curr_error
-        self.metrics = {**self.metrics, **error_dict, **pl_module.train_min_errors}
+        self.metrics = {**self.metrics, **error_dict}#, **pl_module.train_min_errors}
 
         for i in pl_module.train_batch_list.values():
             i.clear()
@@ -166,15 +166,13 @@ class LoggerCallback(Callback):
                 pl_module.val_min_errors[f'min_val_{norm}_scale{i}'] = torch.min(old_min,
                                                                                  curr_error) if old_min else curr_error
 
-        self.logger.experiment.log_metrics(error_dict, epoch=pl_module.current_epoch)
-
-        self.metrics = {**self.metrics, **error_dict, **pl_module.val_min_errors}
+        self.metrics = {**self.metrics, **error_dict}#, **pl_module.val_min_errors}
         for i in pl_module.val_batch_list.values():
             i.clear()
 
-        def on_epoch_end(self, trainer, pl_module):
-            self.logger.experiment.log_metrics(self.metrics, epoch=pl_module.current_epoch)
-            self.metrics.clear()
+    def on_epoch_end(self, trainer, pl_module):
+        self.logger.experiment.log_metrics(self.metrics, step=pl_module.current_epoch,epoch=pl_module.current_epoch)
+        self.metrics.clear()
 
 
 def L1_normalized_loss(min, max):
