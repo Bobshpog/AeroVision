@@ -27,6 +27,7 @@ psutil = "*"
 scikit-image = "*"
 pytorch-ssim = "*"
 ssim-pil = "*"
+comet-ml = "*"
 
 [requires]
 python_version = "3.8"
