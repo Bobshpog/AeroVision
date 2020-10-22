@@ -42,7 +42,7 @@ class CustomInputResnet(pl.LightningModule):
         self.train_min_errors = defaultdict(lambda: None)
         self.val_min_errors = defaultdict(lambda: None)
         self.train_batch_list = defaultdict(list)
-        self.train_batch_list = defaultdict(list)
+        self.val_batch_list = defaultdict(list)
         self.error_metrics = ['loss', 'l1_3d_loss', 'l2_3d_loss', 'l1_3d_ir_loss', 'l2_3d_ir_loss',
                               'l1_reg_avg', 'l2_reg_avg']
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
@@ -137,8 +137,8 @@ class LoggerCallback(Callback):
                 pl_module.train_min_errors[f'train_{norm}_scale{i}'] = torch.min(old_min,
                                                                                  curr_error) if old_min else curr_error
 
-        self.logger.experiment.log_metrics(error_dict, pl_module.current_epoch)
-        self.logger.experiment.log_metrics(pl_module.min_error_train, pl_module.current_epoch)
+        self.logger.experiment.log_metrics(error_dict, epoch=pl_module.current_epoch)
+        self.logger.experiment.log_metrics(pl_module.train_min_errors, epoch=pl_module.current_epoch)
 
         for i in pl_module.train_batch_list.values():
             i.clear()
@@ -166,8 +166,9 @@ class LoggerCallback(Callback):
                 pl_module.val_min_errors[f'val_{norm}_scale{i}'] = torch.min(old_min,
                                                                              curr_error) if old_min else curr_error
 
-        self.logger.experiment.log_metrics(error_dict, pl_module.current_epoch)
-        self.logger.experiment.log_metrics(pl_module.min_error_val, pl_module.current_epoch)
+
+        self.logger.experiment.log_metrics(error_dict, epoch=pl_module.current_epoch)
+        self.logger.experiment.log_metrics(pl_module.val_min_errors, epoch=pl_module.current_epoch)
 
         for i in pl_module.val_batch_list.values():
             i.clear()

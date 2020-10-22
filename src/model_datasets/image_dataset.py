@@ -32,7 +32,8 @@ class ImageDataset(Dataset):
 
     def __getitem__(self, item):
         item += self.min_index
-        item = self.index_list[item]
+        if self.index_list:
+            item = self.index_list[item]
         if item in self.cache_dict:
             return self.cache_dict[item]
 
