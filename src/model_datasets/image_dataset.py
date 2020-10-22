@@ -4,12 +4,18 @@ import multiprocessing as mp
 
 
 class ImageDataset(Dataset):
-    def __init__(self, hdf5_path, transform=None, out_transform=None, cache_size=0, min_index=0, max_index=None):
+    def __init__(self, hdf5_path, transform=None, out_transform=None, cache_size=0, min_index=0, max_index=None,
+                 index_list=None):
         """
         Initialization
         Args:
             hdf5_path: path to hdf5 database
-            transform: list of transforms to perform on the images
+            transform: transformation to be perforemed on the input
+            out_transform: transformation to be performed on the output
+            cache_size: size of cache
+            min_index: minimum index, this is referencing the position of the index in the list of the possible indices
+            max_index: maximum index, this is referencing the position of the index in the list of the possible indices
+            index_list: list of possible indices to use, uses all if this is None
         """
         self.hdf5_path = hdf5_path
         self.hf = None
@@ -18,6 +24,7 @@ class ImageDataset(Dataset):
         self.cache_size = cache_size
         self.cache_dict = mp.Manager().dict()
         self.min_index = min_index
+        self.index_list = index_list
         with h5py.File(self.hdf5_path, 'r') as hf:
             if max_index is None:
                 max_index = hf['data']['images'].len()
@@ -25,6 +32,7 @@ class ImageDataset(Dataset):
 
     def __getitem__(self, item):
         item += self.min_index
+        item = self.index_list[item]
         if item in self.cache_dict:
             return self.cache_dict[item]
 

@@ -1,6 +1,8 @@
 import time
 from random import randint
 from unittest import TestCase
+
+import h5py
 from scipy.io import loadmat
 from src.geometry.spod import *
 from src.geometry.animations.synth_wing_animations import *
@@ -77,18 +79,14 @@ class Test(TestCase):
                                     res=[480,480])
 
     def test_xyz(self):
-        scales = matlab_reader.read_data("data/synt_data_mat_files/data_big.mat")[2]
-        mode_shape = matlab_reader.read_modal_shapes("data/synt_data_mat_files/modes.mat",10)
-        ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
-               6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
-               6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
-        #print(mode_shape.shape)
-        def L2(a, b):
-            return (a**2 - b**2)**0.5
+        DB_PATH="data/databases/20201015-110824__SyntheticMatGenerator(mesh_wing='synth_wing_v3.off', mesh_tip='fem_tip.off', resolution=[640, 480], texture_path='checkers_dark_blue.png'.hdf5"
+        METRIC='l2'#'l2' or 'l1'
+        with h5py.File(DB_PATH,'r') as hf:
+            scales = hf['data']['scales'][()]
+            mode_shape=hf['generator metadata']['modal shapes'][()]
+            ids=hf['generator metadata'].attrs['ir'][()]
 
-        def v_L2(a,b):
-            return np.linalg.norm(a-b)
-        res = error_helper_functions.calc_max_errors(v_L2, scales, ids, mode_shape)
+        res = error_helper_functions.calc_max_errors(METRIC, scales, ids, mode_shape,'cuda:0')
         print(error_helper_functions.error_to_exel_string(res))
 
 
