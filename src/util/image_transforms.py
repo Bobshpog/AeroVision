@@ -25,12 +25,20 @@ def double_to_float(input_photo):
     return input_photo.astype('float32')
 
 
+def _scale_by(scale, x):
+    return (scale * x).astype('float32')
+
+
+def scale_by(scale):
+    return partial(_scale_by, scale)
+
+
 def mul_by_10_power(pow, x):
     return (10 ** pow * x).astype('float32')
 
 
 def single_rgb_to_bw(img):
-    return np.expand_dims(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY),axis=0)
+    return np.expand_dims(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY), axis=0)
 
 
 def top_middle_rgb(mean_photos):
@@ -60,5 +68,5 @@ def top_middle_rgbd(mean_photos):
 
 
 def whiten_half_picture(img):
-    img[:, int(img.shape[1]/2), 0:3] = np.max(img[:, :, 0:3])
+    img[:, int(img.shape[1] / 2), 0:3] = np.max(img[:, :, 0:3])
     return img
