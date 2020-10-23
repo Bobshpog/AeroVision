@@ -1,3 +1,5 @@
+import os
+import shutil
 from collections import defaultdict
 from functools import partial
 
@@ -10,6 +12,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
 from pytorch_lightning import Callback
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from torch.utils.data import DataLoader
 
@@ -199,7 +202,7 @@ if __name__ == '__main__':
     WEIGTH_DECAY = 0
     COSINE_ANNEALING_STEPS = 10
 
-    if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT]:
+    if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT, EXPERIMENT_NAME]:
         raise ValueError('Config not fully initialized')
     params = {'batch_size': BATCH_SIZE, 'train_db': TRAINING_DB_PATH.split('/')[-1],
               'val_db': VALIDATION_DB_PATH.split('/')[-1], 'train-val_split_index': VAL_SPLIT,
@@ -230,19 +233,23 @@ if __name__ == '__main__':
                               cosine_annealing_steps=10, weight_decay=WEIGTH_DECAY)
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
                          experiment_name=EXPERIMENT_NAME)
-
     logger.log_hyperparams(params=params)
-    # mcp = ModelCheckpoint(
-    #     filepath=f"{model.logger.log_dir}/checkpoints/"
-    #              + "{epoch}",
-    #     save_last=True,
-    #     save_top_k=10,
-    #     period=-1,
-    #     monitor='val_loss',
-    #     verbose=True)
+    checkpoints_folder = f"./checkpoints/{EXPERIMENT_NAME}/"
+    if os.path.isdir(checkpoints_folder):
+        shutil.rmtree(checkpoints_folder)
+    else:
+        os.mkdir(checkpoints_folder)
+    mcp = ModelCheckpoint(
+        filepath=checkpoints_folder + "{epoch}",
+        save_last=True,
+        save_top_k=10,
+        period=-1,
+        monitor='val_loss',
+        verbose=True)
 
     trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger)],
-                         # checkpoint_callback=mcp,
+                         checkpoint_callback=mcp,
                          num_sanity_val_steps=0,
                          profiler=True)
     trainer.fit(model, train_loader, val_loader)
+    logger.experiment.log_asset_folder(checkpoints_folder)
