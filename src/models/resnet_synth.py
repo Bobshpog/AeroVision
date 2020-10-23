@@ -10,10 +10,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
 from pytorch_lightning import Callback
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import CometLogger
 from torch.utils.data import DataLoader
-from torchvision import transforms
 
 import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
@@ -22,10 +20,10 @@ from src.util.loss_functions import l2_norm
 
 
 class CustomInputResnet(pl.LightningModule):
-    def __init__(self, num_input_layers, num_outputs, loss_func, error_funcs,
-                 resnet_type='18', learning_rate=1e-2,
-                 cosine_annealing_steps=0,
-                 weight_decay=0):
+    def __init__(self, num_input_layers, num_outputs, loss_func, error_funcs, output_scale,
+                 resnet_type, learning_rate,
+                 cosine_annealing_steps,
+                 weight_decay):
         super().__init__()
         # TODO consider removing pretrained
         resnet_dict = {'18': models.resnet18,
@@ -35,6 +33,7 @@ class CustomInputResnet(pl.LightningModule):
         self.num_output_layers = num_outputs
         self.loss_func = loss_func
         self.l1_error_func, self.l2_error_func = error_funcs
+        self.output_scale = output_scale
         self.learning_rate = learning_rate
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
@@ -43,12 +42,12 @@ class CustomInputResnet(pl.LightningModule):
         self.val_min_errors = defaultdict(lambda: None)
         self.train_batch_list = defaultdict(list)
         self.val_batch_list = defaultdict(list)
-
+        self.error_metrics = ['loss', 'l1_3d_loss', 'l2_3d_loss', 'l1_3d_ir_loss', 'l2_3d_ir_loss',
+                              'l1_reg_avg', 'l2_reg_avg']
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
                                       bias=False)
-        # TODO  Consider adding scrubbed FC layer
 
     def forward(self, x):
         x = self.resnet(x)
@@ -70,14 +69,14 @@ class CustomInputResnet(pl.LightningModule):
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
-            means = torch.mean(y_hat, dim=0)
-            variance = torch.var(y_hat, dim=0)
+            means = torch.mean(y_hat, dim=0) / self.output_scale
+            variance = torch.var(y_hat, dim=0) / (self.output_scale ** 2)
             for i in range(self.num_output_layers):
-                self.train_batch_list[f'l1_scale{i}'].append(l1_regression_list[i])
-                self.train_batch_list[f'l2_scale{i}'].append(l2_regression_list[i])
-                self.train_batch_list[f'mean{i}'].append(means[i])
-                self.train_batch_list[f'var{i}'].append(variance[i])
-            self.train_batch_list['loss'].append(loss)
+                self.train_batch_list[f'train_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
+                self.train_batch_list[f'train_l2_scale{i}'].append(l2_regression_list[i] / self.output_scale)
+                self.train_batch_list[f'train_mean{i}'].append(means[i])
+                self.train_batch_list[f'train_var{i}'].append(variance[i])
+            self.train_batch_list['train_loss'].append(loss)
             self.train_batch_list['train_l1_3d_loss'].append(l1_3d_err)
             self.train_batch_list['train_l2_3d_loss'].append(l2_3d_err)
             self.train_batch_list['train_l1_3d_ir_loss'].append(l1_3d_ir_err)
@@ -93,14 +92,14 @@ class CustomInputResnet(pl.LightningModule):
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
-            means = torch.mean(y_hat, dim=0)
-            variance = torch.var(y_hat, dim=0)
+            means = torch.mean(y_hat, dim=0) / self.output_scale
+            variance = torch.var(y_hat, dim=0) / (self.output_scale ** 2)
             for i in range(self.num_output_layers):
-                self.val_batch_list[f'l1_scale{i}'].append(l1_regression_list[i])
-                self.val_batch_list[f'l2_scale{i}'].append(l2_regression_list[i])
-                self.val_batch_list[f'mean{i}'].append(means[i])
-                self.val_batch_list[f'var{i}'].append(variance[i])
-            self.val_batch_list['loss'].append(loss)
+                self.val_batch_list[f'val_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
+                self.val_batch_list[f'val_l2_scale{i}'].append(l2_regression_list[i] / self.output_scale)
+                self.val_batch_list[f'val_mean{i}'].append(means[i])
+                self.val_batch_list[f'val_var{i}'].append(variance[i])
+            self.val_batch_list['val_loss'].append(loss)
             self.val_batch_list['val_l1_3d_loss'].append(l1_3d_err)
             self.val_batch_list['val_l2_3d_loss'].append(l2_3d_err)
             self.val_batch_list['val_l1_3d_ir_loss'].append(l1_3d_ir_err)
@@ -113,52 +112,32 @@ class CustomInputResnet(pl.LightningModule):
 class LoggerCallback(Callback):
     def __init__(self, logger):
         self.logger = logger
+        self.metrics = {}
 
     def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
         error_dict = {}
         means_dict = {}
         var_dict = {}
         for i in range(pl_module.num_output_layers):
-            error_dict[f'train_l1_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'l1_scale{i}']))
-            error_dict[f'train_l2_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'l2_scale{i}']))
-            means_dict[f'mean{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'mean{i}']))
-            var_dict[f'var{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'var{i}']))
+            error_dict[f'train_l1_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_l1_scale{i}']))
+            error_dict[f'train_l2_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_l2_scale{i}']))
+            means_dict[f'train_mean{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_mean{i}']))
+            var_dict[f'train_var{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_var{i}']))
 
-        errors = ['loss', 'train_l1_3d_loss', 'train_l2_3d_loss', 'train_l1_3d_ir_loss', 'train_l2_3d_ir_loss',
-                  'train_l1_reg_avg',
-                  'train_l2_reg_avg']
-        for error_str in errors:
-            curr_loss = torch.mean(torch.stack(pl_module.train_batch_list[error_str]))
-            error_dict[error_str] = curr_loss
-            old_min = pl_module.train_min_errors[error_str]
-            pl_module.train_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
-        for norm in ['l1','l2']:
-            for i in range(pl_module.num_output_layers):
-                old_min = pl_module.train_min_errors[f'train_{norm}_scale{i}']
-                curr_error = error_dict[f'train_{norm}_scale{i}']
-                pl_module.train_min_errors[f'train_{norm}_scale{i}'] = torch.min(old_min,
-                                                                         curr_error) if old_min else curr_error
-
-        self.logger.experiment.add_scalars('loss', {'train_loss': curr_loss,
-                                                    'train_min_loss': pl_module.train_min_errors['loss']},
-                                           pl_module.current_epoch)
-        l1_errors={k:v for k,v in error_dict.items() if 'l1' in k}
-        l2_errors={k:v for k,v in error_dict.items() if 'l2' in k}
-        l1_min_errors = {k: v for k, v in pl_module.train_min_errors.items() if 'l1' in k}
-        l2_min_errors = {k: v for k, v in pl_module.train_min_errors.items() if 'l2' in k}
-        self.logger.experiment.add_scalars('l1_errors',
-                                           l1_errors, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('l2_errors',
-                                           l2_errors, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('l1_min_error',
-                                           l1_min_errors, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('l2_min_error',
-                                           l2_min_errors, pl_module.current_epoch)
-
-        self.logger.experiment.add_scalars('train_means',
-                                           means_dict, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('train_variance',
-                                           var_dict, pl_module.current_epoch)
+        # for error_str in pl_module.error_metrics:
+        #     error_str = f'train_{error_str}'
+        #     curr_loss = torch.mean(torch.stack(pl_module.train_batch_list[error_str]))
+        #     min_error_str = f'min_{error_str}'
+        #     error_dict[error_str] = curr_loss
+        #     old_min = pl_module.train_min_errors[min_error_str]
+        #     pl_module.train_min_errors[min_error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
+        # for norm in ['l1', 'l2']:
+        #     for i in range(pl_module.num_output_layers):
+        #         old_min = pl_module.train_min_errors[f'min_train_{norm}_scale{i}']
+        #         curr_error = error_dict[f'train_{norm}_scale{i}']
+        #         pl_module.train_min_errors[f'min_train_{norm}_scale{i}'] = torch.min(old_min,
+        #                                                                              curr_error) if old_min else curr_error
+        self.metrics = {**self.metrics, **error_dict}  # , **pl_module.train_min_errors}
 
         for i in pl_module.train_batch_list.values():
             i.clear()
@@ -168,48 +147,32 @@ class LoggerCallback(Callback):
         means_dict = {}
         var_dict = {}
         for i in range(pl_module.num_output_layers):
-            error_dict[f'val_l1_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'l1_scale{i}']))
-            error_dict[f'val_l2_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'l2_scale{i}']))
-            means_dict[f'mean{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'mean{i}']))
-            var_dict[f'var{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'var{i}']))
+            error_dict[f'val_l1_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_l1_scale{i}']))
+            error_dict[f'val_l2_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_l2_scale{i}']))
+            means_dict[f'val_mean{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_mean{i}']))
+            var_dict[f'val_var{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_var{i}']))
 
-        errors = ['loss', 'val_l1_3d_loss', 'val_l2_3d_loss', 'val_l1_3d_ir_loss', 'val_l2_3d_ir_loss',
-                  'val_l1_reg_avg',
-                  'val_l2_reg_avg']
-        for error_str in errors:
-            curr_loss = torch.mean(torch.stack(pl_module.val_batch_list[error_str]))
-            error_dict[error_str] = curr_loss
-            old_min = pl_module.val_min_errors[error_str]
-            pl_module.val_min_errors[error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
-        for norm in ['l1','l2']:
-            for i in range(pl_module.num_output_layers):
-                old_min = pl_module.val_min_errors[f'val_{norm}_scale{i}']
-                curr_error = error_dict[f'val_{norm}_scale{i}']
-                pl_module.val_min_errors[f'val_{norm}_scale{i}'] = torch.min(old_min,
-                                                                         curr_error) if old_min else curr_error
+        # for error_str in pl_module.error_metrics:
+        #     error_str = f'val_{error_str}'
+        #     curr_loss = torch.mean(torch.stack(pl_module.val_batch_list[error_str]))
+        #     min_error_str = f'min_{error_str}'
+        #     error_dict[error_str] = curr_loss
+        #     old_min = pl_module.val_min_errors[min_error_str]
+        #     pl_module.val_min_errors[min_error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
+        # for norm in ['l1', 'l2']:
+        #     for i in range(pl_module.num_output_layers):
+        #         old_min = pl_module.val_min_errors[f'min_val_{norm}_scale{i}']
+        #         curr_error = error_dict[f'val_{norm}_scale{i}']
+        #         pl_module.val_min_errors[f'min_val_{norm}_scale{i}'] = torch.min(old_min,
+        #                                                                          curr_error) if old_min else curr_error
 
-        self.logger.experiment.add_scalars('loss', {'val_loss': curr_loss,
-                                                    'val_min_loss': pl_module.val_min_errors['loss']},
-                                           pl_module.current_epoch)
-        l1_errors = {k: v for k, v in error_dict.items() if 'l1' in k}
-        l2_errors = {k: v for k, v in error_dict.items() if 'l2' in k}
-        l1_min_errors = {k: v for k, v in pl_module.val_min_errors.items() if 'l1' in k}
-        l2_min_errors = {k: v for k, v in pl_module.val_min_errors.items() if 'l2' in k}
-        self.logger.experiment.add_scalars('l1_errors',
-                                           l1_errors, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('l2_errors',
-                                           l2_errors, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('l1_min_error',
-                                           l1_min_errors, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('l2_min_error',
-                                           l2_min_errors, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('val_means',
-                                           means_dict, pl_module.current_epoch)
-        self.logger.experiment.add_scalars('val_variance',
-                                           var_dict, pl_module.current_epoch)
-
+        self.metrics = {**self.metrics, **error_dict}  # , **pl_module.val_min_errors}
         for i in pl_module.val_batch_list.values():
             i.clear()
+
+    def on_epoch_end(self, trainer, pl_module):
+        self.logger.experiment.log_metrics(self.metrics, step=pl_module.current_epoch, epoch=pl_module.current_epoch)
+        self.metrics.clear()
 
 
 def L1_normalized_loss(min, max):
@@ -224,24 +187,32 @@ if __name__ == '__main__':
     TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
     NUM_INPUT_LAYERS = 1
     NUM_OUTPUTS = 5
-    RESNET_TYPE = '18' # '18', '50', '34'
+    RESNET_TYPE = '18'  # '18', '50', '34'
     LOSS_FUNC = F.smooth_l1_loss
-    EXPERIMENT_NAME = ""
+    EXPERIMENT_NAME = None
     TRAINING_DB_PATH = ""
     VALIDATION_DB_PATH = TRAINING_DB_PATH
     VAL_SPLIT = None
     TRANSFORM = my_transforms.top_middle_bw
-    OUTPUT_SCALING = 4
+    OUTPUT_SCALE = 1e4
+    LEARNING_RATE = 1e-2
+    WEIGTH_DECAY = 0
+    COSINE_ANNEALING_STEPS = 10
 
     if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT]:
         raise ValueError('Config not fully initialized')
-    out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power, OUTPUT_SCALING)])
+    params = {'batch_size': BATCH_SIZE, 'train_db': TRAINING_DB_PATH.split('/')[-1],
+              'val_db': VALIDATION_DB_PATH.split('/')[-1], 'train-val_split_index': VAL_SPLIT,
+              'loss_func': LOSS_FUNC.__name__, 'img_transform': TRANSFORM.__name__, 'num_outputs': NUM_OUTPUTS,
+              'output_scaling': OUTPUT_SCALE, 'resnet_type': RESNET_TYPE, 'lr': LEARNING_RATE,
+              'weight_decay': WEIGTH_DECAY, 'cosine_annealing_steps': COSINE_ANNEALING_STEPS}
+    out_transform = lambda x: OUTPUT_SCALE * x
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = hf['generator metadata']['mean images'][()]
         modal_shapes = hf['generator metadata']['modal shapes'][()]
         ir = hf['generator metadata'].attrs['ir'][()]
-        l1_errors_func = partial(calc_errors, F.l1_loss, modal_shapes, OUTPUT_SCALING, ir)
-        l2_errors_func = partial(calc_errors, l2_norm, modal_shapes, OUTPUT_SCALING, ir)
+        l1_errors_func = partial(calc_errors, F.l1_loss, modal_shapes, OUTPUT_SCALE, ir)
+        l2_errors_func = partial(calc_errors, l2_norm, modal_shapes, OUTPUT_SCALE, ir)
         min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
         max_scales = out_transform(np.max(hf['data']['scales'], axis=0))
     transform = TRANSFORM(mean_image)
@@ -255,20 +226,23 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
     model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC,
                               error_funcs=(l1_errors_func, l2_errors_func),
-                              resnet_type=RESNET_TYPE,
-                              cosine_annealing_steps=10)
-    logger = TensorBoardLogger('lightning_logs', name=EXPERIMENT_NAME)
-    mcp = ModelCheckpoint(
-        filepath=f"{logger.log_dir}/checkpoints/"
-                 + "{epoch}",
-        save_last=True,
-        save_top_k=10,
-        period=-1,
-        monitor='val_loss',
-        verbose=True)
+                              resnet_type=RESNET_TYPE, learning_rate=LEARNING_RATE,
+                              cosine_annealing_steps=10, weight_decay=WEIGTH_DECAY)
+    logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
+                         experiment_name=EXPERIMENT_NAME)
+
+    logger.log_hyperparams(params=params)
+    # mcp = ModelCheckpoint(
+    #     filepath=f"{model.logger.log_dir}/checkpoints/"
+    #              + "{epoch}",
+    #     save_last=True,
+    #     save_top_k=10,
+    #     period=-1,
+    #     monitor='val_loss',
+    #     verbose=True)
 
     trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger)],
-                         checkpoint_callback=mcp,
+                         # checkpoint_callback=mcp,
                          num_sanity_val_steps=0,
-                         profiler=True, logger=logger)
+                         profiler=True)
     trainer.fit(model, train_loader, val_loader)

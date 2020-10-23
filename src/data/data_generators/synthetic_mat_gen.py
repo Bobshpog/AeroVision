@@ -70,7 +70,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
         #     dset_scale_names[idx] = name
         dset_displacements = group.create_dataset('displacements', data=self.disp_arr, dtype=np.float)
         dset_mean_images = group.create_dataset('mean images', dtype=np.float32,
-                                                data=self.wing_model(np.zeros(self.cords.shape, dtype=np.float32))[0])
+                                                data=self.wing_model(self.disp_arr.mean(axis=0))[0])
         group.create_dataset('modal shapes', dtype=np.float64,
                              data=read_modal_shapes(self.modal_shape_mat_path, num_scales=self.num_scales))
 

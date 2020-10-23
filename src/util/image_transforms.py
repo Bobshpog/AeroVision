@@ -55,6 +55,7 @@ def top_middle_rgbd(mean_photos):
     remove_mean = partial(remove_dc_photo, mean_photos)
     return transforms.Compose([slice_first_position_with_depth,
                                remove_mean,
+                               last_axis_to_first
                                ])
 
 
