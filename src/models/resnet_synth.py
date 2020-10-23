@@ -210,15 +210,13 @@ if __name__ == '__main__':
               'loss_func': LOSS_FUNC.__name__, 'img_transform': TRANSFORM.__name__, 'num_outputs': NUM_OUTPUTS,
               'output_scaling': OUTPUT_SCALE, 'resnet_type': RESNET_TYPE, 'lr': LEARNING_RATE,
               'weight_decay': WEIGTH_DECAY, 'cosine_annealing_steps': COSINE_ANNEALING_STEPS}
-    out_transform = lambda x: OUTPUT_SCALE * x
+    out_transform = my_transforms.scale_by(OUTPUT_SCALE)
     with h5py.File(TRAINING_DB_PATH, 'r') as hf:
         mean_image = hf['generator metadata']['mean images'][()]
         modal_shapes = hf['generator metadata']['modal shapes'][()]
         ir = hf['generator metadata'].attrs['ir'][()]
         l1_errors_func = partial(calc_errors, F.l1_loss, modal_shapes, OUTPUT_SCALE, ir)
         l2_errors_func = partial(calc_errors, l2_norm, modal_shapes, OUTPUT_SCALE, ir)
-        min_scales = out_transform(np.min(hf['data']['scales'], axis=0))
-        max_scales = out_transform(np.max(hf['data']['scales'], axis=0))
     transform = TRANSFORM(mean_image)
     train_dset = ImageDataset(TRAINING_DB_PATH,
                               transform=transform, out_transform=out_transform, cache_size=TRAIN_CACHE_SIZE,
@@ -240,7 +238,7 @@ if __name__ == '__main__':
         shutil.rmtree(checkpoints_folder)
     else:
         Path(checkpoints_folder).mkdir(parents=True, exist_ok=True)
-        mcp = ModelCheckpoint(
+    mcp = ModelCheckpoint(
         filepath=checkpoints_folder + "{epoch}",
         save_last=True,
         save_top_k=10,
