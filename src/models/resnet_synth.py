@@ -2,6 +2,7 @@ import os
 import shutil
 from collections import defaultdict
 from functools import partial
+from pathlib import Path
 
 import h5py
 import numpy as np
@@ -227,7 +228,7 @@ if __name__ == '__main__':
                             min_index=VAL_SPLIT)
     train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
-    model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC,
+    model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC, output_scale=OUTPUT_SCALE,
                               error_funcs=(l1_errors_func, l2_errors_func),
                               resnet_type=RESNET_TYPE, learning_rate=LEARNING_RATE,
                               cosine_annealing_steps=10, weight_decay=WEIGTH_DECAY)
@@ -238,8 +239,8 @@ if __name__ == '__main__':
     if os.path.isdir(checkpoints_folder):
         shutil.rmtree(checkpoints_folder)
     else:
-        os.mkdir(checkpoints_folder)
-    mcp = ModelCheckpoint(
+        Path(checkpoints_folder).mkdir(parents=True, exist_ok=True)
+        mcp = ModelCheckpoint(
         filepath=checkpoints_folder + "{epoch}",
         save_last=True,
         save_top_k=10,
