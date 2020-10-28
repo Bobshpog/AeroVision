@@ -228,7 +228,7 @@ class Mesh:
                   title_location: title location
                   font_size: the font size of the title
                   font_color: the color of the font for the title
-                  texture: the filename for the texture of the figure
+                  texture: the filename for the texture of the figure or np array
                   camera: the [camera position , focal point, view up] each (x,y,z) tuple
 
              Returns:
@@ -247,7 +247,10 @@ class Mesh:
         if texture is None:
             plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture)
         else:
-            tex = pv.read_texture(texture)
+            if isinstance(texture, np.ndarray):
+                tex = pv.numpy_to_texture(texture)
+            else:
+                tex = pv.read_texture(texture)
             self.pv_mesh.texture_map_to_plane(inplace=True)
             plotter.add_mesh(self.pv_mesh, texture=tex)
         if show:
@@ -350,7 +353,11 @@ class Mesh:
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
         tex = None
         if texture:
-            tex = pv.read_texture(texture)
+
+            if isinstance(texture, np.ndarray):
+                tex = pv.numpy_to_texture(texture)
+            else:
+                tex = pv.read_texture(texture)
             self.pv_mesh.texture_map_to_plane(inplace=True)
             # plotter.add_mesh(pv_mesh, texture=tex)
 
@@ -398,7 +405,10 @@ class Mesh:
         if texture is None:
             plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture)
         else:
-            tex = pv.read_texture(texture)
+            if isinstance(texture, np.ndarray):
+                tex = pv.numpy_to_texture(texture)
+            else:
+                tex = pv.read_texture(texture)
             self.pv_mesh.texture_map_to_plane(inplace=True)
             plotter.add_mesh(self.pv_mesh, texture=tex)
         plotter.show(auto_close=False)
@@ -440,9 +450,12 @@ class Mesh:
                 plotter.add_mesh(mesh[i].pv_mesh, cmap=cmap, texture=texture[i],
                                  name='get_photo_'+str(i))
             else:
-                tex = pv.read_texture(texture[i])
+                if isinstance(texture[i], np.ndarray):
+                    tex = pv.numpy_to_texture(texture[i])
+                else:
+                    tex = pv.read_texture(texture[i])
                 mesh[i].pv_mesh.texture_map_to_plane(inplace=True)
-                plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_'+str(i))
+                plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_'+str(i), show_scalar_bar=False)
 
             plotter.update_coordinates(movement[i])
         if title is not None:
@@ -489,7 +502,10 @@ class Mesh:
                 plotter.add_mesh(mesh[i].pv_mesh, cmap=cmap, texture=texture[i],
                                  name='get_photo_'+str(i))
             else:
-                tex = pv.read_texture(texture[i])
+                if isinstance(texture[i], np.ndarray):
+                    tex = pv.numpy_to_texture(texture[i])
+                else:
+                    tex = pv.read_texture(texture[i])
                 mesh[i].pv_mesh.texture_map_to_plane(inplace=True)
                 plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_'+str(i))
 
@@ -731,7 +747,10 @@ def animate_few_meshes(mesh, movement, f=None, subplot=(0, 0), texture=None, cma
         if texture[idx] is None:
             plotter.add_mesh(pv_mesh[idx], scalars=f[idx], cmap=cmap[idx], texture=texture[idx])
         else:
-            tex = pv.read_texture(texture[idx])
+            if isinstance(texture[idx], np.ndarray):
+                tex = pv.numpy_to_texture(texture[idx])
+            else:
+                tex = pv.read_texture(texture[idx])
             pv_mesh[idx].texture_map_to_plane(inplace=True)
             plotter.add_mesh(pv_mesh[idx], texture=tex)
     # starting the animation

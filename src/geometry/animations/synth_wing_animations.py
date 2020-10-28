@@ -56,7 +56,10 @@ camera_pos = {
                         (0.18216637888466586, 0.32036813133340425, 0.9296126455841653)],
             'up_middle_turned': [(0.047, -0.053320266561896174, 0.026735639600027315),
                                  (-0.12, 0.3, 0.02),
-                                 (0, 0, 1)]
+                                 (0, 0, 1)],
+            'only_tip': [(0.021325091578885777, 0.0973123942076604, 0.3153602234842197),
+                         (0.05, 0.7, 0.02),
+                         (-0.015600717667910225, 0.440612125193422, 0.9)]
         }
 
 
@@ -67,6 +70,15 @@ def synth_wing_animation(path):
     z = mat['U3']
     tip = Mesh('data/wing_off_files/fem_tip.off')
     mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
+    tip2 = Mesh('data/wing_off_files/fem_tip.off')
+    mesh2 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    tip3 = Mesh('data/wing_off_files/fem_tip.off')
+    mesh3 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    tip4 = Mesh('data/wing_off_files/fem_tip.off')
+    mesh4 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    tip5 = Mesh('data/wing_off_files/fem_tip.off')
+    mesh5 = Mesh('data/wing_off_files/synth_wing_v3.off')
+
     TIP_RADIUS = 0.008
     NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
     tip_vertices_num = 930
@@ -78,82 +90,77 @@ def synth_wing_animation(path):
     tex = "data/textures/circles_tex.png"
     res = [480,480]
     plotter = pv.Plotter(off_screen=True)
-    frames = 1000
+    plotter2 = pv.Plotter(off_screen=True)
+    frames = 500
     url = "src/tests/temp/video_frames/"
     i = 0
     im_frames = []
     f1 = np.zeros(mesh.vertices.shape)
-    for phase in range(frames):
+    noise = np.zeros((1000,1000,3)).astype(np.uint8)
+    noise2 = np.zeros((1000,1000,3)).astype(np.uint8)
+    for phase in trange(frames):
         i = i + 1
         f1[:,0] = x[:, phase] + mesh.vertices[:, 0]
         f1[:,1] = y[:, phase] + mesh.vertices[:, 1]
         f1[:,2] = z[:, phase] + mesh.vertices[:, 2]
+
         synth_tip_movement(mesh_ver=mesh.vertices, tip_index=tip_index_arr, x=x, y=y, z=z, y_t=y_t, z_t=z_t,
                            tip_table=tip.table, new_tip_position=new_tip_position, t=phase)
-        photo = Mesh.get_photo([mesh, tip], [f1, new_tip_position], plotter=plotter, texture=[tex, None],
-                               cmap=None, camera=camera_pos["up_right"], resolution=res, title="up right")
+        p = (np.clip((np.random.normal(0.5, 0.25, noise[:, :, 2].shape)), 0, 1) * 255).astype(np.uint8)
+        noise[:, :, 0] = p
+        noise[:, :, 1] = p
+        noise[:, :, 2] = p
+        noise2[np.where(noise > 127)] = 255
+        noise2[np.where(noise <= 127)] = 0
+
+        photo = Mesh.get_photo([mesh5, tip5], [f1, new_tip_position], plotter=plotter, texture=[noise, None],
+                               cmap=None, camera=camera_pos["up_middle"], resolution=res, title="only wing gaussian noise")
         depth = photo[:, :,0:3]
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
         cv2.imwrite(url + "depth_frameA" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
-        photo = Mesh.get_photo([mesh, tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None],
-                               cmap=None, camera=camera_pos["up_middle"], resolution=res, title="up middle")
+        photo = Mesh.get_photo([mesh2, tip2], [f1, new_tip_position], plotter=plotter2, texture=[noise,noise],
+                               cmap=None, camera=camera_pos["up_middle"], resolution=res, title="wing and tip gaussian noise")
         depth = photo[:, :,0:3]
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
         cv2.imwrite(url + "depth_frameB" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
-        photo = Mesh.get_photo([mesh,tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None],
-                               cmap=None, camera=camera_pos["up_left"], resolution=res, title="up left")
-        depth = photo[:, :,0:3]
-        r= np.copy(photo[:,:,2])
-        depth[:,:,2] = depth[:,:,0]
-        depth[:,:,0] = r
-        cv2.imwrite(url + "depth_frameC" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
 
         img1 = cv2.imread(url + "depth_frameA" + str(i) + ".jpg")
         img2 = cv2.imread(url + "depth_frameB" + str(i) + ".jpg")
-        img3 = cv2.imread(url + "depth_frameC" + str(i) + ".jpg")
-        img_u = cv2.hconcat([img3, img2, img1])
 
-        photo = Mesh.get_photo([mesh,tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None],
-                               cmap=None, camera=camera_pos["rotated_down_right"], resolution=res, title="down right",
-                               title_location="lower_edge")
+        img_u = cv2.hconcat([img2, img1])
+
+        photo = Mesh.get_photo([mesh3,tip3], [f1, new_tip_position], plotter=plotter, texture=[noise2,None],
+                               cmap=None, camera=camera_pos["up_middle"], resolution=res, title="only wing binary noise",
+                               )
         depth = photo[:, :,0:3]
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
         cv2.imwrite(url + "depth_frameD" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
-        photo = Mesh.get_photo([mesh,tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None], cmap=None,
-                               camera=camera_pos["rotated_down_middle"], resolution=res, title="down middle",
-                               title_location="lower_edge")
+        photo = Mesh.get_photo([mesh4,tip4], [f1, new_tip_position], plotter=plotter2, texture=[noise2,noise2], cmap=None,
+                               camera=camera_pos["up_middle"], resolution=res, title="wing and tip binary noise",
+                               )
         depth = photo[:, :,0:3]
         r= np.copy(photo[:,:,2])
         depth[:,:,2] = depth[:,:,0]
         depth[:,:,0] = r
         cv2.imwrite(url + "depth_frameE" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
-        photo = Mesh.get_photo([mesh,tip], [f1, new_tip_position], plotter=plotter, texture=[tex,None], cmap=None,
-                               camera=camera_pos["rotated_down_left"], resolution=res, title="down left",
-                               title_location="lower_edge")
 
-        depth = photo[:, :,0:3]
-        r= np.copy(photo[:,:,2])
-        depth[:,:,2] = depth[:,:,0]
-        depth[:,:,0] = r
-        cv2.imwrite(url + "depth_frameF" + str(i) + ".jpg", np.asarray(depth* 255,np.uint8))
 
         img1 = cv2.imread(url + "depth_frameD" + str(i) + ".jpg")
         img2 = cv2.imread(url + "depth_frameE" + str(i) + ".jpg")
-        img3 = cv2.imread(url + "depth_frameF" + str(i) + ".jpg")
-        img_d = cv2.hconcat([img3, img2, img1])
+        img_d = cv2.hconcat([img2, img1])
         img_f = cv2.vconcat([img_u, img_d])
         #7,cv2.imshow("frame", img_f)
         im_frames.append(img_f)
         # cv2 does not support making video from np array...
         if cv2.waitKey(1) & 0xFF == ord('q'):
              break
-    out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (1440, 960))
+    out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (res[1] * 2, res[0] * 2))
     for i in range(len(im_frames)):
         out.write(im_frames[i])
     out.release()
@@ -340,8 +347,6 @@ def modal_animation(path):
                        gif_path=path,
                        camera=cam, depth=False
                        )
-
-    pass
 
 
 def scale_made_movement(path, amp):
