@@ -1,0 +1,19 @@
+name: /home/alex/miniconda3/envs
+channels:
+  - open3d-admin
+  - https://conda.anaconda.org/conda-forge/
+  - defaults
+dependencies:
+  - python=3.7
+  - numpy
+  - pytorch-lightning
+  - matplotlib
+  - opencv
+  - pyvista
+  - h5py
+  - scipy
+  - torchvision
+  - scikit-learn
+  - open3d
+prefix: /home/alex/miniconda3/envs
+
