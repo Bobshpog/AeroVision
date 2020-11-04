@@ -121,8 +121,8 @@ class SyntheticWingModel:
     cmap: str
 
     def __post_init__(self):
-        self.wing = Mesh(self.wing_path)
-        self.tip = Mesh(self.tip_path)
+        self.wing = Mesh(self.wing_path,texture=self.texture_wing)
+        self.tip = Mesh(self.tip_path,texture=self.texture_tip)
 
     def _get_new_position(self, displacement):
         """
