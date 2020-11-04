@@ -108,7 +108,7 @@ class Mesh:
     A class representing a Mesh grid
     """
 
-    def __init__(self, path):
+    def __init__(self, path, texture=None):
         """
         Constructor
 
@@ -141,6 +141,11 @@ class Mesh:
         pv_styled_faces = np.insert(self.faces, 0, 3, axis=1)
         # mesh in pyvista format
         self.pv_mesh = pv.PolyData(self.vertices, pv_styled_faces)
+        if texture:
+            self.pv_mesh.texture_map_to_plane(inplace=True, use_bounds=1)
+            self.texture = pv.read_texture(texture)
+        else:
+            self.texture = None
 
     # ----------------------------Basic Visualizer----------------------------#
 
@@ -211,6 +216,51 @@ class Mesh:
         if show:
             plotter.show()
         return plotter
+
+    def _find_normal_plane_to_camera(self, camera, height, width):
+
+        A = np.zeros((4, 4), dtype=np.float32)
+
+        center = np.ones(4)
+        center[:3] = np.array(camera[0], dtype=np.float)
+        focal = np.ones(4)
+        focal[:3] = np.array(camera[1], dtype=np.float)
+        b1 = np.zeros((4,), dtype=np.float32)
+        b1[:3] = camera[2]
+
+        plane_normal = focal - center
+        # plane_normal = plane_normal / np.linalg.norm(plane_normal)
+        b2 = np.zeros(4)
+        b2[:3] = np.cross(b1[:3], plane_normal[:3])
+        A[:3, 1] = b1[:3]
+        A[:3, 2] = plane_normal[:3]
+        A[:3, 3] = center[:3]
+        A[:3, 0] = b2[:3]
+        A[3, 3] = 1
+
+        # A = np.array([
+        #     [9.99963954e-01, -8.49057398e-03, 0, -4.74510255e-02],
+        #     [1.61827673e-04, 1.90589989e-02, 9.99818348e-01, -2.57221580e-02],
+        #     [-8.48903165e-03, -9.99782309e-01, 1.90596859e-02, -5.34192476e-02]
+        #     , [0, 0, 0, 1]])
+        A = np.eye(4)
+        A_inv = np.linalg.inv(A)
+
+        # center2=focal
+        origin = center - height / 2 * b1 + width / 2 * b2  # bottom left
+        point_u = center - height / 2 * b1 - width / 2 * b2  # bottom right
+        point_v = center + height / 2 * b1 + width / 2 * b2  # top left
+        b = self.pv_mesh.GetBounds()
+        # origin[:3] = [b[0], b[2], b[4]]  # BOTTOM LEFT CORNER
+        # point_u[:3] = [b[1], b[2], b[4]]  # BOTTOM RIGHT CORNER
+        # point_v[:3] = [b[0], b[3], b[4]]  # TOP LEFT CORNER
+        origin = A_inv @ origin
+        point_u = A_inv @ point_u
+        point_v = A_inv @ point_v
+        origin = origin / origin[-1]
+        point_u = point_u / point_u[-1]
+        point_v = point_v / point_v[-1]
+        return origin[:3], point_u[:3], point_v[:3]
 
     def plot_faces(self, f=None, index_row=0, index_col=0, show=True, plotter=None, cmap='jet', title=None,
                    title_location="upper_edge", font_size=10, font_color='black', texture=None, camera=None):
@@ -422,10 +472,10 @@ class Mesh:
         plotter.close()
 
     @staticmethod
-    def get_photo(mesh, movement, resolution, texture, cmap,
-                  plotter, camera, title=None, title_location = "upper_edge"):
+    def get_photo(mesh, movement, resolution, cmap,
+                  plotter, camera, title=None, title_location="upper_edge"):
         """
-        Take a photo of the mesh in a cerain position
+        Take a photo of the mesh in a certain position
         all args in case for more then one mesh should be in list
 
        Args:
@@ -441,39 +491,12 @@ class Mesh:
         Returns:
            An image shot from camera of the mesh
         """
-        num_of_mesh = len(mesh)
-        plotter.set_position(camera[0])
-        plotter.set_focus(camera[1])
-        plotter.set_viewup(camera[2])
-        for i in range(num_of_mesh):
-            if texture[i] is None:
-                plotter.add_mesh(mesh[i].pv_mesh, cmap=cmap, texture=texture[i],
-                                 name='get_photo_'+str(i))
-            else:
-                if isinstance(texture[i], np.ndarray):
-                    tex = pv.numpy_to_texture(texture[i])
-                else:
-                    tex = pv.read_texture(texture[i])
-                mesh[i].pv_mesh.texture_map_to_plane(inplace=True)
-                plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_'+str(i), show_scalar_bar=False)
-
-            plotter.update_coordinates(movement[i])
-        if title is not None:
-            plotter.add_text(title, position=title_location, font_size=10, color="black", name="title")
-        plotter.set_background(color="white")
-        plotter.show(auto_close=False, window_size=resolution)
-        depth = plotter.get_image_depth(fill_value=None)
-        depth = np.abs(depth)
-        screen = plotter.screenshot(window_size=resolution)
-        screen = screen/255
-        if title is not None:
-            plotter.remove_actor("title")
-        return np.asarray(np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1), np.float32)
-
+        return Mesh.get_many_photos(mesh, movement, resolution, cmap,
+                                    plotter, camera, title, title_location)
 
     @staticmethod
-    def get_many_photos(mesh, movement, resolution, texture, cmap,
-                         plotter, camera):
+    def get_many_photos(mesh, movement, resolution, cmap,
+                        plotter, camera, title=None, title_location="upper_edge"):
         """
         Take a photo of the mesh in a cerain position
         all args in case for more then one mesh should be in list
@@ -496,20 +519,15 @@ class Mesh:
 
         if num_of_mesh == 1:
             mesh = [mesh]
-            texture = [texture]
         for i in range(num_of_mesh):
-            if texture[i] is None:
-                plotter.add_mesh(mesh[i].pv_mesh, cmap=cmap, texture=texture[i],
-                                 name='get_photo_'+str(i))
+            if mesh[i].texture is None:
+                plotter.add_mesh(mesh[i].pv_mesh, cmap=cmap,
+                                 name='get_photo_' + str(i))
             else:
-                if isinstance(texture[i], np.ndarray):
-                    tex = pv.numpy_to_texture(texture[i])
-                else:
-                    tex = pv.read_texture(texture[i])
-                mesh[i].pv_mesh.texture_map_to_plane(inplace=True)
-                plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_'+str(i))
-
-            plotter.update_coordinates(movement[i])
+                plotter.add_mesh(mesh[i].pv_mesh, texture=mesh[i].texture, name='get_photo_mesh_' + str(i))
+            plotter.update_coordinates(movement[i], mesh=mesh[i])
+        if title is not None:
+            plotter.add_text(title, position=title_location, font_size=10, color="black", name="title")
         plotter.set_background(color="white")
         plotter.show(auto_close=False, window_size=resolution)
         for idx, cam in enumerate(camera):
@@ -519,11 +537,9 @@ class Mesh:
             depth = plotter.get_image_depth(fill_value=None)
             depth = np.abs(depth)
             screen = plotter.screenshot(window_size=resolution)
-            screen = screen/255
+            screen = screen / 255
             to_return[idx] = np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
         return np.asarray(to_return, np.float32)
-
-
 
     # ----------------------------Basic Properties----------------------------#
     def __len__(self):

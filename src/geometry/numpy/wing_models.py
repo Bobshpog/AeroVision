@@ -20,8 +20,8 @@ class FiniteElementWingModel:
     cmap: str
 
     def __post_init__(self):
-        self.wing = Mesh(self.wing_path)
-        self.tip = Mesh(self.tip_path)
+        self.wing = Mesh(self.wing_path,self.texture_wing)
+        self.tip = Mesh(self.tip_path,texture=self.texture_tip)
 
     def _get_new_position(self, displacement):
         """
@@ -186,7 +186,7 @@ class SyntheticWingModel:
         photos = Mesh.get_many_photos((self.wing, self.tip),
                                       movement=movement, resolution=self.resolution, camera=cameras,
                                       cmap=self.cmap,
-                                      texture=[self.texture_wing, self.texture_tip], plotter=self.plotter)
+                                       plotter=self.plotter)
         return photos
 
     def __call__(self, displacement):

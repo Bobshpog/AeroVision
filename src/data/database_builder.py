@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Union
 
 import h5py
-import h5py_cache as h5c
 import numpy as np
 from tqdm import tqdm
 

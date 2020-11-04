@@ -16,6 +16,7 @@ class TestCustomInputResnet(TestCase):
     def test_run_model(self):
         CHECKPOINT_PATH = ""
         mode_shape_path = "data/synt_data_mat_files/modes.mat"
+        dset="data/databases/20201016-232432__SyntheticMatGenerator(mesh_wing='synth_wing_v3.off', mesh_tip='fem_tip.off', resolution=[640, 480], texture_path='checkers_dark_blue.png'.hdf5"
         vid_path = "src/tests/temp/creation_of_modees.mp4"
         trash_path = "src/tests/temp/video_frames/"
         texture_path = "data/textures/checkers_dark_blue.png"
@@ -24,11 +25,11 @@ class TestCustomInputResnet(TestCase):
         model = CustomInputResnet.load_from_checkpoint(CHECKPOINT_PATH)
         model.eval()
 
-        with h5py.File("data/databases/20201007-192101__SyntheticMatGenerator(mesh_wing='synth_wing_v3.off', mesh_tip='fem_tip.off', resolution=[640, 480], texture_path='checkers_dark_blue.png'.hdf5", 'r') as hf:
+        with h5py.File(dset, 'r') as hf:
             mean_image = hf['generator metadata']['mean images'][()]
         out_transform = transforms.Compose([partial(my_transforms.mul_by_10_power, 4)])
         transform = my_transforms.top_middle_rgb(mean_image)
-        val_dset = ImageDataset("data/databases/20201007-192101__SyntheticMatGenerator(mesh_wing='synth_wing_v3.off', mesh_tip='fem_tip.off', resolution=[640, 480], texture_path='checkers_dark_blue.png'.hdf5",
+        val_dset = ImageDataset(dset,
                                 transform=transform, out_transform=out_transform, cache_size=1000,
                                 min_index=895)
         val_loader = DataLoader(val_dset, 1, shuffle=False, num_workers=0)
