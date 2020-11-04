@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 from tqdm import trange
 
-import src.data.database as db
+import src.data.database_builder as db
 from src.data.data_generators.synthetic_csv_gen import SyntheticCSVGenerator
 from src.data.data_generators.synthetic_mat_gen import SyntheticMatGenerator
 from src.data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayingGen
@@ -59,6 +59,11 @@ class TestDatabaseBuilder(TestCase):
                    [(-0.019770941905445285, -0.06082136750543311, -0.038694507832388224),
                     (0.05, 0.3, 0.02),
                     (0.041, 0.0438, -1)],
+                   [
+                       (-1.047, -0.053320266561896174, 0.026735639600027315),
+                       (--1.12, 0.3, 0.02),
+                       (-1, 0, 1)
+                   ],
                    [
                        (0.021325091578885777, 0.0973123942076604, 0.3153602234842197),
                        (0.05, 0.7, 0.02),
