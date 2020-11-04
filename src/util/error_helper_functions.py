@@ -4,7 +4,7 @@ from tqdm import tqdm, trange
 from src.util.loss_functions import *
 
 
-def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x: torch.Tensor, y: torch.Tensor):
+def calc_errors(loss_function, mode_shapes: np.ndarray, scale_factor, ir_indices, x: torch.Tensor, y: torch.Tensor):
     """
     return errors as written in the exel file format
     Args:
@@ -13,6 +13,7 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x: torc
         mode_shapes: mode shape as read using matlab_reader.read_modal_shapes()
         x: first set of scales (shape = num_datapoints, num_scales)
         y: second set of scales (shape = num_datapoints, num_scales)
+        scale_factor: used for reconstruction_3d_loss
 
     Returns:
         error values in the following error
@@ -22,8 +23,8 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x: torc
     """
     num_datapoints, num_scales = x.shape
     device = x.device
-    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x, y).mean()
-    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x, y).mean()
+    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, scale_factor, x, y).mean()
+    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], scale_factor, x, y).mean()
     regression_loss = torch.zeros(x.shape[1], device=device)
     for i in range(num_datapoints ):
         for k in range(num_scales):

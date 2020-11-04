@@ -32,14 +32,14 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
     return reconstruction_loss_3d(l2, mode_shapes, pow, x, y)
 
 
-def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, pow: int,
+def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, scale_factor: int,
                            x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
     """
         return loss between shape (based on the scales) we received and the shape we calculated by our own scales
           Args:
               loss_function loss function takes two |V| vectors and calclate the loss between them
               mode_shapes: a [V,n] tensor or np array representing the mode shapes (only the Z axis)
-              pow: the power of 10 used to scale the mode scales
+              scale_factor: the power of 10 used to scale the mode scales
               x: first set of scales
               y: second set of scales
            Returns:
@@ -48,14 +48,14 @@ def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, pow: int,
 
     if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
         device = 'cpu'
-        return reconstruction_loss_3d(mode_shapes, pow, torch.tensor(x, device=device),
+        return reconstruction_loss_3d(mode_shapes, scale_factor, torch.tensor(x, device=device),
                                       torch.tensor(y, device=device)).detach().numpy()
     num_datapoints = 1 if len(x.shape) == 1 else x.shape[0]
     num_vertices = mode_shapes.size / (3 * x.shape[-1])
     device = x.device
     with torch.no_grad():
-        _x = x * 10 ** -pow
-        _y = y * 10 ** -pow
+        _x = x / scale_factor
+        _y = y / scale_factor
         _x = _x.view(-1, _x.shape[-1]).to(torch.float64).T
         _y = _y.view(-1, _y.shape[-1]).to(torch.float64).T
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
