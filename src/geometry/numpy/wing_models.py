@@ -86,7 +86,7 @@ class FiniteElementWingModel:
         photos = Mesh.get_photo((self.wing, self.tip),
                                 movement=movement, resolution=self.resolution, camera=cameras,
                                 cmap=self.cmap,
-                                texture=[self.texture_wing, self.texture_tip], plotter=self.plotter)
+                                plotter=self.plotter)
         return photos
 
     def __call__(self, displacement):
