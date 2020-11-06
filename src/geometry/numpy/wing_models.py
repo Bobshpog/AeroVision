@@ -122,10 +122,12 @@ class SyntheticWingModel:
     plotter: pv.BasePlotter
     resolution: list
     cmap: str
-
+    old_wing_path: str
     def __post_init__(self):
-        self.wing = Mesh(self.wing_path)
-        self.tip = Mesh(self.tip_path)
+        self.wing = Mesh(self.wing_path,texture=self.texture_wing)
+        self.tip = Mesh(self.tip_path,texture=self.texture_tip)
+        self.old_wing = Mesh(self.old_wing_path)
+        self.compatibility_arr = mesh_compatibility_creation(self.wing.vertices)
 
     def _get_new_position(self, displacement):
         """

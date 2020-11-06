@@ -5,7 +5,6 @@ from functools import partial
 from pathlib import Path
 
 import h5py
-import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -24,7 +23,7 @@ from src.util.loss_functions import l2_norm
 
 
 class CustomInputResnet(pl.LightningModule):
-    def __init__(self, num_input_layers, num_outputs, loss_func, error_funcs, output_scale,
+    def __init__(self, num_input_layers, num_outputs, loss_func, error_funcs, output_scaling,
                  resnet_type, learning_rate,
                  cosine_annealing_steps,
                  weight_decay):
@@ -37,7 +36,7 @@ class CustomInputResnet(pl.LightningModule):
         self.num_output_layers = num_outputs
         self.loss_func = loss_func
         self.l1_error_func, self.l2_error_func = error_funcs
-        self.output_scale = output_scale
+        self.output_scale = output_scaling
         self.learning_rate = learning_rate
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
@@ -184,56 +183,54 @@ def L1_normalized_loss(min, max):
                                                                                             device=x.device)
 
 
-if __name__ == '__main__':
-    BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
-    NUM_EPOCHS = 1000
-    VAL_CACHE_SIZE = 1000
-    TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
-    NUM_INPUT_LAYERS = 1
-    NUM_OUTPUTS = 5
-    RESNET_TYPE = '18'  # '18', '50', '34'
-    LOSS_FUNC = F.smooth_l1_loss
-    EXPERIMENT_NAME = None
-    TRAINING_DB_PATH = ""
-    VALIDATION_DB_PATH = TRAINING_DB_PATH
-    VAL_SPLIT = None
-    TRANSFORM = my_transforms.top_middle_bw
-    OUTPUT_SCALE = 1e4
-    LEARNING_RATE = 1e-2
-    WEIGTH_DECAY = 0
-    COSINE_ANNEALING_STEPS = 10
-
-    if None in [BATCH_SIZE, NUM_EPOCHS, RESNET_TYPE, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT, EXPERIMENT_NAME]:
+def run_resnet_synth(num_input_layers, num_outputs,
+                     comment, train_db_path, val_db_path, val_split, transform, output_scaling=1e-4, lr=1e-2,
+                     resnet_type='18', train_cache_size=1000, val_cache_size=5500, batch_size=64, num_epochs=1000,
+                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss):
+    if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
         raise ValueError('Config not fully initialized')
-    params = {'batch_size': BATCH_SIZE, 'train_db': TRAINING_DB_PATH.split('/')[-1],
-              'val_db': VALIDATION_DB_PATH.split('/')[-1], 'train-val_split_index': VAL_SPLIT,
-              'loss_func': LOSS_FUNC.__name__, 'img_transform': TRANSFORM.__name__, 'num_outputs': NUM_OUTPUTS,
-              'output_scaling': OUTPUT_SCALE, 'resnet_type': RESNET_TYPE, 'lr': LEARNING_RATE,
-              'weight_decay': WEIGTH_DECAY, 'cosine_annealing_steps': COSINE_ANNEALING_STEPS}
-    out_transform = my_transforms.scale_by(OUTPUT_SCALE)
-    with h5py.File(TRAINING_DB_PATH, 'r') as hf:
+    params = {'batch_size': batch_size, 'train_db': train_db_path.split('/')[-1],
+              'val_db': val_db_path.split('/')[-1], 'train-val_split_index': val_split,
+              'loss_func': loss_func.__name__, 'img_transform': transform.__name__, 'num_outputs': num_outputs,
+              'output_scaling': output_scaling, 'resnet_type': resnet_type, 'lr': lr,
+              'weight_decay': weight_decay, 'cosine_annealing_steps': cosine_annealing_steps}
+    out_transform = my_transforms.scale_by(output_scaling)
+    with h5py.File(train_db_path, 'r') as hf:
         mean_image = hf['generator metadata']['mean images'][()]
         modal_shapes = hf['generator metadata']['modal shapes'][()]
         ir = hf['generator metadata'].attrs['ir'][()]
-        l1_errors_func = partial(calc_errors, F.l1_loss, modal_shapes, OUTPUT_SCALE, ir)
-        l2_errors_func = partial(calc_errors, l2_norm, modal_shapes, OUTPUT_SCALE, ir)
-    transform = TRANSFORM(mean_image)
-    train_dset = ImageDataset(TRAINING_DB_PATH,
-                              transform=transform, out_transform=out_transform, cache_size=TRAIN_CACHE_SIZE,
-                              max_index=VAL_SPLIT)
-    val_dset = ImageDataset(VALIDATION_DB_PATH,
-                            transform=transform, out_transform=out_transform, cache_size=VAL_CACHE_SIZE,
-                            min_index=VAL_SPLIT)
-    train_loader = DataLoader(train_dset, BATCH_SIZE, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dset, BATCH_SIZE, shuffle=False, num_workers=4)
-    model = CustomInputResnet(NUM_INPUT_LAYERS, NUM_OUTPUTS, loss_func=LOSS_FUNC, output_scale=OUTPUT_SCALE,
-                              error_funcs=(l1_errors_func, l2_errors_func),
-                              resnet_type=RESNET_TYPE, learning_rate=LEARNING_RATE,
-                              cosine_annealing_steps=10, weight_decay=WEIGTH_DECAY)
+        db_size = hf['data']['images'].len()
+        l1_errors_func = partial(calc_errors, F.l1_loss, modal_shapes, output_scaling, ir)
+        l2_errors_func = partial(calc_errors, l2_norm, modal_shapes, output_scaling, ir)
+    transform = transform(mean_image)
+    if isinstance(val_split, int):
+        train_dset = ImageDataset(train_db_path,
+                                  transform=transform, out_transform=out_transform, cache_size=train_cache_size,
+                                  max_index=val_split)
+        val_dset = ImageDataset(val_db_path,
+                                transform=transform, out_transform=out_transform, cache_size=val_cache_size,
+                                min_index=val_split)
+    else:
+        train_split = set(range(db_size))
+        train_split -= set(val_split)
+        train_split = tuple(train_split)
+        train_dset = ImageDataset(train_db_path,
+                                  transform=transform, out_transform=out_transform, cache_size=train_cache_size,
+                                  index_list=train_split)
+        val_dset = ImageDataset(val_db_path,
+                                transform=transform, out_transform=out_transform, cache_size=val_cache_size,
+                                min_index=val_split)
+    train_loader = DataLoader(train_dset, batch_size, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
+    model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
+                              error_funcs=(l1_errors_func,
+                                           l2_errors_func),
+                              resnet_type=resnet_type, learning_rate=lr,
+                              cosine_annealing_steps=10, weight_decay=weight_decay)
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
-                         experiment_name=EXPERIMENT_NAME)
+                         experiment_name=comment)
     logger.log_hyperparams(params=params)
-    checkpoints_folder = f"./checkpoints/{EXPERIMENT_NAME}/"
+    checkpoints_folder = f"./checkpoints/{comment}/"
     if os.path.isdir(checkpoints_folder):
         shutil.rmtree(checkpoints_folder)
     else:
@@ -246,7 +243,7 @@ if __name__ == '__main__':
         monitor='val_loss',
         verbose=True)
 
-    trainer = pl.Trainer(gpus=1, max_epochs=NUM_EPOCHS, callbacks=[LoggerCallback(logger)],
+    trainer = pl.Trainer(gpus=1, max_epochs=num_epochs, callbacks=[LoggerCallback(logger)],
                          checkpoint_callback=mcp,
                          num_sanity_val_steps=0,
                          profiler=True)

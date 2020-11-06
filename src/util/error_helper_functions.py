@@ -34,36 +34,8 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
             avg_regression) + tuple(regression_loss)
 
 
-def reconstuct_to_array(loss_function, mode_shapes: np.ndarray, pow: int,
-                           x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
-    """
-        return loss between shape (based on the scales) we received and the shape we calculated by our own scales in form of array
-          Args:
-              loss_function: loss function takes two |V| vectors and calclate the loss between them
-              mode_shapes: a [V,n] tensor or np array representing the mode shapes (only the Z axis)
-              pow: the power of 10 used to scale the mode scales
-              x: first set of scales
-              y: second set of scales
-           Returns:
-              RMS between the vertex positions calculated from scales
-           """
-
-    if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
-        device = 'cpu'
-        return reconstuct_to_array(loss_function, mode_shapes, pow, torch.tensor(x, device=device),
-                                      torch.tensor(y, device=device))
-    num_datapoints = 1 if len(x.shape) == 1 else x.shape[0]
-    num_vertices = mode_shapes.size / (3 * x.shape[-1])
-    device = x.device
-    with torch.no_grad():
-        _x = x * 10 ** -pow
-        _y = y * 10 ** -pow
-        _x = _x.view(-1, _x.shape[-1]).to(torch.float64).T
-        _y = _y.view(-1, _y.shape[-1]).to(torch.float64).T
-        mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
-        pos_a = (mode_shapes @ _x).numpy()
-        pos_b = (mode_shapes @ _y).numpy()
-        return pos_a, pos_b, loss_function(pos_a, pos_b, -1) / num_vertices
+    return (vertex_loss, ir_loss/ len(ir_indices),
+            avg_regression, regression_loss)
 
 
 def calc_max_errors(loss_function, scales: np.ndarray, ir_indices, mode_shape, device='cpu'):
@@ -162,7 +134,6 @@ def calc_max_regression_error(loss_function, scales):
 def error_to_exel_string(result):
     exel_string = ""
     for res in result:
-
         exel_string += str(res) + " "
 
     return exel_string
