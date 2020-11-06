@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Union
 
 from src.geometry.numpy.mesh import *   
-from src.geometry.numpy.transforms import mesh_compatibility_creation
+from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
 
 @dataclass
 class FiniteElementWingModel:
@@ -25,6 +25,7 @@ class FiniteElementWingModel:
         self.tip = Mesh(self.tip_path,texture=self.texture_tip)
         self.old_wing = Mesh(self.old_wing_path)
         self.compatibility_arr = mesh_compatibility_creation(self.wing.vertices)
+        self.tip_arr = tip_arr_creation(self.old_wing.vertices)
 
     def _get_new_position(self, displacement):
         """
@@ -128,6 +129,7 @@ class SyntheticWingModel:
         self.tip = Mesh(self.tip_path,texture=self.texture_tip)
         self.old_wing = Mesh(self.old_wing_path)
         self.compatibility_arr = mesh_compatibility_creation(self.wing.vertices)
+        self.tip_arr = tip_arr_creation(self.old_wing.vertices)
 
     def _get_new_position(self, displacement):
         """
@@ -150,17 +152,21 @@ class SyntheticWingModel:
         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
         x = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         y = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
-        count, tip_count, wing_count = 0, 0, 0
-        # TODO: enter old_wing and compatibility_arr as property of synth wing model
-        for idx, cord in enumerate(self.old_wing.vertices):
-            if cord[1] >= 0.605:
-                for i in range(30):
-                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
-                tip_count += 1
-            elif cord2index(cord) in wing_table:
-                wing_count += 1
-            else:
-                count += 1
+        # count, tip_count, wing_count = 0, 0, 0
+        for idx in self.tip_arr:
+            cord = self.old_wing.vertices[idx]
+            for i in range(30):
+                new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
+
+        #for idx, cord in enumerate(self.old_wing.vertices):
+        #    if cord[1] >= 0.605:
+        #        for i in range(30):
+        #            new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
+        #        tip_count += 1
+        #    elif cord2index(cord) in wing_table:
+        #        wing_count += 1
+        #    else:
+        #        count += 1
         return new_wing_position, self.tip.vertices + new_tip_position
 
     def _get_ir_cords(self, displacement):
