@@ -492,7 +492,7 @@ class Mesh:
            An image shot from camera of the mesh
         """
         return Mesh.get_many_photos(mesh, movement, resolution, cmap,
-                                    plotter, camera, title, title_location)
+                                    plotter, [camera], title, title_location)[0]
 
     @staticmethod
     def get_many_photos(mesh, movement, resolution, cmap,
@@ -525,7 +525,7 @@ class Mesh:
                                  name='get_photo_' + str(i))
             else:
                 plotter.add_mesh(mesh[i].pv_mesh, texture=mesh[i].texture, name='get_photo_mesh_' + str(i))
-            plotter.update_coordinates(movement[i], mesh=mesh[i])
+            plotter.update_coordinates(movement[i], mesh=mesh[i].pv_mesh)
         if title is not None:
             plotter.add_text(title, position=title_location, font_size=10, color="black", name="title")
         plotter.set_background(color="white")

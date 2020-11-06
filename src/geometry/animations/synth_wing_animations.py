@@ -510,17 +510,15 @@ def scale_made_movement(path, amp):
 
 
 def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                         saved_name=None, show_ssim=True, res=None, ir=None):
+                         saved_name=None, show_ssim=True, res=None, ir=None, arr=None):
     #   scale 2 is THE NN SCALES
     if res is None:
         res = [480,480]
     clean_up_batch = 1000
-    if isinstance(texture_path, str):
-        texture_path = [texture_path, None]
     tip = Mesh('data/wing_off_files/fem_tip.off')
     tip2 = Mesh('data/wing_off_files/fem_tip.off')
-    mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
-    mesh2 = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mesh = Mesh('data/wing_off_files/synth_wing_v5.off', texture_path)
+    mesh2 = Mesh('data/wing_off_files/synth_wing_v5.off', texture_path)
     mode_shape = read_modal_shapes(mode_shape_path,num_of_scales)
     TIP_RADIUS = 0.008
 
@@ -530,11 +528,11 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
     z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
     tip_index_arr = tip_arr_creation(mesh.vertices)
+
     white_img = np.ones(shape=res) * 255
     plotter = pv.Plotter(off_screen=True)
     plotter2 = pv.Plotter(off_screen=True)
     k = 0
-    im_frames = []
     h1 = np.zeros((tip_vertices_num, 3), dtype='float')
     h2 = np.zeros((tip_vertices_num, 3), dtype='float')
     difference = np.zeros((2,mesh.vertices.shape[0],3))
@@ -542,16 +540,11 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
     total_ssim = 0
     out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (res[1] * 3, res[0] * 2))
     for phase in trange(frames):
-        difference[0, :, :] = (scale1[:,phase] * mode_shape).sum(axis=2).T
-        difference[1, :, :] = (scale2[:, phase] * mode_shape).sum(axis=2).T
-        g1 = mesh.vertices + difference[0,:,:]
-        g2 = mesh.vertices + difference[1,:,:]
-        if ir is None:
-            norm = loss_functions.vertex_mean_rms(mode_shape, 0, scale1[:, phase],
-                                                  scale2[:, phase])
-        else:
-            norm = loss_functions.vertex_mean_rms(mode_shape[:,ir,:], 0, scale1[:, phase],
-                                                  scale2[:, phase])
+        difference[0, :, :] = (scale1[phase, :] * mode_shape).sum(axis=2).T
+        difference[1, :, :] = (scale2[phase, :] * mode_shape).sum(axis=2).T
+        g1 = mesh.vertices + difference[0, :, :]
+        g2 = mesh.vertices + difference[1, :, :]
+        norm = 0
         total_rms += norm
         for id in tip_index_arr:
             for i in range(30):
@@ -562,16 +555,18 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
                                  cord[2] + z_t[i] + difference[1,id,2]))
                 h1[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
                 h2[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector2
-        norm += np.linalg.norm(h1 - h2) / tip.vertices.shape[0]
-        photo = Mesh.get_photo([mesh, tip], [g1,h1], plotter=plotter2, texture=texture_path,
-                               cmap=None, camera=camera_pos["up_middle"], resolution=(res[1],res[0]))
+
+        photo = Mesh.get_photo([mesh, tip], [g1,h1], plotter=plotter2,
+                               cmap=None, camera=camera_pos["up_right"], resolution=res)
+
         depth11 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
         depth11[:, :, 2] = depth11[:, :, 0]
         depth11[:, :, 0] = r
         cv2.imwrite(trash_path + "depth_frameA" + str(k) + ".png", np.asarray(depth11 * 255, np.uint8))
-        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=texture_path,
-                               cmap=None, camera=camera_pos["up_middle"], resolution=(res[1],res[0]), title=None)
+        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter,
+                               cmap=None, camera=camera_pos["up_middle"], resolution=res, title=None)
+
         depth12 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
         depth12[:, :, 2] = depth12[:, :, 0]
@@ -579,6 +574,7 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
         cv2.imwrite(trash_path + "depth_frameB" + str(k) + ".png", np.asarray(depth12 * 255, np.uint8))
 
         img1 = cv2.imread(trash_path + "depth_frameA" + str(k) + ".png")
+        out.write(img1)
         img2 = cv2.imread(trash_path + "depth_frameB" + str(k) + ".png")
         if saved_name is not None:
             img3 = cv2.imread(trash_path + saved_name + str(k) + ".png")
@@ -590,11 +586,12 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
         cv2.putText(img2, "NN made scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
                     lineType=2)
         cv2.putText(img1, "ground truth scales", (50, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 0),
-                    lineType=2)
-        img_u = cv2.hconcat([img3, img2, img1])
+                   lineType=2)
 
-        photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter2, texture=texture_path,
-                               cmap=None, camera=camera_pos["up_high"], resolution=(res[1],res[0]))
+#        img_u = cv2.hconcat([img3, img2, img1])
+
+        photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter2,
+                               cmap=None, camera=camera_pos["up_high"], resolution=res)
         depth21 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
         depth21[:, :, 2] = depth21[:, :, 0]
@@ -602,8 +599,8 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
 
         cv2.imwrite(trash_path + "depth_frameD" + str(k) + ".png", np.asarray(depth21 * 255, np.uint8))
 
-        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter, texture=texture_path,
-                               cmap=None, camera=camera_pos["up_high"], resolution=(res[1],res[0]))
+        photo = Mesh.get_photo([mesh2, tip2], [g2, h2], plotter=plotter,
+                               cmap=None, camera=camera_pos["up_high"], resolution=res)
         depth22 = photo[:, :, 0:3]
         r = np.copy(photo[:, :, 2])
         depth22[:, :, 2] = depth22[:, :, 0]
@@ -640,11 +637,11 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
                     (0, 0, 0), lineType=2)
         cv2.putText(img32, "running avg:" + f'{total_rms/(k+1): .3e}', (0, 160), cv2.FONT_HERSHEY_TRIPLEX, 1,
                     (0, 0, 0), lineType=2)
-        img_d = cv2.hconcat([img32, img22, img12])
-        img_f = cv2.vconcat([img_u, img_d])
+    #    img_d = cv2.hconcat([img32, img22, img12])
+    #    img_f = cv2.vconcat([img_u, img_d])
         # 7,cv2.imshow("frame", img_f)
         #im_frames.append(img_f)
-        out.write(img_f)
+        #out.write(img_f)
         # cv2 does not support making video from np array...
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -653,8 +650,6 @@ def create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mod
             for f in glob.glob(trash_path + '*.png'):
                 os.remove(f)
 
-    for i in range(len(im_frames)):
-        out.write(im_frames[i])
     out.release()
     for f in glob.glob(trash_path + '*.png'):
         os.remove(f)
@@ -920,3 +915,59 @@ def create_animation_few_scales(scale1, vid_path, trash_path, texture_path, mode
     for f in glob.glob(trash_path + '*.png'):
         os.remove(f)
     cv2.destroyAllWindows()
+
+
+def create_single_vid_by_scale(scale1, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
+                         res=None):
+    #   scale 2 is THE NN SCALES
+    if res is None:
+        res = [480,480]
+    clean_up_batch = 1000
+    tip = Mesh('data/wing_off_files/fem_tip.off')
+    mesh = Mesh('data/wing_off_files/synth_wing_v5.off', texture_path)
+    old_mesh = Mesh('data/wing_off_files/synth_wing_v3.off')
+    mode_shape = read_modal_shapes(mode_shape_path,num_of_scales)
+    TIP_RADIUS = 0.008
+    NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
+    tip_vertices_num = 930
+    tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
+    y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
+    z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
+    mesh_arr = mesh_compatibility_creation(mesh.vertices)
+    tip_index_arr = tip_arr_creation(old_mesh.vertices)
+
+    plotter = pv.Plotter(off_screen=True)
+    k = 0
+    h1 = np.zeros((tip_vertices_num, 3), dtype='float')
+    out = cv2.VideoWriter(vid_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (res[1], res[0]))
+    for phase in trange(frames):
+        difference = (scale1[phase, :] * mode_shape).sum(axis=2).T
+        g1 = mesh.vertices + difference[mesh_arr]
+        for id in tip_index_arr:
+            for i in range(30):
+                cord = old_mesh.vertices[id]
+                vector = np.array((cord[0] + difference[id,0], cord[1] + y_t[i] + difference[id,1],
+                                 cord[2] + z_t[i] + difference[id,2]))
+                h1[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
+        photo = Mesh.get_photo([mesh, tip], [g1,h1], plotter=plotter,
+                               cmap=None, camera=camera_pos["up_right"], resolution=res)
+
+        depth11 = photo[:, :, 0:3]
+        r = np.copy(photo[:, :, 2])
+        depth11[:, :, 2] = depth11[:, :, 0]
+        depth11[:, :, 0] = r
+        cv2.imwrite(trash_path + "depth_frameA" + str(k) + ".png", np.asarray(depth11 * 255, np.uint8))
+        img1 = cv2.imread(trash_path + "depth_frameA" + str(k) + ".png")
+        out.write(img1)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        k = k + 1
+        if k % clean_up_batch == 0:
+            for f in glob.glob(trash_path + '*.png'):
+                os.remove(f)
+
+    out.release()
+    for f in glob.glob(trash_path + '*.png'):
+        os.remove(f)
+    cv2.destroyAllWindows()
+

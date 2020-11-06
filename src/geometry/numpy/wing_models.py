@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Union
 
 from src.geometry.numpy.mesh import *   
-
+from src.geometry.numpy.transforms import mesh_compatibility_creation
 
 @dataclass
 class FiniteElementWingModel:
@@ -11,6 +11,7 @@ class FiniteElementWingModel:
     texture_wing: str
     texture_tip: Union[str, None]
     wing_path: str
+    old_wing_path: str
     tip_path: str
     cameras: list
     wing_vertices_num: int
@@ -22,6 +23,8 @@ class FiniteElementWingModel:
     def __post_init__(self):
         self.wing = Mesh(self.wing_path,self.texture_wing)
         self.tip = Mesh(self.tip_path,texture=self.texture_tip)
+        self.old_wing = Mesh(self.old_wing_path)
+        self.compatibility_arr = mesh_compatibility_creation(self.wing.vertices)
 
     def _get_new_position(self, displacement):
         """
@@ -48,10 +51,10 @@ class FiniteElementWingModel:
         for idx, cord in enumerate(self.coordinates):
             if cord[1] >= 0.605:
                 for i in range(30):
-                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = 0 * cord + displacement[idx]
+                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
                 tip_count += 1
             elif cord2index(cord) in wing_table:
-                new_wing_position[wing_table[cord2index(cord)]] = 0 * cord + displacement[idx]
+                new_wing_position[wing_table[cord2index(cord)]] = displacement[idx]
                 wing_count += 1
             else:
                 count += 1
@@ -85,8 +88,8 @@ class FiniteElementWingModel:
         cameras = self.cameras
         photos = Mesh.get_photo((self.wing, self.tip),
                                 movement=movement, resolution=self.resolution, camera=cameras,
-                                cmap=self.cmap,
-                                texture=[self.texture_wing, self.texture_tip], plotter=self.plotter)
+                                cmap=self.cmap, plotter=self.plotter)
+
         return photos
 
     def __call__(self, displacement):
@@ -141,12 +144,13 @@ class SyntheticWingModel:
         wing_table = self.wing.table
         tip_table = self.tip.table
         new_tip_position = np.zeros((self.tip_vertices_num, 3), dtype='float')
-        new_wing_position = self.coordinates + displacement
+        new_wing_position = self.coordinates + displacement[self.compatibility_arr]
         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
         x = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         y = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
         count, tip_count, wing_count = 0, 0, 0
-        for idx, cord in enumerate(self.coordinates):
+        # TODO: enter old_wing and compatibility_arr as property of synth wing model
+        for idx, cord in enumerate(self.old_wing.vertices):
             if cord[1] >= 0.605:
                 for i in range(30):
                     new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
@@ -155,9 +159,6 @@ class SyntheticWingModel:
                 wing_count += 1
             else:
                 count += 1
-        # TODO: Ido, Runs fine without Assertions
-        # assert(wing_count==self.wing_vertices_num-self.tip_vertices_num/30)
-        # assert(tip_count==self.tip_vertices_num/30)
         return new_wing_position, self.tip.vertices + new_tip_position
 
     def _get_ir_cords(self, displacement):
@@ -185,8 +186,7 @@ class SyntheticWingModel:
         cameras = self.cameras
         photos = Mesh.get_many_photos((self.wing, self.tip),
                                       movement=movement, resolution=self.resolution, camera=cameras,
-                                      cmap=self.cmap,
-                                       plotter=self.plotter)
+                                      cmap=self.cmap, plotter=self.plotter)
         return photos
 
     def __call__(self, displacement):
@@ -203,3 +203,4 @@ class SyntheticWingModel:
         ir = self._get_ir_cords(displacement)
         photo = self._get_wing_photo(movement=movement)
         return photo, ir
+

@@ -1,6 +1,6 @@
 import numpy as np
 location_of_tip = 0.605  # the location of the middle of the tip, we want the entire tip to move together
-from src.geometry.numpy.mesh import cord2index
+from  src.geometry.numpy.mesh import *
 
 def fem_wing_normal_sine(vec, freq_t, freq_s, amp, t):
     """
@@ -171,17 +171,27 @@ def synth_tip_movement(mesh_ver, tip_index, x, y, z, y_t, z_t, tip_table, new_ti
                             cord[2] + z[idx, t] + z_t[i]))
             new_tip_position[tip_table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vec
 
-def tip_arr_creation(mesh_ver, line=0.605):
+
+def tip_arr_creation(old_mesh_ver, line=0.605):
     """
             creating list with the tip indices
            Args:
-              mesh_ver: the mesh's vertices
+              old_mesh_ver: the old mesh's vertices
               line: the threshold of where is the tip
             Returns:
                list [N] of indices of the tip
             """
     tip_index_arr = []
-    for idx, cord in enumerate(mesh_ver):
+    for idx, cord in enumerate(old_mesh_ver):
         if cord[1] >= line:
             tip_index_arr.append(idx)
     return tip_index_arr
+
+
+def mesh_compatibility_creation(new_mesh_ver):
+    old_mesh = Mesh("data/wing_off_files/synth_wing_v3.off")
+    to_return = np.zeros(new_mesh_ver.shape[0])
+    for i in range(new_mesh_ver.shape[0]):
+        to_return[i] = old_mesh.pv_mesh.find_closest_point(new_mesh_ver[i])
+
+    return to_return.astype(int)

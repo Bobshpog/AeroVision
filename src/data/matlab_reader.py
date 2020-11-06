@@ -28,7 +28,7 @@ def read_data(mat_path):
         mat_path: path to mat
 
     Returns:
-        (disp, scales): (nparray,nparray)
+        (vertices, disp, scales): (nparray,nparray)
     """
     mat = loadmat(mat_path)
     x = mat['X']
