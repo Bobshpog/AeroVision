@@ -19,7 +19,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
     modal_shape_mat_path: Union[Path, str] = field(repr=False)
     mesh_wing_path: Union[Path, str]
     mesh_tip_path: Union[Path, str]
-
+    old_mesh_wing_path: Union[Path, str]
     ir_list: list = field(repr=False)  # list of ids of points in mesh
     resolution: list  # [Width, Height]
     # cameras in pyvista format
@@ -50,9 +50,9 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
         self.cords, self.disp_arr, self.scales_arr = read_data(str(self.mat_path))
         self.num_frames, self.num_scales = self.scales_arr.shape
         self.wing_model = SyntheticWingModel(self.cords, self.ir_list, self.texture_path_wing, self.texture_path_tip,
-                                             self.mesh_wing_path,
-                                             self.mesh_tip_path, self.cameras, self.num_vertices_wing,
-                                             self.num_vertices_tip, plotter, self.resolution, self.cmap)
+                                             self.mesh_wing_path, self.mesh_tip_path, self.old_mesh_wing_path,
+                                             self.cameras, self.num_vertices_wing, self.num_vertices_tip, plotter,
+                                             self.resolution, self.cmap)
 
     def __len__(self):
         return self.num_frames

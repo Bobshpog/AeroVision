@@ -117,13 +117,13 @@ class SyntheticWingModel:
     texture_tip: Union[str, None]
     wing_path: str
     tip_path: str
+    old_wing_path: str
     cameras: list
     wing_vertices_num: int
     tip_vertices_num: int
     plotter: pv.BasePlotter
     resolution: list
     cmap: str
-    old_wing_path: str
     def __post_init__(self):
         self.wing = Mesh(self.wing_path,texture=self.texture_wing)
         self.tip = Mesh(self.tip_path,texture=self.texture_tip)
