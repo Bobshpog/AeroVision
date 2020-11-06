@@ -186,7 +186,7 @@ class SyntheticWingModel:
         photos = Mesh.get_many_photos((self.wing, self.tip),
                                       movement=movement, resolution=self.resolution, camera=cameras,
                                       cmap=self.cmap,
-                                       plotter=self.plotter)
+                                      plotter=self.plotter)
         return photos
 
     def __call__(self, displacement):
