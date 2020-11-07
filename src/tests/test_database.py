@@ -24,7 +24,7 @@ class Test(TestCase):
 
 class TestDatabaseBuilder(TestCase):
     class Config:
-        mesh_wing_path = 'data/wing_off_files/synth_wing_v5.off'
+        mesh_wing_path = 'data/wing_off_files/synth_wing_v3.off'
         mesh_tip_path = 'data/wing_off_files/fem_tip.off'
 
         compression = 'gzip'
@@ -60,13 +60,13 @@ class TestDatabaseBuilder(TestCase):
                     (0.05, 0.3, 0.02),
                     (0.041, 0.0438, -1)],
                    [
-                       (-1.047, -0.053320266561896174, 0.026735639600027315),
-                       (--1.12, 0.3, 0.02),
-                       (-1, 0, 1)
+                       (-0.047, -0.053320266561896174, 0.026735639600027315),
+                       (-1.12, 0.3, 0.02),
+                       (0, 0, 1)
                    ],
                    [
                        (0.021325091578885777, 0.0973123942076604, 0.3153602234842197),
-                       (0.05, 0.7, 0.02),
+                       (0.05, 1, 0.02),
                        (-0.015600717667910225, 0.440612125193422, 0.9)
                    ]
                    ]
