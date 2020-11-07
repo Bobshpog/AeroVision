@@ -8,7 +8,6 @@ from torchvision.transforms import transforms
 def slice_many_positions_no_depth(input_photo, ids):
     return input_photo[ids, :, :, :3]
 
-
 def slice_first_position_no_depth(input_photo):
     return input_photo[0, :, :, :3]
 
@@ -74,6 +73,13 @@ def many_cameras_bw(mean_photos, camera_ids):
                                many_rgb_to_bw
                                ])
 
+def single_camera_bw(mean_photos, camera_id):
+    mean_photos = slice_many_positions_no_depth(mean_photos, camera_id)
+    remove_mean = partial(remove_dc_photo, mean_photos)
+    return transforms.Compose([slice_first_position_no_depth,
+                               remove_mean,
+                               single_rgb_to_bw
+                               ])
 
 def top_middle_rgbd(mean_photos):
     mean_photos = slice_first_position_with_depth(mean_photos)
