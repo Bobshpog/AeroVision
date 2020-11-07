@@ -4,15 +4,14 @@ from unittest import TestCase
 
 import cv2
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import trange
 
 import src.data.database_builder as db
-from src.data.data_generators.synthetic_csv_gen import SyntheticCSVGenerator
 from src.data.data_generators.synthetic_mat_gen import SyntheticMatGenerator
 from src.data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayingGen
 from src.util.timing import profile
-import matplotlib.pyplot as plt
 
 
 class Test(TestCase):
@@ -24,9 +23,9 @@ class Test(TestCase):
 
 class TestDatabaseBuilder(TestCase):
     class Config:
-        mesh_wing_path = 'data/wing_off_files/synth_wing_v3.off'
+        mesh_wing_path = 'data/wing_off_files/synth_wing_v5.off'
         mesh_tip_path = 'data/wing_off_files/fem_tip.off'
-
+        old_mesh_wing_path = 'data/wing_off_files/synth_wing_v3.off'
         compression = 'gzip'
 
         im_width = 640
@@ -61,7 +60,7 @@ class TestDatabaseBuilder(TestCase):
                     (0.041, 0.0438, -1)],
                    [
                        (-0.047, -0.053320266561896174, 0.026735639600027315),
-                       (-1.12, 0.3, 0.02),
+                       (-0.12, 0.3, 0.02),
                        (0, 0, 1)
                    ],
                    [
@@ -82,7 +81,8 @@ class TestDatabaseBuilder(TestCase):
                                                       )
         data_generator = SyntheticMatGenerator('data/data_samples/Daniella_data.mat',
                                                "data/mode_shapes/synth_mode_shapes_9103_10.mat", Config.mesh_wing_path,
-                                               Config.mesh_tip_path, Config.ir_list, Config.resolution, Config.cameras,
+                                               Config.mesh_tip_path, Config.old_mesh_wing_path, Config.ir_list,
+                                               Config.resolution, Config.cameras,
                                                Config.texture, Config.cmap)
         database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=64)
         data_file_path = database()
