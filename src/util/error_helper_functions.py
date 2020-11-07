@@ -26,7 +26,7 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, scaling, ir_indices, x, 
     regression_loss = torch.abs(x-y) / scaling
     avg_regression = regression_loss.sum(-1) / (num_scales * scaling)
     return (vertex_loss, ir_loss,
-            avg_regression, regression_loss.T)#Transpose is important
+            avg_regression.double(), regression_loss.T.double())#Transpose is important
 
 
 def calc_max_errors(loss_function, scales: np.ndarray, ir_indices, mode_shape, device='cpu'):
