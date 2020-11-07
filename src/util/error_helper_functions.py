@@ -1,5 +1,4 @@
 import torch.nn.functional as F
-from tqdm import tqdm, trange
 
 from src.util.loss_functions import *
 
@@ -21,20 +20,15 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
         		Regression 7,	Regression 8,	Regression 9))
     """
     num_datapoints, num_scales = x.shape
-    #device = x.device
-    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x * 10 ** 6, y * 10 ** 6)
-    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x * 10 ** 6, y * 10 ** 6)
-    regression_loss = np.zeros(num_scales)
-    for i in range(num_datapoints):
-        for k in range(num_scales):
-            regression_loss[k] += loss_function(x[i, k], y[i, k])
-    regression_loss = regression_loss / num_datapoints
-    avg_regression = loss_function(x, y) / (num_scales * num_datapoints)
+    # device = x.device
+    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x * 10 ** 6, y * 10 ** 6).mean()
+    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x * 10 ** 6, y * 10 ** 6).mean()
+    old_shape = x.shape
+    x_flat, y_flat = x.flatten(), y.flatten()
+    regression_loss = loss_function(x_flat - y_flat, dim=1)
+    regression_loss = regression_loss.reshape(old_shape)
+    avg_regression = regression_loss.sum(-1) / num_scales
     return (vertex_loss, ir_loss,
-            avg_regression) + tuple(regression_loss)
-
-
-    return (vertex_loss, ir_loss/ len(ir_indices),
             avg_regression, regression_loss)
 
 
@@ -113,9 +107,9 @@ def calc_max_per_param_error(loss_function, scales: torch.Tensor):
     if loss_function == 'l1':
         loss_function = F.l1_loss
     if loss_function == 'l2':
-        loss_function = lambda x, y: torch.norm(x - y)
+        loss_function = torch.norm
     for i, j in zip(min_scales, max_scales):
-        max_err.append(loss_function(i, j))
+        max_err.append(loss_function(i - j))
     max_err = tuple([i.item() for i in max_err])
     return max_err
 
