@@ -15,9 +15,9 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
 
     Returns:
         error values in the following error
-        (Average 3D Reconstruction Error,Average 3D IR Reconstruction Error, Average Regression
-        	(Regression 0,	Regression 1,	Regression 2,	Regression 3,	Regression 4,	Regression 5,	Regression 6,
-        		Regression 7,	Regression 8,	Regression 9))
+        ( 3D Reconstruction Error Tensor ,3D IR Reconstruction Error Tensor , Average Regression Tensor
+        , regression Tensor (num_datapoints,nums_cales))
+
     """
     num_datapoints, num_scales = x.shape
     # device = x.device
