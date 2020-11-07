@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
 from src.util.error_helper_functions import calc_errors
-from src.util.loss_functions import l2_norm
+from src.util.loss_functions import l1_norm
 
 
 class CustomInputResnet(pl.LightningModule):
@@ -72,13 +72,10 @@ class CustomInputResnet(pl.LightningModule):
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
-            means = torch.mean(y_hat, dim=0) / self.output_scale
-            variance = torch.var(y_hat, dim=0) / (self.output_scale ** 2)
             for i in range(self.num_output_layers):
                 self.train_batch_list[f'train_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
                 self.train_batch_list[f'train_l2_scale{i}'].append(l2_regression_list[i] / self.output_scale)
-                self.train_batch_list[f'train_mean{i}'].append(means[i])
-                self.train_batch_list[f'train_var{i}'].append(variance[i])
+                self.train_batch_list[f'train_output{i}'].append(y_hat)
             self.train_batch_list['train_loss'].append(loss)
             self.train_batch_list['train_l1_3d_loss'].append(l1_3d_err)
             self.train_batch_list['train_l2_3d_loss'].append(l2_3d_err)
@@ -95,13 +92,10 @@ class CustomInputResnet(pl.LightningModule):
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
-            means = torch.mean(y_hat, dim=0) / self.output_scale
-            variance = torch.var(y_hat, dim=0) / (self.output_scale ** 2)
             for i in range(self.num_output_layers):
                 self.val_batch_list[f'val_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
                 self.val_batch_list[f'val_l2_scale{i}'].append(l2_regression_list[i] / self.output_scale)
-                self.val_batch_list[f'val_mean{i}'].append(means[i])
-                self.val_batch_list[f'val_var{i}'].append(variance[i])
+                self.val_batch_list[f'val_output{i}'].append(y_hat[i])
             self.val_batch_list['val_loss'].append(loss)
             self.val_batch_list['val_l1_3d_loss'].append(l1_3d_err)
             self.val_batch_list['val_l2_3d_loss'].append(l2_3d_err)
@@ -119,57 +113,39 @@ class LoggerCallback(Callback):
 
     def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
         error_dict = {}
-        means_dict = {}
-        var_dict = {}
         for i in range(pl_module.num_output_layers):
             error_dict[f'train_l1_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_l1_scale{i}']))
             error_dict[f'train_l2_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_l2_scale{i}']))
-            means_dict[f'train_mean{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_mean{i}']))
-            var_dict[f'train_var{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_var{i}']))
-
-        # for error_str in pl_module.error_metrics:
-        #     error_str = f'train_{error_str}'
-        #     curr_loss = torch.mean(torch.stack(pl_module.train_batch_list[error_str]))
-        #     min_error_str = f'min_{error_str}'
-        #     error_dict[error_str] = curr_loss
-        #     old_min = pl_module.train_min_errors[min_error_str]
-        #     pl_module.train_min_errors[min_error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
-        # for norm in ['l1', 'l2']:
-        #     for i in range(pl_module.num_output_layers):
-        #         old_min = pl_module.train_min_errors[f'min_train_{norm}_scale{i}']
-        #         curr_error = error_dict[f'train_{norm}_scale{i}']
-        #         pl_module.train_min_errors[f'min_train_{norm}_scale{i}'] = torch.min(old_min,
-        #                                                                              curr_error) if old_min else curr_error
-        self.metrics = {**self.metrics, **error_dict}  # , **pl_module.train_min_errors}
+            scale_hist = torch.cat(pl_module.train_batch_list[f'train_output{i}']).flatten()
+            self.logger.experiment.log_histogram_3d(scale_hist, name='hist_' + f'train_scale{i}',
+                                                    step=pl_module.current_epoch)
+        for error_str in pl_module.error_metrics:
+            error_str = f'train_{error_str}'
+            error_tensor = torch.cat(pl_module.train_batch_list[error_str]).flatten()
+            curr_loss = torch.mean(error_tensor)
+            self.logger.experiment.log_histogram_3d(error_tensor, name='hist_' + error_str,
+                                                    step=pl_module.current_epoch)
+            error_dict[error_str] = curr_loss
 
         for i in pl_module.train_batch_list.values():
             i.clear()
 
     def on_validation_epoch_end(self, trainer, pl_module):
         error_dict = {}
-        means_dict = {}
-        var_dict = {}
         for i in range(pl_module.num_output_layers):
             error_dict[f'val_l1_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_l1_scale{i}']))
             error_dict[f'val_l2_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_l2_scale{i}']))
-            means_dict[f'val_mean{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_mean{i}']))
-            var_dict[f'val_var{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_var{i}']))
+            scale_hist = torch.cat(pl_module.val_batch_list[f'val_output{i}']).flatten()
+            self.logger.experiment.log_histogram_3d(scale_hist, name='hist_' + f'val_scale{i}',
+                                                    step=pl_module.current_epoch)
+        for error_str in pl_module.error_metrics:
+            error_str = f'val_{error_str}'
+            error_tensor = torch.cat(pl_module.val_batch_list[error_str]).flatten()
+            curr_loss = torch.mean(error_tensor)
+            self.logger.experiment.log_histogram_3d(error_tensor, name='hist_' + error_str,
+                                                    step=pl_module.current_epoch)
+            error_dict[error_str] = curr_loss
 
-        # for error_str in pl_module.error_metrics:
-        #     error_str = f'val_{error_str}'
-        #     curr_loss = torch.mean(torch.stack(pl_module.val_batch_list[error_str]))
-        #     min_error_str = f'min_{error_str}'
-        #     error_dict[error_str] = curr_loss
-        #     old_min = pl_module.val_min_errors[min_error_str]
-        #     pl_module.val_min_errors[min_error_str] = torch.min(curr_loss, old_min) if old_min else curr_loss
-        # for norm in ['l1', 'l2']:
-        #     for i in range(pl_module.num_output_layers):
-        #         old_min = pl_module.val_min_errors[f'min_val_{norm}_scale{i}']
-        #         curr_error = error_dict[f'val_{norm}_scale{i}']
-        #         pl_module.val_min_errors[f'min_val_{norm}_scale{i}'] = torch.min(old_min,
-        #                                                                          curr_error) if old_min else curr_error
-
-        self.metrics = {**self.metrics, **error_dict}  # , **pl_module.val_min_errors}
         for i in pl_module.val_batch_list.values():
             i.clear()
 
@@ -200,8 +176,8 @@ def run_resnet_synth(num_input_layers, num_outputs,
         modal_shapes = hf['generator metadata']['modal shapes'][()]
         ir = hf['generator metadata'].attrs['ir'][()]
         db_size = hf['data']['images'].len()
-        l1_errors_func = partial(calc_errors, F.l1_loss, modal_shapes, output_scaling, ir)
-        l2_errors_func = partial(calc_errors, l2_norm, modal_shapes, output_scaling, ir)
+        l1_errors_func = partial(calc_errors, l1_norm, modal_shapes, output_scaling, ir)
+        l2_errors_func = partial(calc_errors, torch.norm, modal_shapes, output_scaling, ir)
     transform = transform(mean_image)
     if isinstance(val_split, int):
         train_dset = ImageDataset(train_db_path,
