@@ -117,13 +117,13 @@ class SyntheticWingModel:
     texture_tip: Union[str, None]
     wing_path: str
     tip_path: str
+    old_wing_path: str
     cameras: list
     wing_vertices_num: int
     tip_vertices_num: int
     plotter: pv.BasePlotter
     resolution: list
     cmap: str
-    old_wing_path: str
     def __post_init__(self):
         self.wing = Mesh(self.wing_path,texture=self.texture_wing)
         self.tip = Mesh(self.tip_path,texture=self.texture_tip)
@@ -148,7 +148,7 @@ class SyntheticWingModel:
         wing_table = self.wing.table
         tip_table = self.tip.table
         new_tip_position = np.zeros((self.tip_vertices_num, 3), dtype='float')
-        new_wing_position = self.coordinates + displacement[self.compatibility_arr]
+        new_wing_position = (self.coordinates + displacement)[self.compatibility_arr]
         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
         x = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         y = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
