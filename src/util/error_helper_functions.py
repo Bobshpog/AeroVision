@@ -21,8 +21,8 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
     """
     num_datapoints, num_scales = x.shape
     # device = x.device
-    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x * pow, y * pow)
-    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x * pow, y * pow)
+    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x , y )
+    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x , y )
     regression_loss = torch.abs(x-y)
     avg_regression = regression_loss.sum(-1) / num_scales
     return (vertex_loss, ir_loss,
