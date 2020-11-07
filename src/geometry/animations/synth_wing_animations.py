@@ -55,7 +55,7 @@ camera_pos = {
                         (0.05, 0.3, 0.02),
                         (0.18216637888466586, 0.32036813133340425, 0.9296126455841653)],
             'up_middle_turned': [(0.047, -0.053320266561896174, 0.026735639600027315),
-                                 (-0.12, 0.3, 0.02),
+                                 (-0.08, 0.3, 0.02),
                                  (0, 0, 1)],
             'only_tip': [(0.021325091578885777, 0.0973123942076604, 0.3153602234842197),
                          (0.05, 0.7, 0.02),
@@ -873,7 +873,6 @@ def create_animation_few_scales(scale1, vid_path, trash_path, texture_path, mode
         cv2.putText(img12, "running avg:" + f'{total_norm_change[3]/(k+1): .3f}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
                     (0, 0, 0), lineType=2)
 
-
         cv2.putText(img22, "mean vertices L2 norm:", (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
                     (30, 13, 166), lineType=2)
         cv2.putText(img22, "current:"+f'{norm[4]: .3e}', (0, 60), cv2.FONT_HERSHEY_TRIPLEX, 0.6,
@@ -946,8 +945,8 @@ def create_single_vid_by_scale(scale1, vid_path, trash_path, texture_path, mode_
         for id in tip_index_arr:
             for i in range(30):
                 cord = old_mesh.vertices[id]
-                vector = np.array((cord[0] + difference[id,0], cord[1] + y_t[i] + difference[id,1],
-                                 cord[2] + z_t[i] + difference[id,2]))
+                vector = np.array((cord[0] + difference[id, 0], cord[1] + y_t[i] + difference[id, 1],
+                                  cord[2] + z_t[i] + difference[id,2]))
                 h1[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
         photo = Mesh.get_photo([mesh, tip], [g1,h1], plotter=plotter,
                                cmap=None, camera=camera_pos["up_right"], resolution=res)
