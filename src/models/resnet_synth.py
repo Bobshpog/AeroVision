@@ -129,7 +129,7 @@ class LoggerCallback(Callback):
             self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy(), name='hist_' + error_str,
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
-
+        self.metrics = {**self.metrics, **error_dict}
         for i in pl_module.train_batch_list.values():
             i.clear()
 
@@ -137,7 +137,7 @@ class LoggerCallback(Callback):
         error_dict = {}
         error_dict[f'val_loss'] = torch.mean(torch.stack(pl_module[f'val_loss']))
         for i in range(pl_module.num_output_layers):
-            scale_err_hist=torch.stack(pl_module.val_batch_list[f'val_l1_scale{i}']).flatten()
+            scale_err_hist = torch.stack(pl_module.val_batch_list[f'val_l1_scale{i}']).flatten()
             error_dict[f'val_scale_err{i}'] = torch.mean(scale_err_hist)
             scale_hist = torch.cat(pl_module.val_batch_list[f'val_output{i}']).flatten()
             self.logger.experiment.log_histogram_3d(scale_hist.cpu().numpy(), name='hist_' + f'val_scale{i}',
@@ -151,7 +151,7 @@ class LoggerCallback(Callback):
             self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy(), name='hist_' + error_str,
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
-
+        self.metrics = {**self.metrics, **error_dict}
         for i in pl_module.val_batch_list.values():
             i.clear()
 
