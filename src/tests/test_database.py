@@ -59,7 +59,7 @@ class TestDatabaseBuilder(TestCase):
                     (0.05, 0.3, 0.02),
                     (0.041, 0.0438, -1)],
                    [
-                       (-0.047, -0.053320266561896174, 0.026735639600027315),
+                       (0.047, -0.053320266561896174, 0.026735639600027315),
                        (-0.12, 0.3, 0.02),
                        (0, 0, 1)
                    ],
@@ -84,7 +84,7 @@ class TestDatabaseBuilder(TestCase):
                                                Config.mesh_tip_path, Config.old_mesh_wing_path, Config.ir_list,
                                                Config.resolution, Config.cameras,
                                                Config.texture, Config.cmap)
-        database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=64)
+        database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=300)
         data_file_path = database()
         with h5py.File(data_file_path, 'r') as f:
             print(list(f['data']['video_names']))
