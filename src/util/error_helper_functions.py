@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from src.util.loss_functions import *
 
 
-def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
+def calc_errors(loss_function, mode_shapes: np.ndarray, scaling, ir_indices, x, y):
     """
     return errors as written in the exel file format
     Args:
@@ -21,10 +21,10 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
     """
     num_datapoints, num_scales = x.shape
     # device = x.device
-    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x , y )
-    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x , y )
-    regression_loss = torch.abs(x-y)
-    avg_regression = regression_loss.sum(-1) / num_scales
+    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, scaling, x, y)
+    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], scaling, x, y)
+    regression_loss = torch.abs(x-y) / scaling
+    avg_regression = regression_loss.sum(-1) / (num_scales * scaling)
     return (vertex_loss, ir_loss,
             avg_regression, regression_loss.T)#Transpose is important
 
