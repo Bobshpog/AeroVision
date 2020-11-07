@@ -45,7 +45,7 @@ class CustomInputResnet(pl.LightningModule):
         self.val_min_errors = defaultdict(lambda: None)
         self.train_batch_list = defaultdict(list)
         self.val_batch_list = defaultdict(list)
-        self.error_metrics = ['loss', 'l1_3d_loss', 'l2_3d_loss', 'l1_3d_ir_loss', 'l2_3d_ir_loss',
+        self.error_metrics = ['l1_3d_loss', 'l2_3d_loss', 'l1_3d_ir_loss', 'l2_3d_ir_loss',
                               'l1_reg_avg', 'l2_reg_avg']
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
@@ -113,17 +113,20 @@ class LoggerCallback(Callback):
 
     def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
         error_dict = {}
+        error_dict[f'train_loss'] = torch.mean(torch.stack(pl_module[f'train_loss']))
         for i in range(pl_module.num_output_layers):
-            error_dict[f'train_l1_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_l1_scale{i}']))
-            error_dict[f'train_l2_scale{i}'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_l2_scale{i}']))
+            scale_err_hist = torch.stack(pl_module.train_batch_list[f'train_l1_scale{i}']).flatten()
+            error_dict[f'train_scale_err{i}'] = torch.mean(scale_err_hist)
             scale_hist = torch.cat(pl_module.train_batch_list[f'train_output{i}']).flatten()
-            self.logger.experiment.log_histogram_3d(scale_hist, name='hist_' + f'train_scale{i}',
+            self.logger.experiment.log_histogram_3d(scale_hist.cpu().numpy(), name='hist_' + f'train_scale{i}',
+                                                    step=pl_module.current_epoch)
+            self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'train_scale_err{i}',
                                                     step=pl_module.current_epoch)
         for error_str in pl_module.error_metrics:
             error_str = f'train_{error_str}'
             error_tensor = torch.cat(pl_module.train_batch_list[error_str]).flatten()
             curr_loss = torch.mean(error_tensor)
-            self.logger.experiment.log_histogram_3d(error_tensor, name='hist_' + error_str,
+            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy(), name='hist_' + error_str,
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
 
@@ -132,17 +135,20 @@ class LoggerCallback(Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         error_dict = {}
+        error_dict[f'val_loss'] = torch.mean(torch.stack(pl_module[f'val_loss']))
         for i in range(pl_module.num_output_layers):
-            error_dict[f'val_l1_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_l1_scale{i}']))
-            error_dict[f'val_l2_scale{i}'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_l2_scale{i}']))
+            scale_err_hist=torch.stack(pl_module.val_batch_list[f'val_l1_scale{i}']).flatten()
+            error_dict[f'val_scale_err{i}'] = torch.mean(scale_err_hist)
             scale_hist = torch.cat(pl_module.val_batch_list[f'val_output{i}']).flatten()
-            self.logger.experiment.log_histogram_3d(scale_hist, name='hist_' + f'val_scale{i}',
+            self.logger.experiment.log_histogram_3d(scale_hist.cpu().numpy(), name='hist_' + f'val_scale{i}',
+                                                    step=pl_module.current_epoch)
+            self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'val_scale_err{i}',
                                                     step=pl_module.current_epoch)
         for error_str in pl_module.error_metrics:
             error_str = f'val_{error_str}'
             error_tensor = torch.cat(pl_module.val_batch_list[error_str]).flatten()
             curr_loss = torch.mean(error_tensor)
-            self.logger.experiment.log_histogram_3d(error_tensor, name='hist_' + error_str,
+            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy(), name='hist_' + error_str,
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
 
@@ -160,7 +166,7 @@ def L1_normalized_loss(min, max):
 
 
 def run_resnet_synth(num_input_layers, num_outputs,
-                     comment, train_db_path, val_db_path, val_split, transform, output_scaling=1e-4, lr=1e-2,
+                     comment, train_db_path, val_db_path, val_split, transform, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=1000, val_cache_size=5500, batch_size=64, num_epochs=1000,
                      weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
