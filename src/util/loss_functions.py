@@ -57,8 +57,8 @@ def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, scale_factor:
     num_vertices = mode_shapes.size / (3 * x.shape[-1])
     device = x.device
     with torch.no_grad():
-        _x = torch.tensor(x, device=device, dtype=torch.float64) / scale_factor
-        _y = torch.tensor(y, device=device, dtype=torch.float64) / scale_factor
+        _x = x.detach().clone().to(torch.float64)/scale_factor
+        _y = y.detach().clone().to(torch.float64)/scale_factor
         _x = _x.view(x.shape[-1],-1)
         _y = _y.view(y.shape[-1],-1)
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
