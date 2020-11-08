@@ -6,6 +6,8 @@ class MinCounter:
     max_count: int
 
     def __post_init__(self):
+        if self.max_count<0:
+            raise ValueError
         self.data = [float("inf")] * self.max_count
         self.count = 0
 
