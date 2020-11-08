@@ -117,9 +117,9 @@ class LoggerCallback(Callback):
     def on_epoch_end(self, trainer, pl_module):
         # training
         error_dict = {}
-        error_dict[f'train_loss'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_loss']))
+        error_dict[f'train_loss'] = torch.mean(torch.cat(pl_module.train_batch_list[f'train_loss']))
         for i in range(pl_module.num_output_layers):
-            scale_err_hist = torch.stack(pl_module.train_batch_list[f'train_l1_scale{i}']).flatten()
+            scale_err_hist = torch.cat(pl_module.train_batch_list[f'train_l1_scale{i}']).flatten()
             error_dict[f'train_scale_err{i}'] = torch.mean(scale_err_hist)
             scale_hist = torch.cat(pl_module.train_batch_list[f'train_output{i}']).flatten()
             self.logger.experiment.log_histogram_3d(scale_hist.cpu().numpy(), name='hist_' + f'train_scale{i}',
@@ -136,9 +136,9 @@ class LoggerCallback(Callback):
         self.metrics = {**self.metrics, **error_dict}
         # validation
         error_dict = {}
-        error_dict[f'val_loss'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_loss']))
+        error_dict[f'val_loss'] = torch.mean(torch.cat(pl_module.val_batch_list[f'val_loss']))
         for i in range(pl_module.num_output_layers):
-            scale_err_hist = torch.stack(pl_module.val_batch_list[f'val_l1_scale{i}']).flatten()
+            scale_err_hist = torch.cat(pl_module.val_batch_list[f'val_l1_scale{i}']).flatten()
             error_dict[f'val_scale_err{i}'] = torch.mean(scale_err_hist)
             scale_hist = torch.cat(pl_module.val_batch_list[f'val_output{i}']).flatten()
             self.logger.experiment.log_histogram_3d(scale_hist.cpu().numpy(), name='hist_' + f'val_scale{i}',
