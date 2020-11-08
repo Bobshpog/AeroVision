@@ -24,4 +24,4 @@ class MinCounter:
             self.count = 0
             self.data[-1] = x
             self.data.sort()
-        return self.count < self.max_count
+        return self.count >= self.max_count
