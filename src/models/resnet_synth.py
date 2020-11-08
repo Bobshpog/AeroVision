@@ -158,8 +158,8 @@ class LoggerCallback(Callback):
         for i in range(pl_module.num_output_layers):
             scale_err_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l1_scale{i}']])
             error_dict[f'val_scale_err{i}'] = torch.mean(scale_err_hist)
-            output_hist = torch.cat([x.flatten for x in pl_module.val_batch_list[f'val_output{i}']])
-            expected_hist = torch.cat([x.flatten for x in pl_module.val_batch_list[f'val_expected{i}']])
+            output_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_output{i}']])
+            expected_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_expected{i}']])
             worst_scales[:5, i] = output_hist[worst_indices]
             worst_scales[5:, i] = expected_hist[worst_indices]
             self.logger.experiment.log_histogram_3d(output_hist.cpu().numpy(), name='hist_' + f'val_scale{i}',
