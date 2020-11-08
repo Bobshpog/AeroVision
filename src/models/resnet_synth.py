@@ -69,7 +69,7 @@ class CustomInputResnet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_func(y_hat, y)
+        loss = self.loss_func(y_hat, y,dim=-1)
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
@@ -84,12 +84,12 @@ class CustomInputResnet(pl.LightningModule):
             self.train_batch_list['train_l2_3d_ir_loss'].append(l2_3d_ir_err)
             self.train_batch_list['train_l1_reg_avg'].append(l1_regression_avg)
             self.train_batch_list['train_l2_reg_avg'].append(l2_regression_avg)
-        return loss
+        return loss.mean()
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_func(y_hat, y)
+        loss = self.loss_func(y_hat, y,dim=-1)
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
@@ -105,7 +105,7 @@ class CustomInputResnet(pl.LightningModule):
             self.val_batch_list['val_l2_3d_ir_loss'].append(l2_3d_ir_err)
             self.val_batch_list['val_l1_reg_avg'].append(l1_regression_avg)
             self.val_batch_list['val_l2_reg_avg'].append(l2_regression_avg)
-        return loss
+        return loss.mean()
 
 
 class LoggerCallback(Callback):
