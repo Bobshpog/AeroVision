@@ -20,6 +20,7 @@ import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
 from src.util.error_helper_functions import calc_errors
 from src.util.loss_functions import l1_norm
+from src.util.min_list import MinCounter
 
 
 class CustomInputResnet(pl.LightningModule):
@@ -107,9 +108,11 @@ class CustomInputResnet(pl.LightningModule):
 
 
 class LoggerCallback(Callback):
-    def __init__(self, logger):
+    def __init__(self, logger, stopping_metric='val_loss', stopping_patience=10):
         self.logger = logger
         self.metrics = {}
+        self.stopping_metric = stopping_metric
+        self.min_counter = MinCounter(stopping_patience)
 
     def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
         error_dict = {}
@@ -130,8 +133,6 @@ class LoggerCallback(Callback):
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
         self.metrics = {**self.metrics, **error_dict}
-        for i in pl_module.train_batch_list.values():
-            i.clear()
 
     def on_validation_epoch_end(self, trainer, pl_module):
         error_dict = {}
@@ -152,12 +153,16 @@ class LoggerCallback(Callback):
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
         self.metrics = {**self.metrics, **error_dict}
-        for i in pl_module.val_batch_list.values():
-            i.clear()
 
     def on_epoch_end(self, trainer, pl_module):
         self.logger.experiment.log_metrics(self.metrics, step=pl_module.current_epoch, epoch=pl_module.current_epoch)
+        trainer.should_stop = self.min_counter.add(self.metrics[self.stopping_metric])
         self.metrics.clear()
+
+        for i in pl_module.train_batch_list.values():
+            i.clear()
+        for i in pl_module.val_batch_list.values():
+            i.clear()
 
 
 def L1_normalized_loss(min, max):
@@ -226,7 +231,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
         verbose=True)
 
     trainer = pl.Trainer(gpus=1, max_epochs=num_epochs,
-                         callbacks=[LoggerCallback(logger), pl.callbacks.EarlyStopping(patience=25)],
+                         callbacks=[LoggerCallback(logger, stopping_patience=30)],
                          checkpoint_callback=mcp,
                          num_sanity_val_steps=0,
                          profiler=True)
