@@ -220,7 +220,7 @@ class SyntheticWingModel:
         Creates a list of photos from mode shape and scales
         Args:
             mode_shape: mode shape as recived from matlabreader functions
-            scales: list of string!
+            scales: list of string! num of scales >= num of scales in mode shape
             texture: path of texture, NO NUMPY TEXTURE SUPPORT
             resolution: resolution
             camera: list of camera, should be the same length of the list of scales!
@@ -251,13 +251,15 @@ class SyntheticWingModel:
         y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
         to_return = []
+        curr_scale = np.zeros(mode_shape[2])
         h1 = np.zeros((tip_vertices_num, 3), dtype='float')
         for i in range(len(scales)):
-            curr_scale = np.fromstring(scales[i], dtype=np.float32, sep=' ')
+            temp = np.fromstring(scales[i], dtype=np.float32, sep=' ')
+            curr_scale[:temp.shape[0]] = temp
             difference = (curr_scale * mode_shape).sum(axis=2).T
             g1 = mesh.vertices + difference[compatibility_arr]
             for id in tip_index_arr:
-                for k in range(30):
+                for k in range(NUM_OF_VERTICES_ON_CIRCUMFERENCE):
                     cord = old_mesh.vertices[id]
                     vector = np.array((cord[0] + difference[id, 0], cord[1] + y_t[k] + difference[id, 1],
                                        cord[2] + z_t[k] + difference[id, 2]))
