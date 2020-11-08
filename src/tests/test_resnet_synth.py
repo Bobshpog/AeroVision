@@ -3,11 +3,12 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+import torch.functional as F
 from functools import partial
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from src.model_datasets.image_dataset import ImageDataset
-from src.models.resnet_synth import CustomInputResnet
+from src.models.resnet_synth import CustomInputResnet, run_resnet_synth
 import src.util.image_transforms as my_transforms
 import h5py
 from src.geometry.animations.synth_wing_animations import *
@@ -43,7 +44,40 @@ class TestCustomInputResnet(TestCase):
             #todo reconstruct X
             cv2.imwrite(trash_path + name_of_picture + str(i) + ".png", np.asarray(X * 255, np.uint8))
 
-        create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                             name_of_picture, show_ssim=True,res=[100,400])
+        #create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
+        #                     name_of_picture, show_ssim=True,res=[100,400])
 
+    def test_run_resnet_synth(self):
+        BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
+        NUM_EPOCHS = 1000
+        VAL_CACHE_SIZE = 1000
+        TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
+        NUM_INPUT_LAYERS = 1
+        NUM_OUTPUTS = 5
+        RESNET_TYPE = '18'  # '18', '50', '34'
+        LOSS_FUNC = F.smooth_l1_loss
+        EXPERIMENT_NAME = None
+        TRAINING_DB_PATH = ""
+        VALIDATION_DB_PATH = TRAINING_DB_PATH
+        VAL_SPLIT = None
+        TRANSFORM = my_transforms.single_camera_bw
+        OUTPUT_SCALE = 1e4
+        LEARNING_RATE = 1e-2
+        WEIGTH_DECAY = 0
+        COSINE_ANNEALING_STEPS = 10
+        MAX_CAMERAS = 8
+        NORMAL_CAMS = 6
+        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM)
+
+        # single camera:
+        for i in range(MAX_CAMERAS):
+            run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment one camera: " + str(i),
+                             TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM, camera_ids=i)
+
+        # two cameras:
+        TRANSFORM = my_transforms.many_cameras_bw
+        for i in range(NORMAL_CAMS):
+            for j in range(i, NORMAL_CAMS):
+                run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment two cameras: " + str(i) + " " + str(j)
+                                 , TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM, camera_ids=[i, j])
 
