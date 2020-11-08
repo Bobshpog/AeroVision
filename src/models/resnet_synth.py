@@ -140,7 +140,7 @@ class LoggerCallback(Callback):
 
         # Both val and training
         self.logger.experiment.log_metrics(self.metrics, step=pl_module.current_epoch, epoch=pl_module.current_epoch)
-        trainer.should_stop = self.min_counter.add(self.metrics[self.stopping_metric])
+        trainer.should_stop = self.min_counter.add(self.metrics[self.stopping_metric],pl_module.current_epoch)
 
         # cleanup
         self.metrics.clear()
@@ -152,7 +152,7 @@ class LoggerCallback(Callback):
         loss_tensor =torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l2_3d_ir_loss']])
         error_dict[f'val_loss'] = torch.mean(torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_loss']]))
         worst_indices = torch.argsort(loss_tensor, descending=True)[:5]
-        worst_scales = torch.zeros((2, 5, pl_module.num_output_layers), dtype=loss_tensor.dtype,
+        worst_scales = torch.zeros((2* 5, pl_module.num_output_layers), dtype=loss_tensor.dtype,
                                    device=loss_tensor.device)
         worst_string = ""
         for i in range(pl_module.num_output_layers):
