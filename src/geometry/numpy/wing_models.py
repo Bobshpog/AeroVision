@@ -124,6 +124,7 @@ class SyntheticWingModel:
     plotter: pv.BasePlotter
     resolution: list
     cmap: str
+
     def __post_init__(self):
         self.wing = Mesh(self.wing_path,texture=self.texture_wing)
         self.tip = Mesh(self.tip_path,texture=self.texture_tip)
@@ -212,3 +213,56 @@ class SyntheticWingModel:
         photo = self._get_wing_photo(movement=movement)
         return photo, ir
 
+    @staticmethod
+    def photo_from_scales(mode_shape, scales, texture, resolution, camera, plotter=None, compatibility_arr=None,
+                          tip_index_arr=None):
+        """
+        Creates a list of photos from mode shape and scales
+        Args:
+            mode_shape: mode shape as recived from matlabreader functions
+            scales: list of string!
+            texture: path of texture, NO NUMPY TEXTURE SUPPORT
+            resolution: resolution
+            camera: list of camera, should be the same length of the list of scales!
+            plotter: the plotter to use, pass it in case making a lot of usages, will create white background
+            compatibility_arr: compatibility array between meshes, made from mesh_compatibility_creation, pass when
+                                creating many photos.
+            tip_index_arr: old mesh tip array, created via tip_arr_creation with old mesh verticies, pass when
+                           creating many photos.
+
+        Returns:
+            [photo] in length of len(scales)
+
+        """
+        mesh = Mesh("data/wing_off_files/synth_wing_v5.off", texture)
+        tip = Mesh("data/wing_off_files/fem_tip.off")
+        old_mesh = Mesh("data/wing_off_files/synth_wing_v3.off")
+        if plotter is None:
+            plotter = pv.Plotter(off_screen=True)
+            plotter.set_background("white")
+        if compatibility_arr is None:
+            compatibility_arr = mesh_compatibility_creation(mesh.vertices)
+        if tip_index_arr is None:
+            tip_index_arr = tip_arr_creation(old_mesh.vertices)
+        TIP_RADIUS = 0.008
+        NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
+        tip_vertices_num = 930
+        tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
+        y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
+        z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
+        to_return = []
+        h1 = np.zeros((tip_vertices_num, 3), dtype='float')
+        for i in range(len(scales)):
+            curr_scale = np.fromstring(scales[i], dtype=np.float32, sep=' ')
+            difference = (curr_scale * mode_shape).sum(axis=2).T
+            g1 = mesh.vertices + difference[compatibility_arr]
+            for id in tip_index_arr:
+                for i in range(30):
+                    cord = old_mesh.vertices[id]
+                    vector = np.array((cord[0] + difference[id, 0], cord[1] + y_t[i] + difference[id, 1],
+                                       cord[2] + z_t[i] + difference[id, 2]))
+                    h1[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
+            photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter,
+                                   cmap=None, camera=camera[i], resolution=resolution)
+            to_return.append(photo)
+        return to_return

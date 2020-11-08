@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Union, Optional
 
+import random
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
@@ -44,19 +45,39 @@ class DatabaseAnalyzer:
             bin_dict[bin_idx].append(idx)
         return dict(bin_dict)
 
-    def find_val_split(self, q: float, start: Optional[int] = 0, p: Optional[int] = None) -> tuple:
+    def find_val_split(self, q: float, start: Optional[int] = None, step_size: Optional[int] = None) -> tuple:
         """
         Finds all entries in database to be used for the validation split s.t. its size is ~q *num_bins
         Args:
             q: a number in range [0,1] that represents the % of entries in the validation set
             start: the start position where we begin the iteration
-            p: a number that represents the step size of the iteration
+            step_size: a number that represents the step size of the iteration
 
         Returns:
             A tuple of indices of entries in the validation set
         """
 
-    pass
+        bins = self.create_bin_dict(0)
+        bins_len = len(bins)
+        total_scales = self.scales.shape[0]
+        total_selected = 0
+        to_return = tuple()
+        if step_size is None:
+            step_size = 1
+        if start is None:
+            start = random.randint(0, bins_len)
+        for i in range(start, bins_len, step_size):
+            if total_selected > q * total_scales:
+                return tuple(to_return)
+            to_return += tuple(bins[i])
+            total_selected += len(bins[i])
+
+        for i in range(start, 0, -step_size):
+            if total_selected > q * total_scales:
+                return tuple(to_return)
+            to_return += tuple(bins[i])
+            total_selected += len(bins[i])
+        return tuple(to_return)
 
 
 def show_histogram(self, scale_id):
