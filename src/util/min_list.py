@@ -18,7 +18,7 @@ class MinCounter:
         Returns:
             weather we didn't update the list for max_count epochs
         """
-        self.data = [x for x in self.data if ((epoch - self.max_count) > x[1])]
+        self.data = [x for x in self.data if ((epoch - x[i]) > self.max_count)]
         if (not bool(self.data)):
             #if list is empty
             return True
