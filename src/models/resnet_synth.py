@@ -114,7 +114,8 @@ class LoggerCallback(Callback):
         self.stopping_metric = stopping_metric
         self.min_counter = MinCounter(stopping_patience)
 
-    def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
+    def on_epoch_end(self, trainer, pl_module):
+        # training
         error_dict = {}
         error_dict[f'train_loss'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_loss']))
         for i in range(pl_module.num_output_layers):
@@ -133,8 +134,7 @@ class LoggerCallback(Callback):
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
         self.metrics = {**self.metrics, **error_dict}
-
-    def on_validation_epoch_end(self, trainer, pl_module):
+        # validation
         error_dict = {}
         error_dict[f'val_loss'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_loss']))
         for i in range(pl_module.num_output_layers):
@@ -154,9 +154,9 @@ class LoggerCallback(Callback):
             error_dict[error_str] = curr_loss
         self.metrics = {**self.metrics, **error_dict}
 
-    def on_epoch_end(self, trainer, pl_module):
         self.logger.experiment.log_metrics(self.metrics, step=pl_module.current_epoch, epoch=pl_module.current_epoch)
         trainer.should_stop = self.min_counter.add(self.metrics[self.stopping_metric])
+        #cleanup
         self.metrics.clear()
 
         for i in pl_module.train_batch_list.values():
