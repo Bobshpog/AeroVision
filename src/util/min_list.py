@@ -8,10 +8,10 @@ class MinCounter:
     def __post_init__(self):
         if self.max_count < 0:
             raise ValueError
-        self.data = [ -self.max_count+1,float("inf")]
+        self.data = [-self.max_count + 1, float("inf")]
         self.count = 0
 
-    def add(self, epoch: int, x: float) -> bool:
+    def add(self, x: float, epoch: int, ) -> bool:
         """
         Args:
             x:number to add to min list
@@ -20,8 +20,8 @@ class MinCounter:
         """
         self.data = [x for x in self.data if ((epoch - x[0]) <= self.max_count)]
         if (not bool(self.data)):
-            #if list is empty
+            # if list is empty
             return True
-        self.data.append((epoch,x))
+        self.data.append((epoch, x))
         self.data.sort(key=lambda x: x[1])
         return False
