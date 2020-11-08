@@ -143,8 +143,7 @@ class LoggerCallback(Callback):
         self.metrics.clear()
         for i in pl_module.train_batch_list.values():
             i.clear()
-        for i in pl_module.val_batch_list.values():
-            i.clear()
+
 
     def on_validation_epoch_end(self, trainer, pl_module):
         error_dict = {}
@@ -165,6 +164,8 @@ class LoggerCallback(Callback):
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
         self.metrics = {**self.metrics, **error_dict}
+        for i in pl_module.val_batch_list.values():
+            i.clear()
 
 
 def L1_normalized_loss(min, max):
