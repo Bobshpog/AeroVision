@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 import h5py
 import matplotlib.pyplot as plt
@@ -38,23 +38,38 @@ class DatabaseAnalyzer:
         Returns:
         A dictionary where key is the id of the bin and value is all the indices of the values it contains
         """
-        bin_dict=defaultdict(list)
-        digitized=np.digitize(self.scales[:,scale_id],self._find_bin_edges(scale_id))
-        for idx,bin_idx in enumerate(digitized):
+        bin_dict = defaultdict(list)
+        digitized = np.digitize(self.scales[:, scale_id], self._find_bin_edges(scale_id))
+        for idx, bin_idx in enumerate(digitized):
             bin_dict[bin_idx].append(idx)
         return dict(bin_dict)
 
-    def show_histogram(self, scale_id):
-        bin_edges = self._find_bin_edges(scale_id)
-        plt.hist(self.scales[:, scale_id], bin_edges)
-        plt.title(f'Scale{scale_id} Distribution')
-        plt.xlabel(f'scale{scale_id}')
-        plt.ylabel('No of problems datapoints')
-        plt.ticklabel_format(style="sci",scilimits=(0,0),axis='x')
-        plt.show()
-        # ax = {}
-        # fig, ((ax[0], ax[1], ax[2]), (ax[3], ax[4], _)) = plt.subplots(2, 3)
-        # for i in range(5):
-        #     ax[i].set_title(f'scale{i}')
-        #     ax[i].hist(self.scales[:, i])
-        # fig.show()
+    def find_val_split(self, q: float, start: Optional[int] = 0, p: Optional[int] = None) -> tuple:
+        """
+        Finds all entries in database to be used for the validation split s.t. its size is ~q *num_bins
+        Args:
+            q: a number in range [0,1] that represents the % of entries in the validation set
+            start: the start position where we begin the iteration
+            p: a number that represents the step size of the iteration
+
+        Returns:
+            A tuple of indices of entries in the validation set
+        """
+
+    pass
+
+
+def show_histogram(self, scale_id):
+    bin_edges = self._find_bin_edges(scale_id)
+    plt.hist(self.scales[:, scale_id], bin_edges)
+    plt.title(f'Scale{scale_id} Distribution')
+    plt.xlabel(f'scale{scale_id}')
+    plt.ylabel('No of problems datapoints')
+    plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
+    plt.show()
+    # ax = {}
+    # fig, ((ax[0], ax[1], ax[2]), (ax[3], ax[4], _)) = plt.subplots(2, 3)
+    # for i in range(5):
+    #     ax[i].set_title(f'scale{i}')
+    #     ax[i].hist(self.scales[:, i])
+    # fig.show()
