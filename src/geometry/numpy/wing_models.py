@@ -257,11 +257,11 @@ class SyntheticWingModel:
             difference = (curr_scale * mode_shape).sum(axis=2).T
             g1 = mesh.vertices + difference[compatibility_arr]
             for id in tip_index_arr:
-                for i in range(30):
+                for k in range(30):
                     cord = old_mesh.vertices[id]
-                    vector = np.array((cord[0] + difference[id, 0], cord[1] + y_t[i] + difference[id, 1],
-                                       cord[2] + z_t[i] + difference[id, 2]))
-                    h1[tip.table[cord2index(cord + (0, y_t[i], z_t[i]))]] = vector
+                    vector = np.array((cord[0] + difference[id, 0], cord[1] + y_t[k] + difference[id, 1],
+                                       cord[2] + z_t[k] + difference[id, 2]))
+                    h1[tip.table[cord2index(cord + (0, y_t[k], z_t[k]))]] = vector
             photo = Mesh.get_photo([mesh, tip], [g1, h1], plotter=plotter,
                                    cmap=None, camera=camera[i], resolution=resolution)
             to_return.append(photo)
