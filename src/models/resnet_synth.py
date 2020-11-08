@@ -116,7 +116,7 @@ class LoggerCallback(Callback):
 
     def on_train_epoch_end(self, trainer, pl_module: CustomInputResnet):
         error_dict = {}
-        error_dict[f'train_loss'] = torch.mean(torch.stack(pl_module[f'train_loss']))
+        error_dict[f'train_loss'] = torch.mean(torch.stack(pl_module.train_batch_list[f'train_loss']))
         for i in range(pl_module.num_output_layers):
             scale_err_hist = torch.stack(pl_module.train_batch_list[f'train_l1_scale{i}']).flatten()
             error_dict[f'train_scale_err{i}'] = torch.mean(scale_err_hist)
@@ -136,7 +136,7 @@ class LoggerCallback(Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         error_dict = {}
-        error_dict[f'val_loss'] = torch.mean(torch.stack(pl_module[f'val_loss']))
+        error_dict[f'val_loss'] = torch.mean(torch.stack(pl_module.val_batch_list[f'val_loss']))
         for i in range(pl_module.num_output_layers):
             scale_err_hist = torch.stack(pl_module.val_batch_list[f'val_l1_scale{i}']).flatten()
             error_dict[f'val_scale_err{i}'] = torch.mean(scale_err_hist)
