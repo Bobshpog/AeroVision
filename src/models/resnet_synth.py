@@ -203,7 +203,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
         l1_errors_func = partial(calc_errors, F.l1_loss, modal_shapes, output_scaling, ir)
         l2_errors_func = partial(calc_errors, l2_norm, modal_shapes, output_scaling, ir)
     if camera_ids:
-        transform = transform(mean_image, camera_ids)
+        transform = transform(camera_ids, mean_image)
     else:
         transform = transform(mean_image)
     if isinstance(val_split, int):

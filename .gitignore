@@ -180,3 +180,4 @@ octave-workspace
 /data/data_samples/Daniella_data.mat
 /data/synt_data_mat_files/
 /data/synt_data_mat_files/data.mat
+/src/tests/test_spod.py

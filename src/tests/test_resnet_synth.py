@@ -67,7 +67,7 @@ class TestCustomInputResnet(TestCase):
         COSINE_ANNEALING_STEPS = 10
         MAX_CAMERAS = 8
         NORMAL_CAMS = 6
-        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM)
+        #run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM)
 
         # single camera:
         for i in range(MAX_CAMERAS):

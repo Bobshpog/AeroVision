@@ -22,8 +22,8 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
     """
     num_datapoints, num_scales = x.shape
     #device = x.device
-    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x * 10 ** 6, y * 10 ** 6)
-    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x * 10 ** 6, y * 10 ** 6)
+    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x, y)
+    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x, y)
     regression_loss = np.zeros(num_scales)
     for i in range(num_datapoints):
         for k in range(num_scales):
@@ -33,9 +33,6 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
     return (vertex_loss, ir_loss,
             avg_regression) + tuple(regression_loss)
 
-
-    return (vertex_loss, ir_loss/ len(ir_indices),
-            avg_regression, regression_loss)
 
 
 def calc_max_errors(loss_function, scales: np.ndarray, ir_indices, mode_shape, device='cpu'):
@@ -133,7 +130,9 @@ def calc_max_regression_error(loss_function, scales):
 
 def error_to_exel_string(result):
     exel_string = ""
-    for res in result:
+    for i, res in enumerate(result):
+        if i < 3:
+            res = res.item()
         exel_string += str(res) + " "
 
     return exel_string

@@ -47,13 +47,9 @@ class ImageDataset(Dataset):
         image = dataset['images'][item]
         scales = dataset['scales'][item]
         if transform:
-            if self.camera_ids:
-                image = transform(image, self.camera_ids)
-            else:
-                image = transform(image)
+            image = transform(image)
         if out_transform:
             scales = out_transform(scales)
-
         if len(self.cache_dict) < self.cache_size:
             self.cache_dict[item] = image, scales
         return image, scales
