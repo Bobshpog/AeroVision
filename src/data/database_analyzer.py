@@ -93,10 +93,11 @@ class DatabaseAnalyzer:
         plt.hist(s[arr], bin_edges, label="validation")
         plt.hist(s[rest], bin_edges, label="training")
         plt.legend()
-        plt.title(f'histogram {p_real:.2f} of items')
+        plt.title(f'histogram {p_real:.2f}% of items')
         plt.xlabel(f'scale{0}')
         plt.ylabel('No of problems datapoints')
         plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
+        plt.savefig('src/tests/temp/histogram.png')
         plt.show()
 
     def show_histogram(self, scale_id):
