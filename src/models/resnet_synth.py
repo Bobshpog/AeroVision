@@ -69,7 +69,7 @@ class CustomInputResnet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_func(y_hat, y,reduction='none').sum(dim=-1)
+        loss = self.loss_func(y_hat, y,reduction='none').mean(dim=-1)
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
@@ -88,7 +88,7 @@ class CustomInputResnet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_func(y_hat, y,reduction='none').sum(dim=-1)
+        loss = self.loss_func(y_hat, y,reduction='none').mean(dim=-1)
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
