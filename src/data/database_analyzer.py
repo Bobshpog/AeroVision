@@ -66,8 +66,8 @@ class DatabaseAnalyzer:
 
         if step_size is None:
             step_size = bins_len
-            while gcd(step_size,bins_len) > 1:
-                step_size = step_size + 1
+            while gcd(step_size, bins_len) > 1:
+                step_size = step_size + random.randint(1, bins_len)
         if start is None:
             start = random.randrange(0, bins_len)
         for i in range(bins_len):
