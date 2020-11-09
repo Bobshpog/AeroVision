@@ -73,7 +73,7 @@ class CustomInputResnet(pl.LightningModule):
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
-            y_hat_copy=y_hat.detach().copy().double()
+            y_hat_copy=y_hat.detach().clone().double()
             for i in range(self.num_output_layers):
                 self.train_batch_list[f'train_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
                 self.train_batch_list[f'train_l2_scale{i}'].append(l2_regression_list[i] / self.output_scale)
@@ -91,8 +91,8 @@ class CustomInputResnet(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y,reduction='none').sum(dim=-1)
-        y_hat_copy = y_hat.detach().copy().double()
-        y_copy=y.detach().copy.double()
+        y_hat_copy = y_hat.detach().clone().double()
+        y_copy=y.detach().clone().double()
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
