@@ -1,11 +1,13 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Union
-from SSIM_PIL import compare_ssim
-from src.geometry.numpy.mesh import *   
-from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
-from util.error_helper_functions import calc_errors, error_to_exel_string
-from tqdm import trange
+
 import cv2
+from SSIM_PIL import compare_ssim
+
+from src.geometry.numpy.mesh import *
+from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
+
+
 @dataclass
 class FiniteElementWingModel:
     coordinates: np.ndarray
@@ -23,8 +25,8 @@ class FiniteElementWingModel:
     cmap: str
 
     def __post_init__(self):
-        self.wing = Mesh(self.wing_path,self.texture_wing)
-        self.tip = Mesh(self.tip_path,texture=self.texture_tip)
+        self.wing = Mesh(self.wing_path, self.texture_wing)
+        self.tip = Mesh(self.tip_path, texture=self.texture_tip)
         self.old_wing = Mesh(self.old_wing_path)
         self.compatibility_arr = mesh_compatibility_creation(self.wing.vertices)
         self.tip_arr = tip_arr_creation(self.old_wing.vertices)
@@ -128,8 +130,8 @@ class SyntheticWingModel:
     cmap: str
 
     def __post_init__(self):
-        self.wing = Mesh(self.wing_path,texture=self.texture_wing)
-        self.tip = Mesh(self.tip_path,texture=self.texture_tip)
+        self.wing = Mesh(self.wing_path, texture=self.texture_wing)
+        self.tip = Mesh(self.tip_path, texture=self.texture_tip)
         self.old_wing = Mesh(self.old_wing_path)
         self.compatibility_arr = mesh_compatibility_creation(self.wing.vertices)
         self.tip_arr = tip_arr_creation(self.old_wing.vertices)
@@ -161,7 +163,7 @@ class SyntheticWingModel:
             for i in range(30):
                 new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
 
-        #for idx, cord in enumerate(self.old_wing.vertices):
+        # for idx, cord in enumerate(self.old_wing.vertices):
         #    if cord[1] >= 0.605:
         #        for i in range(30):
         #            new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
@@ -275,7 +277,8 @@ class SyntheticWingModel:
         return to_return
 
     @staticmethod
-    def two_scales_to_compare(mode_shape, real_scales, reconstruct_scales, texture, resolution, camera, loss_function, ir,
+    def two_scales_to_compare(mode_shape, real_scales, reconstruct_scales, texture, resolution, camera, loss_function,
+                              ir,
                               plotter=None, compatibility_arr=None, tip_index_arr=None, cv=False):
         """
         Creates a list of photos from mode shape and scales
@@ -319,8 +322,8 @@ class SyntheticWingModel:
             img_a = cv2.hconcat([first_photo[i], second_photo[i]])
             img_d = np.ones(shape=(img_a.shape[0] + padding, img_a.shape[1], img_a.shape[2]))
             img_d[padding:] = img_a
-            img_d[padding+80:, resolution[0]] = 0
-            img_d[padding+80, :] = 0
+            img_d[padding + 80:, resolution[0]] = 0
+            img_d[padding + 80, :] = 0
 
             cv2.putText(img_d, "general errors:", (200, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color3,
                         lineType=2)
@@ -334,25 +337,35 @@ class SyntheticWingModel:
                         lineType=2)
             cv2.putText(img_d, "avg reconstruct:" + f'{err[2]: .3e}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "scale 0:" + f'{err[3]: .3e}', (resolution[0]+1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 0:" + f'{err[3]: .3e}', (resolution[0] + 1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+                        color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 1:" + f'{err[4]: .3e}', (resolution[0]+1, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 1:" + f'{err[4]: .3e}', (resolution[0] + 1, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+                        color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 2:" + f'{err[5]: .3e}', (resolution[0]+1, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 2:" + f'{err[5]: .3e}', (resolution[0] + 1, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+                        color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 3:" + f'{err[6]: .3e}', (resolution[0]+1, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 3:" + f'{err[6]: .3e}', (resolution[0] + 1, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+                        color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 4:" + f'{err[7]: .3e}', (resolution[0]+1, 170), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 4:" + f'{err[7]: .3e}', (resolution[0] + 1, 170), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+                        color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 5:" + f'{err[8]: .3e}', (2*resolution[0]-260, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 5:" + f'{err[8]: .3e}', (2 * resolution[0] - 260, 50), cv2.FONT_HERSHEY_TRIPLEX,
+                        0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 6:" + f'{err[9]: .3e}', (2*resolution[0]-260, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 6:" + f'{err[9]: .3e}', (2 * resolution[0] - 260, 80), cv2.FONT_HERSHEY_TRIPLEX,
+                        0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 7:" + f'{err[10]: .3e}', (2*resolution[0]-260, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 7:" + f'{err[10]: .3e}', (2 * resolution[0] - 260, 110), cv2.FONT_HERSHEY_TRIPLEX,
+                        0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 8:" + f'{err[11]: .3e}', (2*resolution[0]-260, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 8:" + f'{err[11]: .3e}', (2 * resolution[0] - 260, 140), cv2.FONT_HERSHEY_TRIPLEX,
+                        0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 9:" + f'{err[12]: .3e}', (2*resolution[0]-260, 170), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color2,
+            cv2.putText(img_d, "scale 9:" + f'{err[12]: .3e}', (2 * resolution[0] - 260, 170), cv2.FONT_HERSHEY_TRIPLEX,
+                        0.75, color2,
                         lineType=2)
             cv2.putText(img_d, "reconstruct scales:", (800, 210), cv2.FONT_HERSHEY_TRIPLEX, 1, color3,
                         lineType=2)
@@ -362,11 +375,11 @@ class SyntheticWingModel:
 
         return to_return
 
-
     @staticmethod
-    def radical_list_creation(p=1):
+    def radical_list_creation(wing_path, p=1):
         #   changed after testing, proved that its the most moving vers so made it efficient
-        mesh = Mesh("data/wing_off_files/synth_wing_v5.off")
+        if not 0 <= p <= 1:
+            raise ValueError("Probability is between 0 and 1")
+        mesh = Mesh(wing_path)
         num_to_return = int(mesh.vertices.shape[0] * p)
-        return mesh.vertices[:,1].argsort()[-num_to_return:][::-1]
-
+        return mesh.vertices[:, 1].argsort()[-num_to_return:][::-1]
