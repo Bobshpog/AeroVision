@@ -112,6 +112,8 @@ class LoggerCallback(Callback):
         self.metrics = {}
         self.stopping_metric = stopping_metric
         self.min_counter = MinCounter(stopping_patience)
+        self.max_errors={'l1_3d_loss':0.0569622089146808,'l1_3d_ir_loss':0.0628303256182133,'l1_reg_avg':0.00348652643151581,
+                         'l2_3d_loss':0.000732383042264162,'l2_3d_ir_loss':0.0141162749770687,'l2_reg_avg':0.00314825028181076}
 
     def on_epoch_end(self, trainer, pl_module):
         # training
@@ -128,10 +130,11 @@ class LoggerCallback(Callback):
             self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'train_scale_err{i}',
                                                     step=pl_module.current_epoch)
         for error_str in pl_module.error_metrics:
+            max_error=self.max_errors[error_str]
             error_str = f'train_{error_str}'
             error_tensor = torch.cat([x.flatten() for x in pl_module.train_batch_list[error_str]]).flatten()
             curr_loss = torch.mean(error_tensor)
-            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy(), name='hist_' + error_str,
+            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy()/max_error, name='hist_' + error_str,
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
         self.metrics = {**self.metrics, **error_dict}
@@ -172,10 +175,11 @@ class LoggerCallback(Callback):
         self.logger.experiment.log_text(worst_string, step=pl_module.current_epoch)
 
         for error_str in pl_module.error_metrics:
+            max_error=self.max_errors[error_str]
             error_str = f'val_{error_str}'
             error_tensor = torch.cat([x.flatten() for x in pl_module.val_batch_list[error_str]]).flatten()
             curr_loss = torch.mean(error_tensor)
-            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy(), name='hist_' + error_str,
+            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy()/max_error, name='hist_' + error_str,
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
         self.metrics = {**self.metrics, **error_dict}
