@@ -76,25 +76,4 @@ class TestCustomInputResnet(TestCase):
         MAX_CAMERAS = 8
         NORMAL_CAMS = 6
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM)
-        create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-                             name_of_picture, show_ssim=True, res=[100, 400])
 
-    def test_run_resnet_synth(self):
-        BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
-        NUM_EPOCHS = 1000
-        VAL_CACHE_SIZE = 1000
-        TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
-        NUM_INPUT_LAYERS = 1
-        NUM_OUTPUTS = 5
-        RESNET_TYPE = '18'  # '18', '50', '34'
-        LOSS_FUNC = F.smooth_l1_loss
-        EXPERIMENT_NAME = None
-        TRAINING_DB_PATH = ""
-        VALIDATION_DB_PATH = TRAINING_DB_PATH
-        VAL_SPLIT = None
-        TRANSFORM = my_transforms.top_middle_bw
-        OUTPUT_SCALE = 1e4
-        LEARNING_RATE = 1e-2
-        WEIGTH_DECAY = 0
-        COSINE_ANNEALING_STEPS = 10
-        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM)

@@ -194,7 +194,7 @@ def L1_normalized_loss(min, max):
 
 def run_resnet_synth(num_input_layers, num_outputs,
                      comment, train_db_path, val_db_path, val_split, transform, output_scaling=1e4, lr=1e-2,
-                     resnet_type='18', train_cache_size=1000, val_cache_size=5500, batch_size=64, num_epochs=1000,
+                     resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
                      weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, camera_ids=None):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
         raise ValueError('Config not fully initialized')
