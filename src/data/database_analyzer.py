@@ -39,13 +39,16 @@ class DatabaseAnalyzer:
         Returns:
         A dictionary where key is the id of the bin and value is all the indices of the values it contains
         """
+
         bin_dict = defaultdict(list)
         digitized = np.digitize(self.scales[:, scale_id], self._find_bin_edges(scale_id))
         for idx, bin_idx in enumerate(digitized):
             bin_dict[bin_idx].append(idx)
-        return dict(bin_dict)
+        d = dict(bin_dict)
+        return d
 
-    def find_val_split(self, q: float, start: Optional[int] = None, step_size: Optional[int] = None, allowed_err=0.1) -> tuple:
+    def find_val_split(self, q: float, start=None, step_size=None, num_of_loops=5,
+                       allowed_err=0.1) -> tuple:
         """
         Finds all entries in database to be used for the validation split s.t. its size is ~q *num_bins
         Args:
@@ -53,42 +56,60 @@ class DatabaseAnalyzer:
             start: the start position where we begin the iteration
             step_size: a number that represents the step size of the iteration
             allowed_err: worst case = (q+allowed_err)*|scales in bins| defualt 0.1
-
+            num_of_loops: hyper parameter that simply loops, i found 5 to be good
         Returns:
             A tuple of indices of entries in the validation set
         """
 
         bins = self.create_bin_dict(0)
-        bins_len = len(bins)
+        bins_len = self.num_bins
         total_scales = self.scales.shape[0]
         total_selected = 0
         to_return = tuple()
-
         if step_size is None:
             step_size = bins_len
             while gcd(step_size, bins_len) > 1:
                 step_size = step_size + random.randint(1, bins_len)
         if start is None:
             start = random.randrange(0, bins_len)
-        for i in range(bins_len):
+        for i in range(num_of_loops * bins_len):
             if total_selected > q * total_scales:
                 return tuple(to_return)
-            temp = total_selected + len(bins[(start + i * step_size) % bins_len])  # avoiding unnecessary computation
-            if temp < (q+allowed_err) * total_scales:
-                total_selected = temp
-                to_return += tuple(bins[(start + i * step_size) % bins_len])
-
+            if bins.get((start + i * step_size) % bins_len) is not None:
+                temp = total_selected + len(bins[(start + i * step_size) % bins_len])
+                if temp < (q + allowed_err) * total_scales:
+                    total_selected = temp
+                    to_return += tuple(bins[(start + i * step_size) % bins_len])
         return tuple(to_return)
 
+    def show_histogram(self):
+        arr = list(self.find_val_split(q=0.15))
+        rest = list(set(range(self.scales.shape[0])) - set(arr))
+        print("common items: ", list(set(arr).intersection(rest)))
+        print("length = " + str(len(arr)))
+        print("%: "+str(len(arr)/self.scales.shape[0]))
+        bin_edges = self._find_bin_edges(0)
+        s = self.scales[:, 0]
+        plt.hist(s[arr], bin_edges, label="validation")
+        plt.hist(s[rest], bin_edges, label="training")
+        plt.legend()
+        plt.title('histogram 15-25% of items')
+        plt.xlabel(f'scale{0}')
+        plt.ylabel('No of problems datapoints')
+        plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
+        plt.show()
 
-def show_histogram(self, scale_id):
-    bin_edges = self._find_bin_edges(scale_id)
-    plt.hist(self.scales[:, scale_id], bin_edges)
-    plt.title(f'Scale{scale_id} Distribution')
-    plt.xlabel(f'scale{scale_id}')
-    plt.ylabel('No of problems datapoints')
-    plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
-    plt.show()
+
+
+#def show_histogram(self, scale_id):
+#    bin_edges = self._find_bin_edges(scale_id)
+#    plt.hist(self.scales[:, scale_id], bin_edges)
+#    plt.title(f'Scale{scale_id} Distribution')
+#    plt.xlabel(f'scale{scale_id}')
+#    plt.ylabel('No of problems datapoints')
+#    plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
+#    plt.show()
+
     # ax = {}
     # fig, ((ax[0], ax[1], ax[2]), (ax[3], ax[4], _)) = plt.subplots(2, 3)
     # for i in range(5):
