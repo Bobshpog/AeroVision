@@ -20,7 +20,7 @@ def l1_norm(x, dim=None):
     return torch.norm(x, p=1, dim=dim)
 
 
-def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
+def vertex_mean_rms(mode_shapes, scale_factor, x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
     """
         return loss between movement (based on the scales) we received and the movement we calculated by our own scales
           Args:

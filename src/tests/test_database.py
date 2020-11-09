@@ -7,7 +7,7 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import trange
-
+from src.geometry.numpy import wing_models
 import src.data.database_builder as db
 from src.data.data_generators.synthetic_mat_gen import SyntheticMatGenerator
 from src.data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayingGen
@@ -34,6 +34,7 @@ class TestDatabaseBuilder(TestCase):
         ir_list = ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
                          6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
                          6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
+        radical_list = wing_models.SyntheticWingModel.radical_list_creation(0.2)
         # cameras in pyvista format
         cameras = [[(0.047, -0.053320266561896174, 0.026735639600027315),
                     (0.05, 0.3, 0.02),

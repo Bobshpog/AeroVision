@@ -4,6 +4,7 @@ from SSIM_PIL import compare_ssim
 from src.geometry.numpy.mesh import *   
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
 from util.error_helper_functions import calc_errors, error_to_exel_string
+from tqdm import trange
 import cv2
 @dataclass
 class FiniteElementWingModel:
@@ -360,3 +361,12 @@ class SyntheticWingModel:
             to_return.append(img_d)
 
         return to_return
+
+
+    @staticmethod
+    def radical_list_creation(p=1):
+        #   changed after testing, proved that its the most moving vers so made it efficient
+        mesh = Mesh("data/wing_off_files/synth_wing_v5.off")
+        num_to_return = int(mesh.vertices.shape[0] * p)
+        return mesh.vertices[:,1].argsort()[-num_to_return:][::-1]
+
