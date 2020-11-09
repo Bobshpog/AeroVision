@@ -76,7 +76,7 @@ class CustomInputResnet(pl.LightningModule):
             for i in range(self.num_output_layers):
                 self.train_batch_list[f'train_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
                 self.train_batch_list[f'train_l2_scale{i}'].append(l2_regression_list[i] / self.output_scale)
-                self.train_batch_list[f'train_output{i}'].append(y_hat.detach().double() / self.output_scale)
+                self.train_batch_list[f'train_output{i}'].append(y_hat[i].detach().double() / self.output_scale)
             self.train_batch_list['train_loss'].append(loss)
             self.train_batch_list['train_l1_3d_loss'].append(l1_3d_err)
             self.train_batch_list['train_l2_3d_loss'].append(l2_3d_err)
@@ -96,8 +96,8 @@ class CustomInputResnet(pl.LightningModule):
             for i in range(self.num_output_layers):
                 self.val_batch_list[f'val_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
                 self.val_batch_list[f'val_l2_scale{i}'].append(l2_regression_list[i] / self.output_scale)
-                self.val_batch_list[f'val_output{i}'].append(y_hat.detach().double() / self.output_scale)
-                self.val_batch_list[f'val_expected{i}'].append(y.detach().double() / self.output_scale)
+                self.val_batch_list[f'val_output{i}'].append(y_hat[i].detach().double() / self.output_scale)
+                self.val_batch_list[f'val_expected{i}'].append(y[i].detach().double() / self.output_scale)
             self.val_batch_list['val_loss'].append(loss)
             self.val_batch_list['val_l1_3d_loss'].append(l1_3d_err)
             self.val_batch_list['val_l2_3d_loss'].append(l2_3d_err)
