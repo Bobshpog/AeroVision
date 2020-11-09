@@ -16,7 +16,6 @@ def l2_norm(a, b):
     return mse_weighted(1, a, b)
 
 
-def vertex_mean_rms(mode_shapes, scale_factor, x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
 def l1_norm(x, dim=None):
     return torch.norm(x, p=1, dim=dim)
 
