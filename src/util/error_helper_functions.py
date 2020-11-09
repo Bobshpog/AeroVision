@@ -3,14 +3,13 @@ import torch.nn.functional as F
 from src.util.loss_functions import *
 
 
-def calc_errors(loss_function, mode_shapes: np.ndarray, scaling, ir_indices,reduction=None, x, y):
+def calc_errors(loss_function, mode_shapes: np.ndarray, scaling, ir_indices, x, y):
     """
     return errors as written in the exel file format
     Args:
         loss_function: The loss function between two elements, should deal with vectors and single element,must work on tensors.
         ir_indices: tuple of ir indices
         mode_shapes: mode shape as read using matlab_reader.read_modal_shapes()
-        reduction: None or 'mean', if mean returns mean error instead
         x: first set of scales (shape = num_datapoints, num_scales)
         y: second set of scales (shape = num_datapoints, num_scales)
 
@@ -26,13 +25,13 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, scaling, ir_indices,redu
     ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], scaling, x, y)
     regression_loss = torch.abs(x-y) / scaling
     avg_regression = regression_loss.sum(-1) / (num_scales * scaling)
-    if reduction is None:
-        return (vertex_loss, ir_loss,
-                avg_regression.double(), regression_loss.T.double())#Transpose is important
-    if reduction is 'mean':
-        return (vertex_loss.mean(), ir_loss.mean(),
-                avg_regression.double().mean(), regression_loss.T.double().mean(dim=0))#Transpose is important
+    return (vertex_loss, ir_loss,
+            avg_regression.double(), regression_loss.T.double())#Transpose is important
 
+def calc_mean_errors(loss_function, mode_shapes: np.ndarray, scaling, ir_indices, x, y):
+    (vertex_loss,ir_loss,avg_regression,regression_loss)=calc_errors(loss_function, mode_shapes, scaling, ir_indices, x, y)
+    return (vertex_loss.mean(), ir_loss.mean(),
+        avg_regression.mean(), regression_loss.mean(dim=0))
 
 def calc_max_errors(loss_function, scales: np.ndarray, ir_indices, mode_shape, device='cpu'):
     """
