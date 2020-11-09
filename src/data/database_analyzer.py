@@ -82,8 +82,7 @@ class DatabaseAnalyzer:
                     to_return += tuple(bins[position % bins_len])
         raise ValueError("couldn't satisfy condition")
 
-    def show_val_split_histogram(self):
-        arr = list(self.find_val_split(q=0.15))
+    def show_val_split_histogram(self,arr):
         rest = list(set(range(self.scales.shape[0])) - set(arr))
         print("common items: ", list(set(arr).intersection(rest)))
         print("length = " + str(len(arr)))
