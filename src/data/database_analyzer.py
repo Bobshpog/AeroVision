@@ -47,15 +47,15 @@ class DatabaseAnalyzer:
         d = dict(bin_dict)
         return d
 
-    def find_val_split(self, q: float, position=None, step_size=None, num_of_loops=5,
-                       allowed_err=0.01) -> tuple:
+    def find_val_split(self, q: float, position=None, step_size=None,
+                       allowed_err=0.0001) -> tuple:
         """
         Finds all entries in database to be used for the validation split s.t. its size is ~q *num_bins
         Args:
             q: a number in range [0,1] that represents the % of entries in the validation set
             position: the start position where we begin the iteration
             step_size: a number that represents the step size of the iteration
-            allowed_err: worst case = (q+allowed_err)*|scales in bins| defualt 0.01
+            allowed_err: worst case = (q+allowed_err)*|scales in bins| defualt 0.0001
         Returns:
             A tuple of indices of entries in the validation set
         """
