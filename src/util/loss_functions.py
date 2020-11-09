@@ -16,6 +16,7 @@ def l2_norm(a, b):
     return mse_weighted(1, a, b)
 
 
+def vertex_mean_rms(mode_shapes, scale_factor, x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
 def l1_norm(x, dim=None):
     return torch.norm(x, p=1, dim=dim)
 
@@ -25,7 +26,7 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
         return loss between movement (based on the scales) we received and the movement we calculated by our own scales
           Args:
               mode_shapes: a [V,n] tensor or np array representing the mode shapes (only the Z axis)
-              pow: the power of 10 used to scale the mode scales
+              scale_factor: the power of 10 used to scale the mode scales
               x: first set of scales
               y: second set of scales
            Returns:
@@ -33,7 +34,7 @@ def vertex_mean_rms(mode_shapes, pow, x: Union[torch.tensor, np.ndarray], y: Uni
            """
 
     l2 = torch.norm
-    return reconstruction_loss_3d(l2, mode_shapes, pow, x, y)
+    return reconstruction_loss_3d(l2, mode_shapes, scale_factor, x, y)
 
 
 def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, scale_factor: int,

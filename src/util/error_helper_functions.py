@@ -128,7 +128,9 @@ def calc_max_regression_error(loss_function, scales):
 
 def error_to_exel_string(result):
     exel_string = ""
-    for res in result:
+    for i, res in enumerate(result):
+        if i < 3:
+            res = res.item()
         exel_string += str(res) + " "
 
     return exel_string
