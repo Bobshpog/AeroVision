@@ -100,11 +100,13 @@ class TestDatabaseBuilder(TestCase):
         VALIDATION_DB_PATH = "data/databases/20200924-184304__SyntheticSineDecayingGen(mesh_wing='finished_fem_without_tip', mesh_tip='fem_tip', resolution=[640, 480], texture_path='checkers2.png'.hdf5"
         with h5py.File(VALIDATION_DB_PATH, 'r') as hf:
             dset = hf['data']['images']
-            time.perf_counter()
-            index = randint(0, dset.shape[0])
-            image = dset[index, 0, :, :, :3]
-            cv2.imshow("photo", image)
-            cv2.waitKey()
+            for i in range(dset.shape[1]):
+                index = randint(0, dset.shape[0])
+                image = dset[index, i, :, :, :3]
+                cv2.imshow("photo", image)
+                cv2.waitKey()
+            ir_list=hf['generator metadata'].attrs['ir']
+            print(f"IR List: shape={ir_list.shape}, min={ir_list.min()},max={ir_list.max()}")
             pass
 
     def test_show_scale_histograms(self):
