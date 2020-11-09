@@ -27,7 +27,7 @@ class CustomInputResnet(pl.LightningModule):
     def __init__(self, num_input_layers, num_outputs, loss_func, error_funcs, output_scaling,
                  resnet_type, learning_rate,
                  cosine_annealing_steps,
-                 weight_decay):
+                 weight_decay,dtype=torch.float64):
         super().__init__()
         # TODO consider removing pretrained
         resnet_dict = {'18': models.resnet18,
@@ -52,6 +52,7 @@ class CustomInputResnet(pl.LightningModule):
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
                                       bias=False)
+        self.type(dst_type=dtype)
 
     def forward(self, x):
         x = self.resnet(x)
@@ -197,6 +198,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
                      weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, camera_ids=None):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
+
         raise ValueError('Config not fully initialized')
     params = {'batch_size': batch_size, 'train_db': train_db_path.split('/')[-1],
               'val_db': val_db_path.split('/')[-1], 'train-val_split_index': val_split,
