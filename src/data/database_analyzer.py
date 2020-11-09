@@ -66,6 +66,7 @@ class DatabaseAnalyzer:
         total_selected = 0
         to_return = tuple()
         if step_size is None:
+            step_size=bins_len
             while gcd(step_size, bins_len) > 1:
                 step_size = random.randint(1, bins_len)
         if position is None:
