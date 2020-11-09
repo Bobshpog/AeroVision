@@ -82,24 +82,32 @@ class DatabaseAnalyzer:
                     to_return += tuple(bins[(start + i * step_size) % bins_len])
         return tuple(to_return)
 
-    def show_histogram(self):
+    def show_val_split_histogram(self):
         arr = list(self.find_val_split(q=0.15))
         rest = list(set(range(self.scales.shape[0])) - set(arr))
         print("common items: ", list(set(arr).intersection(rest)))
         print("length = " + str(len(arr)))
-        print("%: "+str(len(arr)/self.scales.shape[0]))
+        p_real = 100* len(arr) / self.scales.shape[0]
+        print(f"%:  {p_real:.2f}")
         bin_edges = self._find_bin_edges(0)
         s = self.scales[:, 0]
         plt.hist(s[arr], bin_edges, label="validation")
         plt.hist(s[rest], bin_edges, label="training")
         plt.legend()
-        plt.title('histogram 15-25% of items')
+        plt.title(f'histogram {p_real:.2f} of items')
         plt.xlabel(f'scale{0}')
         plt.ylabel('No of problems datapoints')
         plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
         plt.show()
 
-
+    def show_histogram(self, scale_id):
+        bin_edges = self._find_bin_edges(scale_id)
+        plt.hist(self.scales[:, scale_id], bin_edges)
+        plt.title(f'Scale{scale_id} Distribution')
+        plt.xlabel(f'scale{scale_id}')
+        plt.ylabel('No of problems datapoints')
+        plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
+        plt.show()
 
 #def show_histogram(self, scale_id):
 #    bin_edges = self._find_bin_edges(scale_id)
