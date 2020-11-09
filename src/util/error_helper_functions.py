@@ -1,10 +1,9 @@
 import torch.nn.functional as F
-from tqdm import tqdm, trange
 
 from src.util.loss_functions import *
 
 
-def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
+def calc_errors(loss_function, mode_shapes: np.ndarray, scaling, ir_indices, x, y):
     """
     return errors as written in the exel file format
     Args:
@@ -16,27 +15,23 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, pow, ir_indices, x, y):
 
     Returns:
         error values in the following error
-        (Average 3D Reconstruction Error,Average 3D IR Reconstruction Error, Average Regression
-        	(Regression 0,	Regression 1,	Regression 2,	Regression 3,	Regression 4,	Regression 5,	Regression 6,
-        		Regression 7,	Regression 8,	Regression 9))
+        ( 3D Reconstruction Error Tensor ,3D IR Reconstruction Error Tensor , Average Regression Tensor
+        , regression Tensor (num_datapoints,nums_cales))
+
     """
     num_datapoints, num_scales = x.shape
-    #device = x.device
-    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, pow, x * 10 ** 6, y * 10 ** 6)
-    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], pow, x * 10 ** 6, y * 10 ** 6)
-    regression_loss = np.zeros(num_scales)
-    for i in range(num_datapoints):
-        for k in range(num_scales):
-            regression_loss[k] += loss_function(x[i, k], y[i, k])
-    regression_loss = regression_loss / num_datapoints
-    avg_regression = loss_function(x, y) / (num_scales * num_datapoints)
+    # device = x.device
+    vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, scaling, x, y)
+    ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], scaling, x, y)
+    regression_loss = torch.abs(x-y) / scaling
+    avg_regression = regression_loss.sum(-1) / (num_scales * scaling)
     return (vertex_loss, ir_loss,
-            avg_regression) + tuple(regression_loss)
+            avg_regression.double(), regression_loss.T.double())#Transpose is important
 
-
-    return (vertex_loss, ir_loss/ len(ir_indices),
-            avg_regression, regression_loss)
-
+def calc_mean_errors(loss_function, mode_shapes: np.ndarray, scaling, ir_indices, x, y):
+    (vertex_loss,ir_loss,avg_regression,regression_loss)=calc_errors(loss_function, mode_shapes, scaling, ir_indices, x, y)
+    return (vertex_loss.mean(), ir_loss.mean(),
+        avg_regression.mean(), regression_loss.mean(dim=0))
 
 def calc_max_errors(loss_function, scales: np.ndarray, ir_indices, mode_shape, device='cpu'):
     """
@@ -111,11 +106,11 @@ def calc_max_per_param_error(loss_function, scales: torch.Tensor):
     min_scales = scales.min(dim=0)[0]
     max_err = []
     if loss_function == 'l1':
-        loss_function = F.l1_loss
+        loss_function = lambda x: torch.norm(x,p=1)
     if loss_function == 'l2':
-        loss_function = lambda x, y: torch.norm(x - y)
+        loss_function = torch.norm
     for i, j in zip(min_scales, max_scales):
-        max_err.append(loss_function(i, j))
+        max_err.append(loss_function(i - j))
     max_err = tuple([i.item() for i in max_err])
     return max_err
 
