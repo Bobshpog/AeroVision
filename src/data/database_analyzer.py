@@ -47,16 +47,15 @@ class DatabaseAnalyzer:
         d = dict(bin_dict)
         return d
 
-    def find_val_split(self, q: float, start=None, step_size=None, num_of_loops=5,
-                       allowed_err=0.1) -> tuple:
+    def find_val_split(self, q: float, position=None, step_size=None, num_of_loops=5,
+                       allowed_err=0.01) -> tuple:
         """
         Finds all entries in database to be used for the validation split s.t. its size is ~q *num_bins
         Args:
             q: a number in range [0,1] that represents the % of entries in the validation set
-            start: the start position where we begin the iteration
+            position: the start position where we begin the iteration
             step_size: a number that represents the step size of the iteration
-            allowed_err: worst case = (q+allowed_err)*|scales in bins| defualt 0.1
-            num_of_loops: hyper parameter that simply loops, i found 5 to be good
+            allowed_err: worst case = (q+allowed_err)*|scales in bins| defualt 0.01
         Returns:
             A tuple of indices of entries in the validation set
         """
@@ -67,20 +66,20 @@ class DatabaseAnalyzer:
         total_selected = 0
         to_return = tuple()
         if step_size is None:
-            step_size = bins_len
             while gcd(step_size, bins_len) > 1:
-                step_size = step_size + random.randint(1, bins_len)
-        if start is None:
-            start = random.randrange(0, bins_len)
-        for i in range(num_of_loops * bins_len):
+                step_size = random.randint(1, bins_len)
+        if position is None:
+            position = random.randrange(0, bins_len)
+        for i in range(bins_len):
             if total_selected > q * total_scales:
                 return tuple(to_return)
-            if bins.get((start + i * step_size) % bins_len) is not None:
-                temp = total_selected + len(bins[(start + i * step_size) % bins_len])
-                if temp < (q + allowed_err) * total_scales:
-                    total_selected = temp
-                    to_return += tuple(bins[(start + i * step_size) % bins_len])
-        return tuple(to_return)
+            position= (position + step_size) % bins_len
+            if bins.get(position) is not None:
+                possible_selection = total_selected + len(bins[position])
+                if possible_selection < (q + allowed_err) * total_scales:
+                    total_selected = possible_selection
+                    to_return += tuple(bins[position % bins_len])
+        raise ValueError("couldn't satisfy condition")
 
     def show_val_split_histogram(self):
         arr = list(self.find_val_split(q=0.15))
