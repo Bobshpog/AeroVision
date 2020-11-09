@@ -102,7 +102,7 @@ def calc_max_per_param_error(loss_function, scales: torch.Tensor):
     min_scales = scales.min(dim=0)[0]
     max_err = []
     if loss_function == 'l1':
-        loss_function = F.l1_loss
+        loss_function = lambda x: torch.norm(x,p=1)
     if loss_function == 'l2':
         loss_function = torch.norm
     for i, j in zip(min_scales, max_scales):
