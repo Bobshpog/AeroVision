@@ -73,7 +73,7 @@ class TestCustomInputResnet(TestCase):
         LEARNING_RATE = 1e-2
         WEIGTH_DECAY = 0
         COSINE_ANNEALING_STEPS = 10
-        MAX_CAMERAS = 8
+        MAX_CAMERAS = 9
         NORMAL_CAMS = 6
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM,
                          camera_ids=0)
@@ -96,7 +96,7 @@ class TestCustomInputResnet(TestCase):
         LEARNING_RATE = 1e-2
         WEIGTH_DECAY = 0
         COSINE_ANNEALING_STEPS = 10
-        MAX_CAMERAS = 8
+        MAX_CAMERAS = 9
         NORMAL_CAMS = 6
 
         for i in range(MAX_CAMERAS):
@@ -122,7 +122,7 @@ class TestCustomInputResnet(TestCase):
         LEARNING_RATE = 1e-2
         WEIGTH_DECAY = 0
         COSINE_ANNEALING_STEPS = 10
-        MAX_CAMERAS = 8
+        MAX_CAMERAS = 9
         NORMAL_CAMS = 6
 
         for i in range(NORMAL_CAMS):
@@ -149,7 +149,7 @@ class TestCustomInputResnet(TestCase):
         LEARNING_RATE = 1e-2
         WEIGTH_DECAY = 0
         COSINE_ANNEALING_STEPS = 10
-        MAX_CAMERAS = 8
+        MAX_CAMERAS = 9
         NORMAL_CAMS = 6
 
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment six cameras: ",
