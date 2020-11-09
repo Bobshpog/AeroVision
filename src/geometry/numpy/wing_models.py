@@ -3,10 +3,10 @@ from typing import Union
 
 import cv2
 from SSIM_PIL import compare_ssim
-
+from tqdm import trange
 from src.geometry.numpy.mesh import *
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
-
+from src.data import matlab_reader
 
 @dataclass
 class FiniteElementWingModel:
@@ -376,10 +376,28 @@ class SyntheticWingModel:
         return to_return
 
     @staticmethod
-    def radical_list_creation(wing_path, p=1):
+    def radical_list_creation(wing_path, p):
         #   changed after testing, proved that its the most moving vers so made it efficient
         if not 0 <= p <= 1:
             raise ValueError("Probability is between 0 and 1")
         mesh = Mesh(wing_path)
         num_to_return = int(mesh.vertices.shape[0] * p)
         return mesh.vertices[:, 1].argsort()[-num_to_return:][::-1]
+
+
+    @staticmethod
+    def radical_list_creation_VERY_SLOW(wing_path,p=1):
+        #   changed after testing, proved that its the most moving vers so made it efficient
+        mesh = Mesh(wing_path)
+        mode_shape = matlab_reader.read_modal_shapes("data/mode_shapes/synth_mode_shapes_9103_10.mat", 10)
+        scales = matlab_reader.read_data("data/synt_data_mat_files/data2.mat")[2]
+        comp_arr = mesh_compatibility_creation(mesh.vertices)
+        static_diff = (np.mean(scales, axis=0) * mode_shape).sum(axis=2)
+        tot_diff = np.zeros(mode_shape.shape[1])
+        for phase in trange(scales.shape[0]):
+            difference = (scales[phase, :] * mode_shape).sum(axis=2)
+            tot_diff += np.linalg.norm(difference - static_diff, axis=0)
+        tot_diff = tot_diff[comp_arr]
+        num_to_return = int(mesh.vertices.shape[0] * p)
+        return tot_diff.argsort()[-num_to_return:][::-1]
+        #difference = (scale1[phase, :] * mode_shape).sum(axis=2).T
