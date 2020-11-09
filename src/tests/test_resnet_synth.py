@@ -75,5 +75,84 @@ class TestCustomInputResnet(TestCase):
         COSINE_ANNEALING_STEPS = 10
         MAX_CAMERAS = 8
         NORMAL_CAMS = 6
-        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM)
+        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM,
+                         camera_ids=0)
+
+    def test_run_resnet_synth_one_camera(self):
+        BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
+        NUM_EPOCHS = 1000
+        VAL_CACHE_SIZE = 1000
+        TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
+        NUM_INPUT_LAYERS = 1
+        NUM_OUTPUTS = 5
+        RESNET_TYPE = '18'  # '18', '50', '34'
+        LOSS_FUNC = F.smooth_l1_loss
+        EXPERIMENT_NAME = None
+        TRAINING_DB_PATH = ""
+        VALIDATION_DB_PATH = TRAINING_DB_PATH
+        VAL_SPLIT = None
+        TRANSFORM = my_transforms.single_camera_bw
+        OUTPUT_SCALE = 1e4
+        LEARNING_RATE = 1e-2
+        WEIGTH_DECAY = 0
+        COSINE_ANNEALING_STEPS = 10
+        MAX_CAMERAS = 8
+        NORMAL_CAMS = 6
+
+        for i in range(MAX_CAMERAS):
+            run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment one camera: " + str(i),
+                             TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM, camera_ids=i)
+
+
+    def test_run_resnet_synth_two_cameras(self):
+        BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
+        NUM_EPOCHS = 1000
+        VAL_CACHE_SIZE = 1000
+        TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
+        NUM_INPUT_LAYERS = 1
+        NUM_OUTPUTS = 5
+        RESNET_TYPE = '18'  # '18', '50', '34'
+        LOSS_FUNC = F.smooth_l1_loss
+        EXPERIMENT_NAME = None
+        TRAINING_DB_PATH = ""
+        VALIDATION_DB_PATH = TRAINING_DB_PATH
+        VAL_SPLIT = None
+        TRANSFORM = my_transforms.many_cameras_bw
+        OUTPUT_SCALE = 1e4
+        LEARNING_RATE = 1e-2
+        WEIGTH_DECAY = 0
+        COSINE_ANNEALING_STEPS = 10
+        MAX_CAMERAS = 8
+        NORMAL_CAMS = 6
+
+        for i in range(NORMAL_CAMS):
+            for j in range(i,NORMAL_CAMS):
+                run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment one cameras: " + str(i)+", "+str(j),
+                                 TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM, camera_ids=[i, j])
+
+
+    def test_run_resnet_synth_six_cameras(self):
+        BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
+        NUM_EPOCHS = 1000
+        VAL_CACHE_SIZE = 1000
+        TRAIN_CACHE_SIZE = 5500  # around 6500 total images (640,480,3) total space
+        NUM_INPUT_LAYERS = 1
+        NUM_OUTPUTS = 5
+        RESNET_TYPE = '18'  # '18', '50', '34'
+        LOSS_FUNC = F.smooth_l1_loss
+        EXPERIMENT_NAME = None
+        TRAINING_DB_PATH = ""
+        VALIDATION_DB_PATH = TRAINING_DB_PATH
+        VAL_SPLIT = None
+        TRANSFORM = my_transforms.many_cameras_bw
+        OUTPUT_SCALE = 1e4
+        LEARNING_RATE = 1e-2
+        WEIGTH_DECAY = 0
+        COSINE_ANNEALING_STEPS = 10
+        MAX_CAMERAS = 8
+        NORMAL_CAMS = 6
+
+        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment six cameras: ",
+                         TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM, camera_ids=range(NORMAL_CAMS))
+
 
