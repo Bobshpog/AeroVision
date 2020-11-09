@@ -4,6 +4,7 @@ from collections import defaultdict
 from functools import partial
 from pathlib import Path
 
+import numpy as np
 import h5py
 import pytorch_lightning as pl
 import torch
@@ -14,7 +15,7 @@ import torchvision.models as models
 from pytorch_lightning import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Sampler
 
 import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
@@ -22,6 +23,18 @@ from src.util.error_helper_functions import calc_errors
 from src.util.loss_functions import l1_norm
 from src.util.min_list import MinCounter
 
+class SubsetChoiceSampler(Sampler):
+    def _init_(self, indices, length=None):
+        self.indices = indices
+        if length is None:
+            length = len(self.indices)
+        self.length = length
+
+    def _iter_(self):
+        return (self.indices[i] for i in np.random.choice(self.indices, size=self.length, replace=False))
+
+    def _len_(self):
+        return self.length
 
 class CustomInputResnet(pl.LightningModule):
     def __init__(self, num_input_layers, num_outputs, loss_func, error_funcs, output_scaling,
@@ -196,7 +209,7 @@ def L1_normalized_loss(min, max):
 def run_resnet_synth(num_input_layers, num_outputs,
                      comment, train_db_path, val_db_path, val_split, transform, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
-                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, camera_ids=None):
+                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, camera_ids=None,subsampler_size=640):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
 
         raise ValueError('Config not fully initialized')
@@ -235,7 +248,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
         val_dset = ImageDataset(val_db_path,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
                                 min_index=val_split, camera_ids=camera_ids)
-    train_loader = DataLoader(train_dset, batch_size, shuffle=True, num_workers=4)
+    train_loader = DataLoader(train_dset, batch_size, shuffle=True, num_workers=4,sampler=SubsetChoiceSampler(subsampler_size))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
                               error_funcs=(l1_errors_func,
