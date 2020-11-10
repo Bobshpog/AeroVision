@@ -2,7 +2,7 @@ from functools import partial
 from unittest import TestCase
 
 import h5py
-import torch.functional as F
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
