@@ -4,7 +4,7 @@ channels:
   - https://conda.anaconda.org/conda-forge/
   - defaults
 dependencies:
-  - python=3.7
+  - python==3.8.6
   - numpy
   - pytorch-lightning==1.0.5
   - matplotlib
@@ -18,7 +18,7 @@ dependencies:
   - addict
   - pandas
   - plyfile
-  - torchvision>=0.8
-  - pytorch==1.5.0
+  - torchvision==0.7
+  - pytorch==1.6.0
   - scikit-image
 
