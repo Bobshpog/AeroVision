@@ -209,7 +209,7 @@ def L1_normalized_loss(min, max):
 def run_resnet_synth(num_input_layers, num_outputs,
                      comment, train_db_path, val_db_path, val_split, transform, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
-                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, camera_ids=None,subsampler_size=640):
+                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss,subsampler_size=640):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
 
         raise ValueError('Config not fully initialized')
@@ -220,34 +220,28 @@ def run_resnet_synth(num_input_layers, num_outputs,
               'weight_decay': weight_decay, 'cosine_annealing_steps': cosine_annealing_steps}
     out_transform = my_transforms.scale_by(output_scaling)
     with h5py.File(train_db_path, 'r') as hf:
-        mean_image = hf['generator metadata']['mean images'][()]
         modal_shapes = hf['generator metadata']['modal shapes'][()]
         ir = hf['generator metadata'].attrs['ir'][()]
         db_size = hf['data']['images'].len()
         l1_errors_func = partial(calc_errors, l1_norm, modal_shapes, output_scaling, ir)
         l2_errors_func = partial(calc_errors, torch.norm, modal_shapes, output_scaling, ir)
-    transform = transform(mean_image)
-    if camera_ids:
-        transform = transform(camera_ids, mean_image)
-    else:
-        transform = transform(mean_image)
     if isinstance(val_split, int):
         train_dset = ImageDataset(train_db_path,
                                   transform=transform, out_transform=out_transform, cache_size=train_cache_size,
-                                  max_index=val_split, camera_ids=camera_ids)
+                                  max_index=val_split)
         val_dset = ImageDataset(val_db_path,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
-                                min_index=val_split, camera_ids=camera_ids)
+                                min_index=val_split)
     else:
         train_split = set(range(db_size))
         train_split -= set(val_split)
         train_split = tuple(train_split)
         train_dset = ImageDataset(train_db_path,
                                   transform=transform, out_transform=out_transform, cache_size=train_cache_size,
-                                  index_list=train_split, camera_ids=camera_ids)
+                                  index_list=train_split)
         val_dset = ImageDataset(val_db_path,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
-                                min_index=val_split, camera_ids=camera_ids)
+                                min_index=val_split)
     train_loader = DataLoader(train_dset, batch_size, shuffle=True, num_workers=4,sampler=SubsetChoiceSampler(subsampler_size))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,

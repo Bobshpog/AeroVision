@@ -3,16 +3,8 @@ from unittest import TestCase
 
 import h5py
 import torch.functional as F
-import numpy as np
-import pytorch_lightning as pl
-import torch
-import torch.nn as nn
-import torch.functional as F
-from functools import partial
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from src.model_datasets.image_dataset import ImageDataset
-from src.models.resnet_synth import CustomInputResnet, run_resnet_synth
 
 import src.util.image_transforms as my_transforms
 from src.geometry.animations.synth_wing_animations import *
@@ -52,7 +44,7 @@ class TestCustomInputResnet(TestCase):
             # todo reconstruct X
             cv2.imwrite(trash_path + name_of_picture + str(i) + ".png", np.asarray(X * 255, np.uint8))
 
-        #create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
+        # create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
         #                     name_of_picture, show_ssim=True,res=[100,400])
 
     def test_run_resnet_synth(self):
@@ -67,7 +59,7 @@ class TestCustomInputResnet(TestCase):
         EXPERIMENT_NAME = None
         TRAINING_DB_PATH = ""
         VALIDATION_DB_PATH = TRAINING_DB_PATH
-        VAL_SPLIT = None
+        VAL_SPLIT = 15000
         TRANSFORM = my_transforms.single_camera_bw
         OUTPUT_SCALE = 1e4
         LEARNING_RATE = 1e-2
@@ -75,8 +67,11 @@ class TestCustomInputResnet(TestCase):
         COSINE_ANNEALING_STEPS = 10
         MAX_CAMERAS = 9
         NORMAL_CAMS = 6
-        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM,
-                         camera_ids=0)
+        with h5py.File(TRAINING_DB_PATH, 'r') as hf:
+            mean_image = hf['generator metadata']['mean images'][()]
+        transform = TRANSFORM(0, mean_image)
+        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
+                         transform)
 
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
@@ -99,10 +94,12 @@ class TestCustomInputResnet(TestCase):
         MAX_CAMERAS = 9
         NORMAL_CAMS = 6
 
+        with h5py.File(TRAINING_DB_PATH, 'r') as hf:
+            mean_image = hf['generator metadata']['mean images'][()]
         for i in range(MAX_CAMERAS):
+            transform = TRANSFORM(i, mean_image)
             run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment one camera: " + str(i),
-                             TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM, camera_ids=i)
-
+                             TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT, transform)
 
     def test_run_resnet_synth_two_cameras(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
@@ -124,12 +121,14 @@ class TestCustomInputResnet(TestCase):
         COSINE_ANNEALING_STEPS = 10
         MAX_CAMERAS = 9
         NORMAL_CAMS = 6
-
+        with h5py.File(TRAINING_DB_PATH, 'r') as hf:
+            mean_image = hf['generator metadata']['mean images'][()]
         for i in range(NORMAL_CAMS):
-            for j in range(i,NORMAL_CAMS):
-                run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment one cameras: " + str(i)+", "+str(j),
-                                 TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM, camera_ids=[i, j])
-
+            for j in range(i, NORMAL_CAMS):
+                transform = TRANSFORM((i, j), mean_image)
+                run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS,
+                                 "first experiment one cameras: " + str(i) + ", " + str(j),
+                                 TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT, transform=transform)
 
     def test_run_resnet_synth_six_cameras(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
@@ -152,7 +151,8 @@ class TestCustomInputResnet(TestCase):
         MAX_CAMERAS = 9
         NORMAL_CAMS = 6
 
+        with h5py.File(TRAINING_DB_PATH, 'r') as hf:
+            mean_image = hf['generator metadata']['mean images'][()]
+        transform=TRANSFORM(list(range(6)),mean_image)
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment six cameras: ",
-                         TRAINING_DB_PATH, VALIDATION_DB_PATH, 895, TRANSFORM, camera_ids=range(NORMAL_CAMS))
-
-
+                         TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT, transform)
