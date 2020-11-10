@@ -102,7 +102,6 @@ def whiten_half_picture(img):
     return img
 
 
-
 class TransformScaleBy:
 
     def __init__(self, scale_factor):
@@ -112,7 +111,7 @@ class TransformScaleBy:
         return x * self.scale_factor
 
     def __repr__(self):
-        return "SCALE_BY_TRANSFORM_SCALE_FACTOR" + f'{self.scale_factor: .3f}'
+        return "SCALE_BY_TRANSFORM_SCALE_FACTOR_" + f'{self.scale_factor: .3f}'
 
 
 class TransformManyPositionsNoDepth:
@@ -123,8 +122,12 @@ class TransformManyPositionsNoDepth:
         return img[self.cam_id, :, :, :3]
 
     def __repr__(self):
-        return "MANY_POSITION_NO_DEPTH_TRANSFORM_CAM_ID" + str(self.cam_id)
-
+        if isinstance(self.cam_id, int):
+            return "MANY_POSITION_NO_DEPTH_TRANSFORM_CAM_ID" + str(self.cam_id)
+        to_ret = "MANY_POSITION_NO_DEPTH_TRANSFORM_CAM_ID_("
+        for i in self.cam_id:
+            to_ret += str(i) + ","
+        return to_ret + ")"
 
 class TransformRemoveDcPhoto:
     def __init__(self, dc_photo):
@@ -152,7 +155,7 @@ class TransformSingleCameraBw:
         return self.transform(img)
 
     def __repr__(self):
-        return "SINGLE_CAMERA_BW_TRANSFORM_CAM_ID" + str(self.cam_id)
+        return "SINGLE_CAMERA_BW_TRANSFORM_CAM_ID_" + str(self.cam_id)
 
 
 class TransformManyCameraBw:
@@ -170,5 +173,8 @@ class TransformManyCameraBw:
         return self.transform(img)
 
     def __repr__(self):
-        return "MANY_CAMERA_BW_TRANSFORM_CAM_ID" + str(self.cam_id)
+        to_ret = "MANY_CAMERA_BW_TRANSFORM_CAM_ID_("
+        for i in self.cam_id:
+            to_ret += str(i) + ","
+        return to_ret + ")"
 
