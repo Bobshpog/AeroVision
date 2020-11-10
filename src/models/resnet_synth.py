@@ -4,8 +4,8 @@ from collections import defaultdict
 from functools import partial
 from pathlib import Path
 
-import numpy as np
 import h5py
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -20,8 +20,9 @@ from torch.utils.data import DataLoader, Sampler
 import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
 from src.util.error_helper_functions import calc_errors
+from src.util.general import MinCounter, Functor
 from src.util.loss_functions import l1_norm
-from src.util.min_list import MinCounter
+
 
 class SubsetChoiceSampler(Sampler):
     def _init_(self, indices, length=None):
@@ -36,11 +37,12 @@ class SubsetChoiceSampler(Sampler):
     def _len_(self):
         return self.length
 
+
 class CustomInputResnet(pl.LightningModule):
     def __init__(self, num_input_layers, num_outputs, loss_func, error_funcs, output_scaling,
                  resnet_type, learning_rate,
                  cosine_annealing_steps,
-                 weight_decay,dtype=torch.float64):
+                 weight_decay, dtype=torch.float64):
         super().__init__()
         # TODO consider removing pretrained
         resnet_dict = {'18': models.resnet18,
@@ -83,13 +85,13 @@ class CustomInputResnet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_func(y_hat, y,reduction='mean').mean(dim=-1)
+        loss = self.loss_func(y_hat, y, reduction='mean').mean(dim=-1)
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
             for i in range(self.num_output_layers):
                 self.train_batch_list[f'train_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
-                self.train_batch_list[f'train_output{i}'].append(y_hat.detach().double()[:,i] / self.output_scale)
+                self.train_batch_list[f'train_output{i}'].append(y_hat.detach().double()[:, i] / self.output_scale)
             self.train_batch_list['train_loss'].append(loss)
             self.train_batch_list['train_l1_3d_loss'].append(l1_3d_err)
             self.train_batch_list['train_l2_3d_loss'].append(l2_3d_err)
@@ -102,14 +104,14 @@ class CustomInputResnet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_func(y_hat, y,reduction='mean').mean(dim=-1)
+        loss = self.loss_func(y_hat, y, reduction='mean').mean(dim=-1)
         with torch.no_grad():
             l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
             l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
             for i in range(self.num_output_layers):
                 self.val_batch_list[f'val_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
-                self.val_batch_list[f'val_output{i}'].append(y_hat.detach().double()[:,i] / self.output_scale)
-                self.val_batch_list[f'val_expected{i}'].append(y.detach().double()[:,i] / self.output_scale)
+                self.val_batch_list[f'val_output{i}'].append(y_hat.detach().double()[:, i] / self.output_scale)
+                self.val_batch_list[f'val_expected{i}'].append(y.detach().double()[:, i] / self.output_scale)
             self.val_batch_list['val_loss'].append(loss)
             self.val_batch_list['val_l1_3d_loss'].append(l1_3d_err)
             self.val_batch_list['val_l2_3d_loss'].append(l2_3d_err)
@@ -126,8 +128,10 @@ class LoggerCallback(Callback):
         self.metrics = {}
         self.stopping_metric = stopping_metric
         self.min_counter = MinCounter(stopping_patience)
-        self.max_errors={'l1_3d_loss':0.0569622089146808,'l1_3d_ir_loss':0.0628303256182133,'l1_reg_avg':0.00348652643151581,
-                         'l2_3d_loss':0.000732383042264162,'l2_3d_ir_loss':0.0141162749770687,'l2_reg_avg':0.00314825028181076}
+        self.max_errors = {'l1_3d_loss': 0.0569622089146808, 'l1_3d_ir_loss': 0.0628303256182133,
+                           'l1_reg_avg': 0.00348652643151581,
+                           'l2_3d_loss': 0.000732383042264162, 'l2_3d_ir_loss': 0.0141162749770687,
+                           'l2_reg_avg': 0.00314825028181076}
 
     def on_epoch_end(self, trainer, pl_module):
         # training
@@ -144,18 +148,18 @@ class LoggerCallback(Callback):
             self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'train_scale_err{i}',
                                                     step=pl_module.current_epoch)
         for error_str in pl_module.error_metrics:
-            max_error=self.max_errors[error_str]
+            max_error = self.max_errors[error_str]
             error_str = f'train_{error_str}'
             error_tensor = torch.cat([x.flatten() for x in pl_module.train_batch_list[error_str]]).flatten()
             curr_loss = torch.mean(error_tensor)
-            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy()/max_error, name='hist_' + error_str,
+            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy() / max_error, name='hist_' + error_str,
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
         self.metrics = {**self.metrics, **error_dict}
 
         # Both val and training
         self.logger.experiment.log_metrics(self.metrics, step=pl_module.current_epoch, epoch=pl_module.current_epoch)
-        trainer.should_stop = self.min_counter.add(self.metrics[self.stopping_metric],pl_module.current_epoch)
+        trainer.should_stop = self.min_counter.add(self.metrics[self.stopping_metric], pl_module.current_epoch)
 
         # cleanup
         self.metrics.clear()
@@ -164,10 +168,10 @@ class LoggerCallback(Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         error_dict = {}
-        loss_tensor =torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l2_3d_ir_loss']])
+        loss_tensor = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l2_3d_ir_loss']])
         error_dict[f'val_loss'] = torch.mean(torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_loss']]))
         worst_indices = torch.argsort(loss_tensor, descending=True)[:5]
-        worst_scales = torch.zeros((2* 5, pl_module.num_output_layers), dtype=loss_tensor.dtype,
+        worst_scales = torch.zeros((2 * 5, pl_module.num_output_layers), dtype=loss_tensor.dtype,
                                    device=loss_tensor.device)
         worst_string = ""
         for i in range(pl_module.num_output_layers):
@@ -189,11 +193,11 @@ class LoggerCallback(Callback):
         self.logger.experiment.log_text(worst_string, step=pl_module.current_epoch)
 
         for error_str in pl_module.error_metrics:
-            max_error=self.max_errors[error_str]
+            max_error = self.max_errors[error_str]
             error_str = f'val_{error_str}'
             error_tensor = torch.cat([x.flatten() for x in pl_module.val_batch_list[error_str]]).flatten()
             curr_loss = torch.mean(error_tensor)
-            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy()/max_error, name='hist_' + error_str,
+            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy() / max_error, name='hist_' + error_str,
                                                     step=pl_module.current_epoch)
             error_dict[error_str] = curr_loss
         self.metrics = {**self.metrics, **error_dict}
@@ -209,10 +213,10 @@ def L1_normalized_loss(min, max):
 def run_resnet_synth(num_input_layers, num_outputs,
                      comment, train_db_path, val_db_path, val_split, transform, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
-                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss,subsampler_size=640):
+                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, subsampler_size=640):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
-
         raise ValueError('Config not fully initialized')
+    transform = Functor(transform)
     params = {'batch_size': batch_size, 'train_db': train_db_path.split('/')[-1],
               'val_db': val_db_path.split('/')[-1], 'train-val_split_index': val_split,
               'loss_func': loss_func.__name__, 'num_outputs': num_outputs,
@@ -242,7 +246,8 @@ def run_resnet_synth(num_input_layers, num_outputs,
         val_dset = ImageDataset(val_db_path,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
                                 min_index=val_split)
-    train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,sampler=SubsetChoiceSampler(subsampler_size))
+    train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,
+                              sampler=SubsetChoiceSampler(subsampler_size))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
                               error_funcs=(l1_errors_func,

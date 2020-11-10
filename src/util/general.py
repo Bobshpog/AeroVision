@@ -26,3 +26,10 @@ class MinCounter:
             self.data.append((epoch, val))
         self.data.sort(key=lambda x: x[1])
         return False
+
+class Functor:
+    def __init__(self,foo):
+        self.foo=foo
+
+    def __call__(self, *args, **kwargs):
+        return self.foo(*args,**kwargs)
