@@ -1,13 +1,14 @@
+import random
 from collections import defaultdict
 from dataclasses import dataclass
+from math import gcd
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union
 
-import random
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
-from math import gcd
+
 
 @dataclass
 class DatabaseAnalyzer:
@@ -28,7 +29,7 @@ class DatabaseAnalyzer:
             numbins sized ndarray of bin edges
         """
         scales = self.scales[:, scale_id]
-        return np.linspace(scales.min(), scales.max(), self.num_bins + 1)
+        return np.linspace(scales.min(), scales.max(), self.num_bins)
 
     def create_bin_dict(self, scale_id):
         """
@@ -66,7 +67,7 @@ class DatabaseAnalyzer:
         total_selected = 0
         to_return = tuple()
         if step_size is None:
-            step_size=bins_len
+            step_size = bins_len
             while gcd(step_size, bins_len) > 1:
                 step_size = random.randint(1, bins_len)
         if position is None:
@@ -74,7 +75,7 @@ class DatabaseAnalyzer:
         for i in range(bins_len):
             if total_selected > q * total_scales:
                 return tuple(to_return)
-            position= (position + step_size) % bins_len
+            position = (position + step_size) % bins_len
             if bins.get(position) is not None:
                 possible_selection = total_selected + len(bins[position])
                 if possible_selection < (q + allowed_err) * total_scales:
@@ -82,11 +83,11 @@ class DatabaseAnalyzer:
                     to_return += tuple(bins[position % bins_len])
         raise ValueError("couldn't satisfy condition")
 
-    def show_val_split_histogram(self,arr):
+    def show_val_split_histogram(self, arr):
         rest = list(set(range(self.scales.shape[0])) - set(arr))
         print("common items: ", list(set(arr).intersection(rest)))
         print("length = " + str(len(arr)))
-        p_real = 100* len(arr) / self.scales.shape[0]
+        p_real = 100 * len(arr) / self.scales.shape[0]
         print(f"%:  {p_real:.2f}")
         bin_edges = self._find_bin_edges(0)
         s = self.scales[:, 0]
@@ -109,7 +110,7 @@ class DatabaseAnalyzer:
         plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
         plt.show()
 
-#def show_histogram(self, scale_id):
+# def show_histogram(self, scale_id):
 #    bin_edges = self._find_bin_edges(scale_id)
 #    plt.hist(self.scales[:, scale_id], bin_edges)
 #    plt.title(f'Scale{scale_id} Distribution')
@@ -118,9 +119,9 @@ class DatabaseAnalyzer:
 #    plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
 #    plt.show()
 
-    # ax = {}
-    # fig, ((ax[0], ax[1], ax[2]), (ax[3], ax[4], _)) = plt.subplots(2, 3)
-    # for i in range(5):
-    #     ax[i].set_title(f'scale{i}')
-    #     ax[i].hist(self.scales[:, i])
-    # fig.show()
+# ax = {}
+# fig, ((ax[0], ax[1], ax[2]), (ax[3], ax[4], _)) = plt.subplots(2, 3)
+# for i in range(5):
+#     ax[i].set_title(f'scale{i}')
+#     ax[i].hist(self.scales[:, i])
+# fig.show()
