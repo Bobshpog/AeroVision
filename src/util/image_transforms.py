@@ -100,3 +100,75 @@ def top_middle_rgbd(mean_photos):
 def whiten_half_picture(img):
     img[:, int(img.shape[1] / 2), 0:3] = np.max(img[:, :, 0:3])
     return img
+
+
+
+class TransformScaleBy:
+
+    def __init__(self, scale_factor):
+        self.scale_factor = scale_factor
+
+    def __call__(self, x):
+        return x * self.scale_factor
+
+    def __repr__(self):
+        return "SCALE_BY_TRANSFORM_SCALE_FACTOR" + f'{self.scale_factor: .3f}'
+
+
+class TransformManyPositionsNoDepth:
+    def __init__(self, cam_id):
+        self.cam_id = cam_id
+
+    def __call__(self, img):
+        return img[self.cam_id, :, :, :3]
+
+    def __repr__(self):
+        return "MANY_POSITION_NO_DEPTH_TRANSFORM_CAM_ID" + str(self.cam_id)
+
+
+class TransformRemoveDcPhoto:
+    def __init__(self, dc_photo):
+        self.dc_photo = dc_photo
+
+    def __call__(self, img):
+        return img - self.dc_photo
+
+    def __repr__(self):
+        return "REMOVE_DC_PHOTO_TRANSFORM"
+
+
+class TransformSingleCameraBw:
+    def __init__(self, cam_id, mean_photo):
+        self.cam_id = cam_id
+        many_pos_trans = TransformManyPositionsNoDepth(cam_id)
+        mean_photo = many_pos_trans(mean_photo)
+        remove_dc_trans = TransformRemoveDcPhoto(mean_photo)
+        self.transform = transforms.Compose([many_pos_trans,
+                                            remove_dc_trans,
+                                            single_rgb_to_bw
+                                            ])
+
+    def __call__(self, img):
+        return self.transform(img)
+
+    def __repr__(self):
+        return "SINGLE_CAMERA_BW_TRANSFORM_CAM_ID" + str(self.cam_id)
+
+
+class TransformManyCameraBw:
+    def __init__(self, cam_id, mean_photo):
+        self.cam_id = cam_id
+        many_pos_trans = TransformManyPositionsNoDepth(cam_id)
+        mean_photo = many_pos_trans(mean_photo)
+        remove_dc_trans = TransformRemoveDcPhoto(mean_photo)
+        self.transform = transforms.Compose([many_pos_trans,
+                                             remove_dc_trans,
+                                             many_rgb_to_bw
+                                             ])
+
+    def __call__(self, img):
+        return self.transform(img)
+
+    def __repr__(self):
+        return "MANY_CAMERA_BW_TRANSFORM_CAM_ID" + str(self.cam_id)
+
