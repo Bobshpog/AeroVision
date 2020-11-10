@@ -30,15 +30,13 @@ def double_to_float(input_photo):
 
 
 def _scale_by(scale, x):
-    return (scale * x).astype('float32')
+    return (scale * x)
 
 
 def scale_by(scale):
     return partial(_scale_by, scale)
 
 
-def mul_by_10_power(pow, x):
-    return (10 ** pow * x).astype('float32')
 
 
 def single_rgb_to_bw(img):
