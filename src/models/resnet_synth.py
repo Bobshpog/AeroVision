@@ -215,7 +215,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
         raise ValueError('Config not fully initialized')
     params = {'batch_size': batch_size, 'train_db': train_db_path.split('/')[-1],
               'val_db': val_db_path.split('/')[-1], 'train-val_split_index': val_split,
-              'loss_func': loss_func.__name__, 'img_transform': transform.__name__, 'num_outputs': num_outputs,
+              'loss_func': loss_func.__name__, 'num_outputs': num_outputs,
               'output_scaling': output_scaling, 'resnet_type': resnet_type, 'lr': lr,
               'weight_decay': weight_decay, 'cosine_annealing_steps': cosine_annealing_steps}
     out_transform = my_transforms.scale_by(output_scaling)
@@ -242,7 +242,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
         val_dset = ImageDataset(val_db_path,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
                                 min_index=val_split)
-    train_loader = DataLoader(train_dset, batch_size, shuffle=True, num_workers=4,sampler=SubsetChoiceSampler(subsampler_size))
+    train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,sampler=SubsetChoiceSampler(subsampler_size))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
                               error_funcs=(l1_errors_func,
