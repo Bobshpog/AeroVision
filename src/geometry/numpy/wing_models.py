@@ -7,7 +7,7 @@ from tqdm import trange
 from src.geometry.numpy.mesh import *
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
 from src.data import matlab_reader
-
+from src.util.error_helper_functions import calc_errors
 @dataclass
 class FiniteElementWingModel:
     coordinates: np.ndarray
@@ -284,7 +284,7 @@ class SyntheticWingModel:
         Creates a list of photos from mode shape and scales
         Args:
             mode_shape: mode shape as recived from matlabreader functions
-            scales: list of string of the real_scales! num of scales >= num of scales in mode shape
+            real_scales: list of string of the real_scales! num of scales >= num of scales in mode shape
             reconstruct_scales: list of string of the reconstructed scales! same number as ^
             texture: path of texture, NO NUMPY TEXTURE SUPPORT
             resolution: resolution
@@ -310,10 +310,13 @@ class SyntheticWingModel:
         color2 = (0, 0, 0)
         color3 = (0, 0, 255)
         padding = 150
-        # err = error_to_exel_string(calc_errors(loss_function,mode_shape,1,ir,np.fromstring(scales[i], dtype=np.float32, sep=' '),
-        #                           np.fromstring(scales2[i], dtype=np.float32, sep=' ')))
-        #  TODO: adding err from calc errors from another brench and integrating it to here
-        err = range(20)
+        for i in range(len(real_scales)):
+            real_scales[i] = np.fromstring(real_scales[i], dtype=np.float32, sep=' ')
+            reconstruct_scales[i] = np.fromstring(reconstruct_scales[i], dtype=np.float32, sep=' ')
+        real_scales = np.array(real_scales)
+        reconstruct_scales = np.array(reconstruct_scales)
+        err = calc_errors(loss_function, mode_shape, 1, ir, real_scales, reconstruct_scales)
+        scale_err = err[3].numpy()
         for i in range(len(first_photo)):
             pil_img1 = Image.fromarray(np.uint8(first_photo[i] * 255))
             pil_img2 = Image.fromarray(np.uint8(second_photo[i] * 255))
@@ -331,40 +334,40 @@ class SyntheticWingModel:
                         lineType=2)
             cv2.putText(img_d, "ssim:" + f'{ssim: .2f}', (0, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "3d reconstruct:" + f'{err[0]: .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+            cv2.putText(img_d, "3d reconstruct:" + f'{err[0][i]: .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "ir reconstruct:" + f'{err[1]: .3e}', (0, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+            cv2.putText(img_d, "ir reconstruct:" + f'{err[1][i]: .3e}', (0, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "avg reconstruct:" + f'{err[2]: .3e}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+            cv2.putText(img_d, "avg reconstruct:" + f'{err[2][i]: .3e}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "scale 0:" + f'{err[3]: .3e}', (resolution[0] + 1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 0:" + f'{scale_err[0][i]: .3e}', (resolution[0] + 1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 1:" + f'{err[4]: .3e}', (resolution[0] + 1, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 1:" + f'{scale_err[1][i]: .3e}', (resolution[0] + 1, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 2:" + f'{err[5]: .3e}', (resolution[0] + 1, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 2:" + f'{scale_err[2][i]: .3e}', (resolution[0] + 1, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 3:" + f'{err[6]: .3e}', (resolution[0] + 1, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 3:" + f'{scale_err[3][i]: .3e}', (resolution[0] + 1, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 4:" + f'{err[7]: .3e}', (resolution[0] + 1, 170), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 4:" + f'{scale_err[4][i]: .3e}', (resolution[0] + 1, 170), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 5:" + f'{err[8]: .3e}', (2 * resolution[0] - 260, 50), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 5:" + f'{scale_err[5][i]: .3e}', (2 * resolution[0] - 260, 50), cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 6:" + f'{err[9]: .3e}', (2 * resolution[0] - 260, 80), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 6:" + f'{scale_err[6][i]: .3e}', (2 * resolution[0] - 260, 80), cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 7:" + f'{err[10]: .3e}', (2 * resolution[0] - 260, 110), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 7:" + f'{scale_err[7][i]: .3e}', (2 * resolution[0] - 260, 110), cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 8:" + f'{err[11]: .3e}', (2 * resolution[0] - 260, 140), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 8:" + f'{scale_err[8][i]: .3e}', (2 * resolution[0] - 260, 140), cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 9:" + f'{err[12]: .3e}', (2 * resolution[0] - 260, 170), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 9:" + f'{scale_err[9][i]: .3e}', (2 * resolution[0] - 260, 170), cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
             cv2.putText(img_d, "reconstruct scales:", (800, 210), cv2.FONT_HERSHEY_TRIPLEX, 1, color3,
@@ -386,18 +389,21 @@ class SyntheticWingModel:
 
 
     @staticmethod
-    def radical_list_creation_VERY_SLOW(wing_path,p=1):
-        #   changed after testing, proved that its the most moving vers so made it efficient
+    def radical_list_creation_VERY_SLOW(wing_path,p=1, num_of_scales=10):
+        #   changed after testing, proved that its the most moving vers so made it efficient,
+        #   it returns (radical list, the total L2 distance for each vertex)
         mesh = Mesh(wing_path)
         mode_shape = matlab_reader.read_modal_shapes("data/mode_shapes/synth_mode_shapes_9103_10.mat", 10)
         scales = matlab_reader.read_data("data/synt_data_mat_files/data2.mat")[2]
         comp_arr = mesh_compatibility_creation(mesh.vertices)
         static_diff = (np.mean(scales, axis=0) * mode_shape).sum(axis=2)
-        tot_diff = np.zeros(mode_shape.shape[1])
+        if num_of_scales < 10:
+            static_diff[num_of_scales:] = 0
+        tot_distance = np.zeros(mode_shape.shape[1])
         for phase in trange(scales.shape[0]):
             difference = (scales[phase, :] * mode_shape).sum(axis=2)
-            tot_diff += np.linalg.norm(difference - static_diff, axis=0)
-        tot_diff = tot_diff[comp_arr]
+            distance = np.linalg.norm(difference - static_diff, axis=0)
+            tot_distance += distance
+        tot_distance = tot_distance[comp_arr]
         num_to_return = int(mesh.vertices.shape[0] * p)
-        return tot_diff.argsort()[-num_to_return:][::-1]
-        #difference = (scale1[phase, :] * mode_shape).sum(axis=2).T
+        return tot_distance.argsort()[-num_to_return:][::-1], tot_distance

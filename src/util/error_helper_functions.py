@@ -19,11 +19,16 @@ def calc_errors(loss_function, mode_shapes: np.ndarray, scaling, ir_indices, x, 
         , regression Tensor (num_datapoints,nums_cales))
 
     """
+    if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
+        device='cpu'
+        scale_diff = torch.Tensor(x-y, device=device)
+    else:
+        scale_diff = x-y
+        device = x.device
     num_datapoints, num_scales = x.shape
-    # device = x.device
     vertex_loss = reconstruction_loss_3d(loss_function, mode_shapes, scaling, x, y)
     ir_loss = reconstruction_loss_3d(loss_function, mode_shapes[:, ir_indices], scaling, x, y)
-    regression_loss = torch.abs(x-y) / scaling
+    regression_loss = torch.abs(scale_diff) / scaling
     avg_regression = regression_loss.sum(-1) / (num_scales * scaling)
     return (vertex_loss, ir_loss,
             avg_regression.double(), regression_loss.T.double())#Transpose is important
@@ -128,9 +133,8 @@ def calc_max_regression_error(loss_function, scales):
 
 def error_to_exel_string(result):
     exel_string = ""
-    for i, res in enumerate(result):
-        if i < 3:
-            res = res.item()
+    exel_string += str(result[0].mean().item()) + " " + str(result[1].mean().item()) + " " + str(result[2].mean().item()) + " "
+    for res in result[3].numpy():
+        res = np.mean(res)
         exel_string += str(res) + " "
-
     return exel_string
