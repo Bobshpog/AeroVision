@@ -245,7 +245,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
                                 min_index=val_split)
     train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,
-                              sampler=SubsetChoiceSampler(subsampler_size))
+                              sampler=SubsetChoiceSampler(subsampler_size,len(train_dset)))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
                               error_funcs=(l1_errors_func,
