@@ -25,17 +25,16 @@ from src.util.loss_functions import l1_norm
 
 
 class SubsetChoiceSampler(Sampler):
-    def _init_(self, indices, length=None):
-        self.indices = indices
-        if length is None:
-            length = len(self.indices)
-        self.length = length
+    def __init__(self, subset_size, total_size):
+        self.subset_size = subset_size
+        self.total_size=total_size
+        self.total_range = range(total_size)
 
-    def _iter_(self):
-        return (self.indices[i] for i in np.random.choice(self.indices, size=self.length, replace=False))
+    def __iter__(self):
+        return (self.subset_size[i] for i in np.random.choice(self.subset_size, size=self.total_range, replace=False))
 
-    def _len_(self):
-        return self.length
+    def __len__(self):
+        return self.total_size
 
 
 class CustomInputResnet(pl.LightningModule):
