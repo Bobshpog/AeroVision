@@ -27,14 +27,13 @@ from src.util.loss_functions import l1_norm
 class SubsetChoiceSampler(Sampler):
     def __init__(self, subset_size, total_size):
         self.subset_size = subset_size
-        self.total_size=total_size
         self.total_range = range(total_size)
 
     def __iter__(self):
-        return (self.subset_size[i] for i in np.random.choice(self.subset_size, size=self.total_range, replace=False))
+        return (self.subset_size[i] for i in np.random.choice(self.total_range, size=self.subset_size, replace=False))
 
     def __len__(self):
-        return self.total_size
+        return self.subset_size
 
 
 class CustomInputResnet(pl.LightningModule):
