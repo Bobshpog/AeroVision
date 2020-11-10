@@ -15,5 +15,8 @@ class TestDatabaseAnalyzer(TestCase):
         analyzer.show_val_split_histogram(l)
         with open('src/tests/temp/val_split.pkl','wb') as f:
             pickle.dump(l,f)
-        bin_dict=analyzer.create_bin_dict(idx)
+        mean_dist=(analyzer.scales.max()-analyzer.scales.min())/analyzer.num_bins
+        mean_dist_normalized=mean_dist/analyzer.scales.std()
+        print(f"mean dist between scales:{mean_dist:.3e}")
+        print(f"normalized mean dist between scales:{mean_dist_normalized:.3e}")
         pass
