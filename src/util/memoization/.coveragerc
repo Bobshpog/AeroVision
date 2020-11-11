@@ -1,0 +1,4 @@
+[run]
+omit =
+    memoization/backport/*
+    memoization/util/algorithm_extension_validator.py
