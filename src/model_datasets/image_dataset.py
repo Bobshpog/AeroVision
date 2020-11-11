@@ -29,7 +29,10 @@ class ImageDataset(Dataset):
         self.dtype=dtype
         with h5py.File(self.hdf5_path, 'r') as hf:
             if max_index is None:
-                max_index = hf['data']['images'].len()
+                if index_list:
+                    max_index=len(index_list)
+                else:
+                    max_index = hf['data']['images'].len()
             self.database_len = min(hf['data']['images'].len(), max_index - min_index)
 
     def __getitem__(self, item):
