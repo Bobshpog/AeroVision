@@ -5,6 +5,7 @@ channels:
   - defaults
   - pytorch
   - comet_ml
+  - phygbu
 dependencies:
   - python==3.8.6
   - numpy
@@ -25,5 +26,5 @@ dependencies:
   - cudatoolkit=10.2
   - scikit-image
   - comet_ml
-
+  - memoization
 
