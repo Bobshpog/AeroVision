@@ -5,12 +5,12 @@ from typing import Union
 import h5py
 import numpy as np
 import pyvista as pv
-from memoization import cached
 
 import src.data.data_generators.data_gen as data_gen
 from src.data.matlab_reader import read_data, read_modal_shapes
 from src.geometry.numpy.mesh import read_off_size
 from src.geometry.numpy.wing_models import SyntheticWingModel
+from src.util.memoization.memoization import cached
 
 
 @dataclass(repr=False)
