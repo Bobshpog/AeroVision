@@ -11,8 +11,8 @@ class MeanMetric(Metric):
         self.add_state("count", default=torch.tensor(0), dist_reduce_fx="sum")
         self.foo = foo
 
-    def update(self, y: torch.Tensor, y_hat: torch.Tensor) -> None:
-        self.value += self.foo(y.detach(), y_hat).mean()
+    def update(self, y_hat: torch.Tensor, y: torch.Tensor) -> None:
+        self.value += self.foo(y_hat, y).mean()
         self.count += 1
 
     def compute(self):
@@ -25,12 +25,12 @@ class HistMetric(Metric):
         self.add_state("hist", default=[], dist_reduce_fx="cat")
         self.foo = foo
 
-    def update(self, y: torch.Tensor, y_hat: torch.Tensor):
-        result = self.foo(y.detach(), y_hat).flatten()
+    def update(self, y_hat: torch.Tensor, y: torch.Tensor):
+        result = self.foo(y_hat, y).flatten()
         self.hist.append(result)
 
     def compute(self):
-        return torch.cat(self.hist)
+        return torch.cat(self.hist).cpu().numpy()
 
 
 class SubsetChoiceSampler(Sampler):

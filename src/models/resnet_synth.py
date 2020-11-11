@@ -1,6 +1,5 @@
 import os
 import shutil
-from collections import defaultdict
 from functools import partial
 from pathlib import Path
 
@@ -21,11 +20,12 @@ from src.model_datasets.image_dataset import ImageDataset
 from src.util.error_helper_functions import calc_errors
 from src.util.general import MinCounter, Functor
 from src.util.loss_functions import l1_norm
-from src.util.nn_additions import SubsetChoiceSampler
+from src.util.nn_additions import SubsetChoiceSampler, MeanMetric, HistMetric
 
 
 class CustomInputResnet(pl.LightningModule):
-    def __init__(self, num_input_layers, num_outputs, loss_func, error_funcs, output_scaling,
+    def __init__(self, num_input_layers, num_outputs, loss_func, mean_error_func_dict, hist_error_func_dict,
+                 output_scaling,
                  resnet_type, learning_rate,
                  cosine_annealing_steps,
                  weight_decay, dtype=torch.float64):
@@ -34,22 +34,21 @@ class CustomInputResnet(pl.LightningModule):
         resnet_dict = {'18': models.resnet18,
                        '34': models.resnet34,
                        '50': models.resnet50}
-
+        if "loss" in mean_error_func_dict.keys() + hist_error_func_dict.keys():
+            raise ValueError("Bad function names")
         self.num_input_layers = num_input_layers
         self.num_output_layers = num_outputs
         self.loss_func = loss_func
-        self.l1_error_func, self.l2_error_func = error_funcs
         self.output_scale = output_scaling
         self.learning_rate = learning_rate
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.train_min_errors = defaultdict(lambda: None)
-        self.val_min_errors = defaultdict(lambda: None)
-        self.train_batch_list = defaultdict(list)
-        self.val_batch_list = defaultdict(list)
-        self.error_metrics = ['l1_3d_loss', 'l2_3d_loss', 'l1_3d_ir_loss', 'l2_3d_ir_loss',
-                              'l1_reg_avg', 'l2_reg_avg']
+        self.train_metrics = {f"train_{name}": MeanMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
+                              name, foo in mean_error_func_dict}
+        self.val_metrics = {f"val_{name}": MeanMetric(foo, compute_on_step=False) for name, foo in mean_error_func_dict}
+        self.val_metrics.update(
+            {f"val_hist_{name}": HistMetric(foo) for name, foo in hist_error_func_dict})
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -72,124 +71,119 @@ class CustomInputResnet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_func(y_hat, y, reduction='mean').mean(dim=-1)
+        loss = self.loss_func(y_hat, y)
+        result = {'train_loss': loss, 'y': y, 'y_hat': y_hat}
+        return result
+
+    def training_step_end(self, output):
+        result = {}
         with torch.no_grad():
-            l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
-            l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
-            for i in range(self.num_output_layers):
-                self.train_batch_list[f'train_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
-                self.train_batch_list[f'train_output{i}'].append(y_hat.detach().double()[:, i] / self.output_scale)
-            self.train_batch_list['train_loss'].append(loss)
-            self.train_batch_list['train_l1_3d_loss'].append(l1_3d_err)
-            self.train_batch_list['train_l2_3d_loss'].append(l2_3d_err)
-            self.train_batch_list['train_l1_3d_ir_loss'].append(l1_3d_ir_err)
-            self.train_batch_list['train_l2_3d_ir_loss'].append(l2_3d_ir_err)
-            self.train_batch_list['train_l1_reg_avg'].append(l1_regression_avg)
-            self.train_batch_list['train_l2_reg_avg'].append(l2_regression_avg)
-        return loss.mean()
+            for name, metric in self.train_metrics:
+                result[name] = metric.update(output['y'], output['y_hat'])
+        self.log_dict(result, on_step=True)
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_func(y_hat, y, reduction='mean').mean(dim=-1)
+        loss = self.loss_func(y_hat, y)
+        result = {'val_loss': loss, 'y': y, 'y_hat': y_hat}
+        return result
+
+    def validation_step_end(self, output):
         with torch.no_grad():
-            l1_3d_err, l1_3d_ir_err, l1_regression_avg, l1_regression_list = self.l1_error_func(y, y_hat)
-            l2_3d_err, l2_3d_ir_err, l2_regression_avg, l2_regression_list = self.l2_error_func(y, y_hat)
-            for i in range(self.num_output_layers):
-                self.val_batch_list[f'val_l1_scale{i}'].append(l1_regression_list[i] / self.output_scale)
-                self.val_batch_list[f'val_output{i}'].append(y_hat.detach().double()[:, i] / self.output_scale)
-                self.val_batch_list[f'val_expected{i}'].append(y.detach().double()[:, i] / self.output_scale)
-            self.val_batch_list['val_loss'].append(loss)
-            self.val_batch_list['val_l1_3d_loss'].append(l1_3d_err)
-            self.val_batch_list['val_l2_3d_loss'].append(l2_3d_err)
-            self.val_batch_list['val_l1_3d_ir_loss'].append(l1_3d_ir_err)
-            self.val_batch_list['val_l2_3d_ir_loss'].append(l2_3d_ir_err)
-            self.val_batch_list['val_l1_reg_avg'].append(l1_regression_avg)
-            self.val_batch_list['val_l2_reg_avg'].append(l2_regression_avg)
-        return loss.mean()
+            for name, metric in self.val_metrics:
+                metric.update(output['y'], output['y_hat'])
 
+    def validation_epoch_end(
+            self, outputs: List[Any]) -> None:
+        for name, metric in self.val_metrics:
+            if isinstance(metric, MeanMetric):
+                self.log(name, metric.compute(), on_epoch=True)
+            if isinstance(metric, HistMetric):
+                self.logger.experiment.log_histogram_3d(metric.compute(),name=name, step=self.current_epoch)
 
-class LoggerCallback(Callback):
-    def __init__(self, logger, stopping_metric='val_loss', stopping_patience=10):
-        self.logger = logger
-        self.metrics = {}
-        self.stopping_metric = stopping_metric
-        self.min_counter = MinCounter(stopping_patience)
-        self.max_errors = {'l1_3d_loss': 0.0569622089146808, 'l1_3d_ir_loss': 0.0628303256182133,
-                           'l1_reg_avg': 0.00348652643151581,
-                           'l2_3d_loss': 0.000732383042264162, 'l2_3d_ir_loss': 0.0141162749770687,
-                           'l2_reg_avg': 0.00314825028181076}
-
-    def on_epoch_end(self, trainer, pl_module):
-        # training
-        error_dict = {}
-        error_dict[f'train_loss'] = torch.mean(
-            torch.cat([x.flatten() for x in pl_module.train_batch_list[f'train_loss']]))
-        for i in range(pl_module.num_output_layers):
-            scale_err_hist = torch.cat(
-                [x.flatten() for x in pl_module.train_batch_list[f'train_l1_scale{i}']]).flatten()
-            error_dict[f'train_scale_err{i}'] = torch.mean(scale_err_hist)
-            scale_hist = torch.cat([x.flatten() for x in pl_module.train_batch_list[f'train_output{i}']]).flatten()
-            self.logger.experiment.log_histogram_3d(scale_hist.cpu().numpy(), name='hist_' + f'train_scale{i}',
-                                                    step=pl_module.current_epoch)
-            self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'train_scale_err{i}',
-                                                    step=pl_module.current_epoch)
-        for error_str in pl_module.error_metrics:
-            max_error = self.max_errors[error_str]
-            error_str = f'train_{error_str}'
-            error_tensor = torch.cat([x.flatten() for x in pl_module.train_batch_list[error_str]]).flatten()
-            curr_loss = torch.mean(error_tensor)
-            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy() / max_error, name='hist_' + error_str,
-                                                    step=pl_module.current_epoch)
-            error_dict[error_str] = curr_loss
-        self.metrics = {**self.metrics, **error_dict}
-
-        # Both val and training
-        self.logger.experiment.log_metrics(self.metrics, step=pl_module.current_epoch, epoch=pl_module.current_epoch)
-        trainer.should_stop = self.min_counter.add(self.metrics[self.stopping_metric], pl_module.current_epoch)
-
-        # cleanup
-        self.metrics.clear()
-        for i in pl_module.train_batch_list.values():
-            i.clear()
-
-    def on_validation_epoch_end(self, trainer, pl_module):
-        error_dict = {}
-        loss_tensor = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l2_3d_ir_loss']])
-        error_dict[f'val_loss'] = torch.mean(torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_loss']]))
-        worst_indices = torch.argsort(loss_tensor, descending=True)[:5]
-        worst_scales = torch.zeros((2 * 5, pl_module.num_output_layers), dtype=loss_tensor.dtype,
-                                   device=loss_tensor.device)
-        worst_string = ""
-        for i in range(pl_module.num_output_layers):
-            scale_err_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l1_scale{i}']])
-            error_dict[f'val_scale_err{i}'] = torch.mean(scale_err_hist)
-            output_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_output{i}']])
-            expected_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_expected{i}']])
-            worst_scales[:5, i] = output_hist[worst_indices]
-            worst_scales[5:, i] = expected_hist[worst_indices]
-            self.logger.experiment.log_histogram_3d(output_hist.cpu().numpy(), name='hist_' + f'val_scale{i}',
-                                                    step=pl_module.current_epoch)
-            self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'val_scale_err{i}',
-                                                    step=pl_module.current_epoch)
-        for i in worst_scales:
-            for j in i:
-                worst_string += str(float(j)) + " "
-            worst_string += ";"
-
-        self.logger.experiment.log_text(worst_string, step=pl_module.current_epoch)
-
-        for error_str in pl_module.error_metrics:
-            max_error = self.max_errors[error_str]
-            error_str = f'val_{error_str}'
-            error_tensor = torch.cat([x.flatten() for x in pl_module.val_batch_list[error_str]]).flatten()
-            curr_loss = torch.mean(error_tensor)
-            self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy() / max_error, name='hist_' + error_str,
-                                                    step=pl_module.current_epoch)
-            error_dict[error_str] = curr_loss
-        self.metrics = {**self.metrics, **error_dict}
-        for i in pl_module.val_batch_list.values():
-            i.clear()
+#
+# class LoggerCallback(Callback):
+#     def __init__(self, logger, stopping_metric='val_loss', stopping_patience=10):
+#         self.logger = logger
+#         self.metrics = {}
+#         self.stopping_metric = stopping_metric
+#         self.min_counter = MinCounter(stopping_patience)
+#         self.max_errors = {'l1_3d_loss': 0.0569622089146808, 'l1_3d_ir_loss': 0.0628303256182133,
+#                            'l1_reg_avg': 0.00348652643151581,
+#                            'l2_3d_loss': 0.000732383042264162, 'l2_3d_ir_loss': 0.0141162749770687,
+#                            'l2_reg_avg': 0.00314825028181076}
+#
+#     def on_epoch_end(self, trainer, pl_module):
+#         # training
+#         error_dict = {}
+#         error_dict[f'train_loss'] = torch.mean(
+#             torch.cat([x.flatten() for x in pl_module.train_batch_list[f'train_loss']]))
+#         for i in range(pl_module.num_output_layers):
+#             scale_err_hist = torch.cat(
+#                 [x.flatten() for x in pl_module.train_batch_list[f'train_l1_scale{i}']]).flatten()
+#             error_dict[f'train_scale_err{i}'] = torch.mean(scale_err_hist)
+#             scale_hist = torch.cat([x.flatten() for x in pl_module.train_batch_list[f'train_output{i}']]).flatten()
+#             self.logger.experiment.log_histogram_3d(scale_hist.cpu().numpy(), name='hist_' + f'train_scale{i}',
+#                                                     step=pl_module.current_epoch)
+#             self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'train_scale_err{i}',
+#                                                     step=pl_module.current_epoch)
+#         for error_str in pl_module.error_metrics:
+#             max_error = self.max_errors[error_str]
+#             error_str = f'train_{error_str}'
+#             error_tensor = torch.cat([x.flatten() for x in pl_module.train_batch_list[error_str]]).flatten()
+#             curr_loss = torch.mean(error_tensor)
+#             self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy() / max_error, name='hist_' + error_str,
+#                                                     step=pl_module.current_epoch)
+#             error_dict[error_str] = curr_loss
+#         self.metrics = {**self.metrics, **error_dict}
+#
+#         # Both val and training
+#         self.logger.experiment.log_metrics(self.metrics, step=pl_module.current_epoch, epoch=pl_module.current_epoch)
+#         trainer.should_stop = self.min_counter.add(self.metrics[self.stopping_metric], pl_module.current_epoch)
+#
+#         # cleanup
+#         self.metrics.clear()
+#         for i in pl_module.train_batch_list.values():
+#             i.clear()
+#
+#     def on_validation_epoch_end(self, trainer, pl_module):
+#         error_dict = {}
+#         loss_tensor = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l2_3d_ir_loss']])
+#         error_dict[f'val_loss'] = torch.mean(torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_loss']]))
+#         worst_indices = torch.argsort(loss_tensor, descending=True)[:5]
+#         worst_scales = torch.zeros((2 * 5, pl_module.num_output_layers), dtype=loss_tensor.dtype,
+#                                    device=loss_tensor.device)
+#         worst_string = ""
+#         for i in range(pl_module.num_output_layers):
+#             scale_err_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l1_scale{i}']])
+#             error_dict[f'val_scale_err{i}'] = torch.mean(scale_err_hist)
+#             output_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_output{i}']])
+#             expected_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_expected{i}']])
+#             worst_scales[:5, i] = output_hist[worst_indices]
+#             worst_scales[5:, i] = expected_hist[worst_indices]
+#             self.logger.experiment.log_histogram_3d(output_hist.cpu().numpy(), name='hist_' + f'val_scale{i}',
+#                                                     step=pl_module.current_epoch)
+#             self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'val_scale_err{i}',
+#                                                     step=pl_module.current_epoch)
+#         for i in worst_scales:
+#             for j in i:
+#                 worst_string += str(float(j)) + " "
+#             worst_string += ";"
+#
+#         self.logger.experiment.log_text(worst_string, step=pl_module.current_epoch)
+#
+#         for error_str in pl_module.error_metrics:
+#             max_error = self.max_errors[error_str]
+#             error_str = f'val_{error_str}'
+#             error_tensor = torch.cat([x.flatten() for x in pl_module.val_batch_list[error_str]]).flatten()
+#             curr_loss = torch.mean(error_tensor)
+#             self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy() / max_error, name='hist_' + error_str,
+#                                                     step=pl_module.current_epoch)
+#             error_dict[error_str] = curr_loss
+#         self.metrics = {**self.metrics, **error_dict}
+#         for i in pl_module.val_batch_list.values():
+#             i.clear()
 
 
 def L1_normalized_loss(min, max):
@@ -237,8 +231,8 @@ def run_resnet_synth(num_input_layers, num_outputs,
                               sampler=SubsetChoiceSampler(subsampler_size, len(train_dset)))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
-                              error_funcs=(l1_errors_func,
-                                           l2_errors_func),
+                              mean_error_func_dict=(l1_errors_func,
+                                                    l2_errors_func),
                               resnet_type=resnet_type, learning_rate=lr,
                               cosine_annealing_steps=10, weight_decay=weight_decay)
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
