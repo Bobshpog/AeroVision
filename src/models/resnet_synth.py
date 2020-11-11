@@ -5,7 +5,6 @@ from functools import partial
 from pathlib import Path
 
 import h5py
-import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -15,27 +14,14 @@ import torchvision.models as models
 from pytorch_lightning import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
-from pytorch_lightning.metrics import Metric
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import DataLoader
 
 import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
 from src.util.error_helper_functions import calc_errors
 from src.util.general import MinCounter, Functor
 from src.util.loss_functions import l1_norm
-
-class CustomMetric(Metric):
-    pass
-class SubsetChoiceSampler(Sampler):
-    def __init__(self, subset_size, total_size):
-        self.subset_size = subset_size
-        self.total_range = range(total_size)
-
-    def __iter__(self):
-        return (self.total_range[i] for i in np.random.choice(self.total_range, size=self.subset_size, replace=False))
-
-    def __len__(self):
-        return self.subset_size
+from src.util.nn_additions import SubsetChoiceSampler
 
 
 class CustomInputResnet(pl.LightningModule):
@@ -248,7 +234,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
                                 index_list=val_split)
     train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,
-                              sampler=SubsetChoiceSampler(subsampler_size,len(train_dset)))
+                              sampler=SubsetChoiceSampler(subsampler_size, len(train_dset)))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
                               error_funcs=(l1_errors_func,
