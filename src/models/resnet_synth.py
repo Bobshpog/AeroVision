@@ -1,7 +1,7 @@
 import os
 import shutil
-from functools import partial
 from pathlib import Path
+from typing import List, Any
 
 import h5py
 import pytorch_lightning as pl
@@ -10,16 +10,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
-from pytorch_lightning import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from torch.utils.data import DataLoader
 
 import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
-from src.util.error_helper_functions import calc_errors
-from src.util.general import MinCounter, Functor
-from src.util.loss_functions import l1_norm
+from src.util.general import Functor
 from src.util.nn_additions import SubsetChoiceSampler, MeanMetric, HistMetric
 
 
@@ -100,7 +97,8 @@ class CustomInputResnet(pl.LightningModule):
             if isinstance(metric, MeanMetric):
                 self.log(name, metric.compute(), on_epoch=True)
             if isinstance(metric, HistMetric):
-                self.logger.experiment.log_histogram_3d(metric.compute(),name=name, step=self.current_epoch)
+                self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)
+
 
 #
 # class LoggerCallback(Callback):
@@ -192,7 +190,8 @@ def L1_normalized_loss(min, max):
 
 
 def run_resnet_synth(num_input_layers, num_outputs,
-                     comment, train_db_path, val_db_path, val_split, transform, output_scaling=1e4, lr=1e-2,
+                     comment, train_db_path, val_db_path, val_split, transform, mean_error_func_dict,
+                     hist_error_func_dict, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
                      weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, subsampler_size=640):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
@@ -208,8 +207,6 @@ def run_resnet_synth(num_input_layers, num_outputs,
         modal_shapes = hf['generator metadata']['modal shapes'][()]
         ir = hf['generator metadata'].attrs['ir'][()]
         db_size = hf['data']['images'].len()
-        l1_errors_func = partial(calc_errors, l1_norm, modal_shapes, output_scaling, ir)
-        l2_errors_func = partial(calc_errors, torch.norm, modal_shapes, output_scaling, ir)
     if isinstance(val_split, int):
         train_dset = ImageDataset(train_db_path,
                                   transform=transform, out_transform=out_transform, cache_size=train_cache_size,
@@ -231,8 +228,8 @@ def run_resnet_synth(num_input_layers, num_outputs,
                               sampler=SubsetChoiceSampler(subsampler_size, len(train_dset)))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
-                              mean_error_func_dict=(l1_errors_func,
-                                                    l2_errors_func),
+                              mean_error_func_dict=mean_error_func_dict
+                              , hist_error_func_dict=hist_error_func_dict,
                               resnet_type=resnet_type, learning_rate=lr,
                               cosine_annealing_steps=10, weight_decay=weight_decay)
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
@@ -252,8 +249,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
         verbose=True)
 
     trainer = pl.Trainer(gpus=1, max_epochs=num_epochs,
-                         callbacks=[LoggerCallback(logger, stopping_patience=30)],
-                         checkpoint_callback=mcp,
+                         callbacks=[mcp],
                          num_sanity_val_steps=0,
                          profiler=True)
     trainer.fit(model, train_loader, val_loader)
