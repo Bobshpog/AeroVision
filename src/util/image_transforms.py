@@ -129,6 +129,7 @@ class TransformManyPositionsNoDepth:
             to_ret += str(i) + ","
         return to_ret + ")"
 
+
 class TransformRemoveDcPhoto:
     def __init__(self, dc_photo):
         self.dc_photo = dc_photo

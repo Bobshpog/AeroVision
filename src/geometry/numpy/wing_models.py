@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Union
 
 import cv2
-from SSIM_PIL import compare_ssim
+from src.SSIM_PIL import compare_ssim
 from tqdm import trange
 from src.geometry.numpy.mesh import *
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation

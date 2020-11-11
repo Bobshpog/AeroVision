@@ -11,7 +11,7 @@ from src.geometry.numpy.transforms import *
 from src.geometry.numpy.wing_models import *
 from src.geometry.spod import *
 from src.geometry.numpy.lbo import *
-from SSIM_PIL import compare_ssim
+from src.SSIM_PIL import compare_ssim
 from tqdm import trange
 import torch
 from src.util import loss_functions
