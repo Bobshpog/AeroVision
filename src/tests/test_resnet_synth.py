@@ -51,8 +51,6 @@ class TestCustomInputResnet(TestCase):
     def test_run_resnet_synth(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
         NUM_EPOCHS = 1000
-        VAL_CACHE_SIZE = 2458
-        TRAIN_CACHE_SIZE = 12500  # around 6500 total images (640,480,3) total space
         NUM_INPUT_LAYERS = 1
         NUM_OUTPUTS = 5
         RESNET_TYPE = '18'  # '18', '50', '34'
@@ -62,6 +60,9 @@ class TestCustomInputResnet(TestCase):
         VALIDATION_DB_PATH = TRAINING_DB_PATH
         with open('data/validation_splits/2/val_split.pkl','rb') as f:
             VAL_SPLIT=pickle.load(f)
+        #Total possible cahce is around 6500 total images (640,480,3) total space
+        VAL_CACHE_SIZE=len(VAL_SPLIT)
+        TRAIN_CACHE_SIZE=6500*3-VAL_CACHE_SIZE
         TRANSFORM = my_transforms.single_camera_bw
         OUTPUT_SCALE = 1e4
         LEARNING_RATE = 1e-2
