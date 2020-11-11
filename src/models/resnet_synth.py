@@ -15,6 +15,7 @@ import torchvision.models as models
 from pytorch_lightning import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
+from pytorch_lightning.metrics import Metric
 from torch.utils.data import DataLoader, Sampler
 
 import src.util.image_transforms as my_transforms
@@ -23,14 +24,15 @@ from src.util.error_helper_functions import calc_errors
 from src.util.general import MinCounter, Functor
 from src.util.loss_functions import l1_norm
 
-
+class CustomMetric(Metric):
+    pass
 class SubsetChoiceSampler(Sampler):
     def __init__(self, subset_size, total_size):
         self.subset_size = subset_size
         self.total_range = range(total_size)
 
     def __iter__(self):
-        return (self.subset_size[i] for i in np.random.choice(self.total_range, size=self.subset_size, replace=False))
+        return (self.total_range[i] for i in np.random.choice(self.total_range, size=self.subset_size, replace=False))
 
     def __len__(self):
         return self.subset_size
@@ -46,6 +48,7 @@ class CustomInputResnet(pl.LightningModule):
         resnet_dict = {'18': models.resnet18,
                        '34': models.resnet34,
                        '50': models.resnet50}
+
         self.num_input_layers = num_input_layers
         self.num_output_layers = num_outputs
         self.loss_func = loss_func

@@ -1,8 +1,10 @@
-name: /home/alex/miniconda3/envs
+name: AeroVision
 channels:
   - open3d-admin
   - https://conda.anaconda.org/conda-forge/
   - defaults
+  - pytorch
+  - comet_ml
 dependencies:
   - python==3.8.6
   - numpy
@@ -18,7 +20,10 @@ dependencies:
   - addict
   - pandas
   - plyfile
-  - torchvision==0.7
-  - pytorch==1.6.0
+  - pytorch=1.7.0
+  - torchvision=0.8.1
+  - cudatoolkit=10.2
   - scikit-image
+  - comet_ml
+
 
