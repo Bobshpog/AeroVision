@@ -100,3 +100,9 @@ def L_infinite(loss_function, mode_shapes: np.ndarray, scale_factor: int,
         return torch.norm(diff, dim=1, p=float('inf'))
 
 
+def y_hat_get_scale_i(y_mean, y_sd, i, y_hat, y):
+    return (y_hat[:, i]-y_mean)/y_sd
+
+
+def y_get_scale_i(y_mean, y_sd, i, y_hat, y):
+    return (y[:, i]-y_mean)/y_sd
