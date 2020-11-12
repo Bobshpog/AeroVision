@@ -2,18 +2,14 @@
 
 import glob
 import os
-import cv2
 from scipy.io import loadmat
-from PIL import Image
 
 from src.data.matlab_reader import read_modal_shapes
 from src.geometry.numpy.transforms import *
 from src.geometry.numpy.wing_models import *
-from src.geometry.spod import *
 from src.geometry.numpy.lbo import *
-from src.SSIM_PIL import compare_ssim
+from src.util.SSIM_PIL import compare_ssim
 from tqdm import trange
-import torch
 from src.util import loss_functions
 pretty_camera_pos = {
             'up_middle': [(0.047, -0.053320266561896174, 0.026735639600027315),
