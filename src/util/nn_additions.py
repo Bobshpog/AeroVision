@@ -7,30 +7,38 @@ from torch.utils.data import Sampler
 class MeanMetric(Metric):
     def __init__(self, foo, compute_on_step=False, dist_sync_on_step=False):
         super().__init__(compute_on_step=compute_on_step, dist_sync_on_step=dist_sync_on_step)
-        self.add_state("value", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("count", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.foo = foo
+        self.add_state("value", default=torch.tensor(0,dtype=torch.float,device='cuda'), dist_reduce_fx="sum")
+        self.add_state("count", default=torch.tensor(0,dtype=torch.float,device='cuda'), dist_reduce_fx="sum")
+        if isinstance(foo,tuple):
+            self.foo,self.max_val=foo
+        else:
+            self.foo = foo
+            self.max_val=1
 
     def update(self, y_hat: torch.Tensor, y: torch.Tensor) -> None:
         self.value += self.foo(y_hat, y).mean()
         self.count += 1
 
     def compute(self):
-        return self.value / self.count
+        return self.value / (self.max_val*self.count)
 
 
 class HistMetric(Metric):
     def __init__(self, foo, dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.add_state("hist", default=[], dist_reduce_fx="cat")
-        self.foo = foo
+        if isinstance(foo,tuple):
+            self.foo,self.max_val=foo
+        else:
+            self.foo = foo
+            self.max_val=1
 
     def update(self, y_hat: torch.Tensor, y: torch.Tensor):
         result = self.foo(y_hat, y).flatten()
         self.hist.append(result)
 
     def compute(self):
-        return torch.cat(self.hist).cpu().numpy()
+        return torch.cat(self.hist).cpu().numpy()/self.max_val
 
 
 class SubsetChoiceSampler(Sampler):
