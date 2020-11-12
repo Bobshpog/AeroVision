@@ -54,7 +54,7 @@ class TestCustomInputResnet(TestCase):
         BATCH_SIZE = 32  # 16 for Resnet50, 64 for resnet 18
         NUM_EPOCHS = 1000
         NUM_INPUT_LAYERS = 1
-        NUM_OUTPUTS = 5
+        NUM_OUTPUTS = 10
         RESNET_TYPE = '18'  # '18', '50', '34'
         LOSS_FUNC = F.smooth_l1_loss
         EXPERIMENT_NAME = None
@@ -65,7 +65,7 @@ class TestCustomInputResnet(TestCase):
         #Total possible cahce is around 6500 total images (640,480,3) total space
         VAL_CACHE_SIZE=len(VAL_SPLIT)
         TRAIN_CACHE_SIZE=6500*3-VAL_CACHE_SIZE
-        TRANSFORM = my_transforms.single_camera_bw
+        TRANSFORM = my_transforms.top_middle_bw
         OUTPUT_SCALE = 1e4
         LEARNING_RATE = 1e-2
         WEIGTH_DECAY = 0
