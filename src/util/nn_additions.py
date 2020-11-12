@@ -5,18 +5,21 @@ from torch.utils.data import Sampler
 
 
 class ReduceMetric(Metric):
-    def __init__(self, foo,reduction='mean', compute_on_step=False, dist_sync_on_step=False):
+    def __init__(self, foo, compute_on_step=False, dist_sync_on_step=False):
         super().__init__(compute_on_step=compute_on_step, dist_sync_on_step=dist_sync_on_step)
-        self.reduction=reduction
-        if reduction=='mean':
+        if isinstance(foo,tuple):
+            self.reduction=foo[-1]
+        else:
+            self.reduction='mean'
+        if self.reduction=='mean':
             self.add_state("value", default=torch.tensor(0,dtype=torch.float,device='cuda'), dist_reduce_fx="sum")
             self.add_state("count", default=torch.tensor(0,dtype=torch.float,device='cuda'), dist_reduce_fx="sum")
-        elif reduction=='max':
+        elif self.reduction=='max':
             self.add_state("value", default=torch.tensor(0, dtype=torch.float, device='cuda'), dist_reduce_fx=torch.max)
         else:
             raise NotImplementedError("only mean and max are supported")
-        if isinstance(foo,tuple):
-            self.foo,self.max_val=foo
+        if isinstance(foo,tuple) and len(foo)==3:
+            self.foo,self.max_val=foo[:2]
         else:
             self.foo = foo
             self.max_val=1

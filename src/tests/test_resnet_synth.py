@@ -3,6 +3,7 @@ from functools import partial
 from unittest import TestCase
 
 import h5py
+import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -11,6 +12,7 @@ import src.util.image_transforms as my_transforms
 from src.geometry.animations.synth_wing_animations import *
 from src.model_datasets.image_dataset import ImageDataset
 from src.models.resnet_synth import CustomInputResnet, run_resnet_synth
+from src.util.loss_functions import L_infinity, reconstruction_loss_3d
 
 
 class TestCustomInputResnet(TestCase):
@@ -72,9 +74,16 @@ class TestCustomInputResnet(TestCase):
         NORMAL_CAMS = 6
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
             mean_image = hf['generator metadata']['mean images'][()]
+            mode_shapes=hf['generator metadata']['modal shapes'][()]
+            ir=hf['generator metadata']['ir'][()]
         transform = TRANSFORM(0, mean_image)
+        reduce_dict = {'L_inf_mean': partial(L_infinity, mode_shapes, OUTPUT_SCALE),
+                        'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 'max'),
+                       'Worst_20%_mean':partial(reconstruction_loss_3d,torch.norm,mode_shapes[ir],OUTPUT_SCALE),
+                       'Worst_20%_max':(partial(reconstruction_loss_3d,torch.norm,mode_shapes[ir],OUTPUT_SCALE),'max')}
+
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
-                         transform,train_cache_size=TRAIN_CACHE_SIZE,val_cache_size=VAL_CACHE_SIZE)
+                         transform, reduce_dict, {}, train_cache_size=TRAIN_CACHE_SIZE, val_cache_size=VAL_CACHE_SIZE)
 
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18

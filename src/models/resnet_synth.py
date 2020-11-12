@@ -215,8 +215,6 @@ def run_resnet_synth(num_input_layers, num_outputs,
               'weight_decay': weight_decay, 'cosine_annealing_steps': cosine_annealing_steps}
     out_transform = my_transforms.scale_by(output_scaling)
     with h5py.File(train_db_path, 'r') as hf:
-        modal_shapes = hf['generator metadata']['modal shapes'][()]
-        ir = hf['generator metadata'].attrs['ir'][()]
         db_size = hf['data']['images'].len()
     if isinstance(val_split, int):
         train_dset = ImageDataset(train_db_path,
