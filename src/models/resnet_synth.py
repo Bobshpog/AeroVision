@@ -46,6 +46,7 @@ class CustomInputResnet(pl.LightningModule):
         self.val_metrics = {f"val_{name}": MeanMetric(foo, compute_on_step=False) for name, foo in mean_error_func_dict.items()}
         self.val_metrics.update(
             {f"val_hist_{name}": HistMetric(foo) for name, foo in hist_error_func_dict.items()})
+        self.current_step=0
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -72,8 +73,11 @@ class CustomInputResnet(pl.LightningModule):
         result = {}
         with torch.no_grad():
             for name, metric in self.train_metrics.items():
-                result[name] = metric.update(y_hat,y)
-        self.log_dict(result, on_step=True)
+                metric.update(y_hat,y)
+                result[name] = metric.compute()
+        self.experiment.log_metric('train_loss',loss,step=self.current_step,epoch=self.current_epoch)
+        self.experiment.log_metrics(result,step=self.current_step,epoch=self.current_epoch)
+        self.current_step+=1
         return loss
 
     # def training_step_end(self, output):
@@ -101,7 +105,7 @@ class CustomInputResnet(pl.LightningModule):
             self, outputs: List[Any]) -> None:
         for name, metric in self.val_metrics.items():
             if isinstance(metric, MeanMetric):
-                self.log(name, metric.compute(), on_epoch=True)
+                self.log_metric(name, metric.compute(), epoch=self.current_epoch)
             if isinstance(metric, HistMetric):
                 self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)
 
