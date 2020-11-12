@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
 from src.util.general import Functor
-from src.util.nn_additions import SubsetChoiceSampler, MeanMetric, HistMetric
+from src.util.nn_additions import SubsetChoiceSampler, ReduceMetric, HistMetric
 
 
 class CustomInputResnet(pl.LightningModule):
@@ -41,9 +41,9 @@ class CustomInputResnet(pl.LightningModule):
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.train_metrics = {f"train_{name}": MeanMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
+        self.train_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
                               name, foo in mean_error_func_dict.items()}
-        self.val_metrics = {f"val_{name}": MeanMetric(foo, compute_on_step=False) for name, foo in mean_error_func_dict.items()}
+        self.val_metrics = {f"val_{name}": ReduceMetric(foo, compute_on_step=False) for name, foo in mean_error_func_dict.items()}
         self.val_metrics.update(
             {f"val_hist_{name}": HistMetric(foo) for name, foo in hist_error_func_dict.items()})
         self.current_step=0
@@ -105,7 +105,7 @@ class CustomInputResnet(pl.LightningModule):
             self, outputs: List[Any]) -> None:
         self.logger.experiment.log_metric('val_loss',torch.stack(outputs).mean(),step=self.current_epoch)
         for name, metric in self.val_metrics.items():
-            if isinstance(metric, MeanMetric):
+            if isinstance(metric, ReduceMetric):
                 self.logger.experiment.log_metric(name, metric.compute(), step=self.current_epoch)
             if isinstance(metric, HistMetric):
                 self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)

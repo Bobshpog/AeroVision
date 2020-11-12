@@ -4,11 +4,17 @@ from pytorch_lightning.metrics import Metric
 from torch.utils.data import Sampler
 
 
-class MeanMetric(Metric):
-    def __init__(self, foo, compute_on_step=False, dist_sync_on_step=False):
+class ReduceMetric(Metric):
+    def __init__(self, foo,reduction='mean', compute_on_step=False, dist_sync_on_step=False):
         super().__init__(compute_on_step=compute_on_step, dist_sync_on_step=dist_sync_on_step)
-        self.add_state("value", default=torch.tensor(0,dtype=torch.float,device='cuda'), dist_reduce_fx="sum")
-        self.add_state("count", default=torch.tensor(0,dtype=torch.float,device='cuda'), dist_reduce_fx="sum")
+        self.reduction=reduction
+        if reduction=='mean':
+            self.add_state("value", default=torch.tensor(0,dtype=torch.float,device='cuda'), dist_reduce_fx="sum")
+            self.add_state("count", default=torch.tensor(0,dtype=torch.float,device='cuda'), dist_reduce_fx="sum")
+        elif reduction=='max':
+            self.add_state("value", default=torch.tensor(0, dtype=torch.float, device='cuda'), dist_reduce_fx=torch.max)
+        else:
+            raise NotImplementedError("only mean and max are supported")
         if isinstance(foo,tuple):
             self.foo,self.max_val=foo
         else:
@@ -16,11 +22,17 @@ class MeanMetric(Metric):
             self.max_val=1
 
     def update(self, y_hat: torch.Tensor, y: torch.Tensor) -> None:
-        self.value += self.foo(y_hat, y).mean()
-        self.count += 1
+        if self.reduction =='mean':
+            self.value += self.foo(y_hat, y).mean()
+            self.count += 1
+        elif self.reuction =='max':
+            self.value= torch.max(self.value,self.foo(y_hat,y))
 
     def compute(self):
-        return self.value / (self.max_val*self.count)
+        if self.reduction=='mean':
+            return self.value / (self.max_val*self.count)
+        elif self.reduction=='max':
+            return self.value/self.max_val
 
 
 class HistMetric(Metric):
