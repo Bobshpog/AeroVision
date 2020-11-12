@@ -31,7 +31,7 @@ class CustomInputResnet(pl.LightningModule):
         resnet_dict = {'18': models.resnet18,
                        '34': models.resnet34,
                        '50': models.resnet50}
-        if "loss" in mean_error_func_dict.keys() + hist_error_func_dict.keys():
+        if "loss" in list(mean_error_func_dict.keys()) + list(hist_error_func_dict.keys()):
             raise ValueError("Bad function names")
         self.num_input_layers = num_input_layers
         self.num_output_layers = num_outputs
@@ -42,10 +42,10 @@ class CustomInputResnet(pl.LightningModule):
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
         self.train_metrics = {f"train_{name}": MeanMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
-                              name, foo in mean_error_func_dict}
-        self.val_metrics = {f"val_{name}": MeanMetric(foo, compute_on_step=False) for name, foo in mean_error_func_dict}
+                              name, foo in mean_error_func_dict.items()}
+        self.val_metrics = {f"val_{name}": MeanMetric(foo, compute_on_step=False) for name, foo in mean_error_func_dict.items()}
         self.val_metrics.update(
-            {f"val_hist_{name}": HistMetric(foo) for name, foo in hist_error_func_dict})
+            {f"val_hist_{name}": HistMetric(foo) for name, foo in hist_error_func_dict.items()})
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -75,7 +75,7 @@ class CustomInputResnet(pl.LightningModule):
     def training_step_end(self, output):
         result = {}
         with torch.no_grad():
-            for name, metric in self.train_metrics:
+            for name, metric in self.train_metrics.items():
                 result[name] = metric.update(output['y'], output['y_hat'])
         self.log_dict(result, on_step=True)
 
@@ -88,12 +88,12 @@ class CustomInputResnet(pl.LightningModule):
 
     def validation_step_end(self, output):
         with torch.no_grad():
-            for name, metric in self.val_metrics:
+            for name, metric in self.val_metrics.items():
                 metric.update(output['y'], output['y_hat'])
 
     def validation_epoch_end(
             self, outputs: List[Any]) -> None:
-        for name, metric in self.val_metrics:
+        for name, metric in self.val_metrics.items():
             if isinstance(metric, MeanMetric):
                 self.log(name, metric.compute(), on_epoch=True)
             if isinstance(metric, HistMetric):
