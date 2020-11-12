@@ -103,7 +103,7 @@ class CustomInputResnet(pl.LightningModule):
 
     def validation_epoch_end(
             self, outputs: List[Any]) -> None:
-        self.logger.experiment.log_metric('val_loss',torch.cat(outputs).mean(),epoch=self.current_epoch)
+        self.logger.experiment.log_metric('val_loss',torch.stack(outputs).mean(),epoch=self.current_epoch)
         for name, metric in self.val_metrics.items():
             if isinstance(metric, MeanMetric):
                 self.logger.experiment.log_metric(name, metric.compute(), epoch=self.current_epoch)
