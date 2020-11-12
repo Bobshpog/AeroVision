@@ -29,8 +29,8 @@ class ReduceMetric(Metric):
 
     def update(self, y_hat: torch.Tensor, y: torch.Tensor) -> None:
         if self.reduction =='mean':
-            self.value += self.foo(y_hat, y).mean()
-            self.count += 1
+            self.value += self.foo(y_hat, y).sum()
+            self.count += len(y)
         elif self.reduction =='max':
             self.value= torch.max(self.value,torch.max(self.foo(y_hat,y)))
 
