@@ -82,9 +82,9 @@ class TestCustomInputResnet(TestCase):
                        'Worst_20%_max': (
                            partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE), 'max')}
         hist_dict = {f'scale{i}_real': partial(y_get_scale_i, scales_mean, scales_std, i) for i in
-                     range(NUM_INPUT_LAYERS)}
+                     range(NUM_OUTPUTS)}
         hist_dict.update(
-            {f'scale{i}_nn': partial(y_hat_get_scale_i, scales_mean, scales_std, i) for i in range(NUM_INPUT_LAYERS)})
+            {f'scale{i}_nn': partial(y_hat_get_scale_i, scales_mean, scales_std, i) for i in range(NUM_OUTPUTS)})
 
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
                          transform, reduce_dict, hist_dict, train_cache_size=TRAIN_CACHE_SIZE, val_cache_size=VAL_CACHE_SIZE,
