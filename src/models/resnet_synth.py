@@ -69,27 +69,33 @@ class CustomInputResnet(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
-        result = {'train_loss': loss, 'y': y, 'y_hat': y_hat}
-        return result
-
-    def training_step_end(self, output):
         result = {}
         with torch.no_grad():
             for name, metric in self.train_metrics.items():
-                result[name] = metric.update(output['y'], output['y_hat'])
+                result[name] = metric.update(y_hat,y)
         self.log_dict(result, on_step=True)
+        return loss
 
+    # def training_step_end(self, output):
+    #     result = {}
+    #     with torch.no_grad():
+    #         for name, metric in self.train_metrics.items():
+    #             result[name] = metric.update(output['y'], output['y_hat'])
+    #     self.log_dict(result, on_step=True)
+    #
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
-        result = {'val_loss': loss, 'y': y, 'y_hat': y_hat}
-        return result
-
-    def validation_step_end(self, output):
         with torch.no_grad():
             for name, metric in self.val_metrics.items():
-                metric.update(output['y'], output['y_hat'])
+                metric.update(y_hat,y)
+        return loss
+
+    # def validation_step_end(self, output):
+    #     with torch.no_grad():
+    #         for name, metric in self.val_metrics.items():
+    #             metric.update(output['y'], output['y_hat'])
 
     def validation_epoch_end(
             self, outputs: List[Any]) -> None:
@@ -251,6 +257,6 @@ def run_resnet_synth(num_input_layers, num_outputs,
     trainer = pl.Trainer(gpus=1, max_epochs=num_epochs,
                          callbacks=[mcp],
                          num_sanity_val_steps=0,
-                         profiler=True)
+                         profiler=True,logger=logger)
     trainer.fit(model, train_loader, val_loader)
     logger.experiment.log_asset_folder(checkpoints_folder)
