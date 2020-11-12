@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 from pathlib import Path
@@ -17,11 +18,12 @@ from torch.utils.data import DataLoader
 import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
 from src.util.general import Functor
-from src.util.nn_additions import SubsetChoiceSampler, ReduceMetric, HistMetric
+from src.util.nn_additions import SubsetChoiceSampler, ReduceMetric, HistMetric, TextMetric
 
 
 class CustomInputResnet(pl.LightningModule):
     def __init__(self, num_input_layers, num_outputs, loss_func, mean_error_func_dict, hist_error_func_dict,
+                 text_error_func_dict,
                  output_scaling,
                  resnet_type, learning_rate,
                  cosine_annealing_steps,
@@ -33,8 +35,9 @@ class CustomInputResnet(pl.LightningModule):
                        '50': models.resnet50}
         if "loss" in list(mean_error_func_dict.keys()) + list(hist_error_func_dict.keys()):
             raise ValueError("Bad function names")
+        self.SAVED_VALUES=5
         self.num_input_layers = num_input_layers
-        self.num_output_layers = num_outputs
+        self.num_outputs = num_outputs
         self.loss_func = loss_func
         self.output_scale = output_scaling
         self.learning_rate = learning_rate
@@ -43,10 +46,13 @@ class CustomInputResnet(pl.LightningModule):
         self.weight_decay = weight_decay
         self.train_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
                               name, foo in mean_error_func_dict.items()}
-        self.val_metrics = {f"val_{name}": ReduceMetric(foo, compute_on_step=False) for name, foo in mean_error_func_dict.items()}
+        self.val_metrics = {f"val_{name}": ReduceMetric(foo, compute_on_step=False) for name, foo in
+                            mean_error_func_dict.items()}
         self.val_metrics.update(
             {f"val_hist_{name}": HistMetric(foo) for name, foo in hist_error_func_dict.items()})
-        self.current_step=0
+        self.val_metrics.update(
+            {name: TextMetric(foo, self.SAVED_VALUES, num_outputs) for name, foo in text_error_func_dict.items()})
+        self.current_step = 0
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
@@ -73,11 +79,11 @@ class CustomInputResnet(pl.LightningModule):
         result = {}
         with torch.no_grad():
             for name, metric in self.train_metrics.items():
-                metric.update(y_hat,y)
+                metric.update(y_hat, y)
                 result[name] = metric.compute()
-        self.logger.experiment.log_metric('train_loss',loss,step=self.current_step,epoch=self.current_epoch)
-        self.logger.experiment.log_metrics(result,step=self.current_step,epoch=self.current_epoch)
-        self.current_step+=1
+        self.logger.experiment.log_metric('train_loss', loss, step=self.current_step, epoch=self.current_epoch)
+        self.logger.experiment.log_metrics(result, step=self.current_step, epoch=self.current_epoch)
+        self.current_step += 1
         return loss
 
     # def training_step_end(self, output):
@@ -93,7 +99,7 @@ class CustomInputResnet(pl.LightningModule):
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
             for name, metric in self.val_metrics.items():
-                metric.update(y_hat,y)
+                metric.update(y_hat, y)
         return loss
 
     # def validation_step_end(self, output):
@@ -103,12 +109,20 @@ class CustomInputResnet(pl.LightningModule):
 
     def validation_epoch_end(
             self, outputs: List[Any]) -> None:
-        self.logger.experiment.log_metric('val_loss',torch.stack(outputs).mean(),step=self.current_epoch)
+        self.logger.experiment.log_metric('val_loss', torch.stack(outputs).mean(), step=self.current_epoch)
         for name, metric in self.val_metrics.items():
+            text_dict={}
             if isinstance(metric, ReduceMetric):
                 self.logger.experiment.log_metric(name, metric.compute(), step=self.current_epoch)
             if isinstance(metric, HistMetric):
                 self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)
+            if isinstance(metric,TextMetric):
+                values=metric.compute()
+                for pair in values:
+                    y_hat=tuple(pair[0])
+                    y=tuple(pair[1])
+                    text_dict[name]={'y_hat':y_hat,'y':y}
+            self.logger.experiment.log_text(json.dump(text_dict),step=self.current_epoch)
 
 
 #
@@ -260,6 +274,6 @@ def run_resnet_synth(num_input_layers, num_outputs,
     trainer = pl.Trainer(gpus=1, max_epochs=num_epochs,
                          callbacks=[mcp],
                          num_sanity_val_steps=0,
-                         profiler=True,logger=logger)
+                         profiler=True, logger=logger)
     trainer.fit(model, train_loader, val_loader)
     logger.experiment.log_asset_folder(checkpoints_folder)

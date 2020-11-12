@@ -61,13 +61,14 @@ class HistMetric(Metric):
 
 
 class TextMetric(Metric):
-    def __init__(self, foo, count, batch_size,num_scales, dist_sync_on_step=False):
+    def __init__(self, foo, count, num_scales, dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
-        self.batch_size=batch_size
         self.count=count
         self.foo=foo
+        # trashy, for now...
+        batch_size = 64
         self.add_state("worst_evals", default=torch.zeros(count + batch_size, dtype=torch.float, device='cuda'), dist_reduce_fx=None)
-        self.add_state("worst_y", default=torch.zeros((count + batch_size,2,num_scales), dtype=torch.float, device='cuda'),
+        self.add_state("worst_y", default=torch.zeros((count + batch_size, 2, num_scales), dtype=torch.float, device='cuda'),
                        dist_reduce_fx=None)
 
     def update(self, y_hat: torch.Tensor, y: torch.Tensor):

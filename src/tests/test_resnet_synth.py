@@ -78,16 +78,19 @@ class TestCustomInputResnet(TestCase):
         transform = TRANSFORM(mean_image)
         reduce_dict = {'L_inf_mean': partial(L_infinity, mode_shapes, OUTPUT_SCALE),
                        'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 'max'),
-                       'Worst_20%_mean': partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE),
-                       'Worst_20%_max': (
+                       '3D_Worst_20%_mean': partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir],
+                                                    OUTPUT_SCALE),
+                       '3D_Worst_20%_max': (
                            partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE), 'max')}
-        hist_dict = {f'scale{i}_real': partial(y_get_scale_i,OUTPUT_SCALE ,scales_mean, scales_std, i) for i in
+        hist_dict = {f'scale{i}_real': partial(y_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
                      range(NUM_OUTPUTS)}
         hist_dict.update(
-            {f'scale{i}_nn': partial(y_hat_get_scale_i,OUTPUT_SCALE, scales_mean, scales_std, i) for i in range(NUM_OUTPUTS)})
-
+            {f'scale{i}_nn': partial(y_hat_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
+             range(NUM_OUTPUTS)})
+        text_dict = {'val_loss': LOSS_FUNC, 'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 'max')}
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
-                         transform, reduce_dict, hist_dict, train_cache_size=TRAIN_CACHE_SIZE, val_cache_size=VAL_CACHE_SIZE,
+                         transform, reduce_dict, hist_dict,text_dict, train_cache_size=TRAIN_CACHE_SIZE,
+                         val_cache_size=VAL_CACHE_SIZE,
                          batch_size=BATCH_SIZE)
 
     def test_run_resnet_synth_one_camera(self):
