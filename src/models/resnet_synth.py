@@ -75,8 +75,8 @@ class CustomInputResnet(pl.LightningModule):
             for name, metric in self.train_metrics.items():
                 metric.update(y_hat,y)
                 result[name] = metric.compute()
-        self.experiment.log_metric('train_loss',loss,step=self.current_step,epoch=self.current_epoch)
-        self.experiment.log_metrics(result,step=self.current_step,epoch=self.current_epoch)
+        self.logger.experiment.log_metric('train_loss',loss,step=self.current_step,epoch=self.current_epoch)
+        self.logger.experiment.log_metrics(result,step=self.current_step,epoch=self.current_epoch)
         self.current_step+=1
         return loss
 
@@ -105,7 +105,7 @@ class CustomInputResnet(pl.LightningModule):
             self, outputs: List[Any]) -> None:
         for name, metric in self.val_metrics.items():
             if isinstance(metric, MeanMetric):
-                self.log_metric(name, metric.compute(), epoch=self.current_epoch)
+                self.logger.experiment.log_metric(name, metric.compute(), epoch=self.current_epoch)
             if isinstance(metric, HistMetric):
                 self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)
 
