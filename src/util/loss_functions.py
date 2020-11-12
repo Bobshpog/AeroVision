@@ -67,12 +67,11 @@ def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, scale_factor:
         return loss_function(pos_a - pos_b, dim=0) / num_vertices
 
 
-def L_infinite(loss_function, mode_shapes: np.ndarray, scale_factor: int,
-                           x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
+def L_infinity(mode_shapes: np.ndarray, scale_factor: int,
+               x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
     """
-        return L_infinite between shape (based on the scales) we received and the shape we calculated by our own scales
+        return L_infinity between shape (based on the scales) we received and the shape we calculated by our own scales
           Args:
-              loss_function: loss function takes two |V| vectors and calclate the loss between them
               mode_shapes: a [V,n] tensor or np array representing the mode shapes (only the Z axis)
               scale_factor: the power of 10 used to scale the mode scales
               x: first set of scales
@@ -84,7 +83,7 @@ def L_infinite(loss_function, mode_shapes: np.ndarray, scale_factor: int,
 
     if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
         device = 'cpu'
-        return L_infinite(loss_function, mode_shapes, scale_factor, torch.tensor(x, device=device),
+        return L_infinity(mode_shapes, scale_factor, torch.tensor(x, device=device),
                           torch.tensor(y, device=device)).detach().numpy()
     device = x.device
     with torch.no_grad():
