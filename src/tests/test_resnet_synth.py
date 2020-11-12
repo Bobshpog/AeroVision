@@ -76,7 +76,7 @@ class TestCustomInputResnet(TestCase):
             mean_image = hf['generator metadata']['mean images'][()]
             mode_shapes=hf['generator metadata']['modal shapes'][()]
             ir=hf['generator metadata'].attrs['ir'][()]
-        transform = TRANSFORM(0, mean_image)
+        transform = TRANSFORM( mean_image)
         reduce_dict = {'L_inf_mean': partial(L_infinity, mode_shapes, OUTPUT_SCALE),
                         'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 'max'),
                        'Worst_20%_mean':partial(reconstruction_loss_3d,torch.norm,mode_shapes[:,ir],OUTPUT_SCALE),

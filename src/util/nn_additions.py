@@ -32,7 +32,7 @@ class ReduceMetric(Metric):
             self.value += self.foo(y_hat, y).mean()
             self.count += 1
         elif self.reduction =='max':
-            self.value= torch.max(self.value,self.foo(y_hat,y))
+            self.value= torch.max(self.value,self.max(self.foo(y_hat,y)))
 
     def compute(self):
         if self.reduction=='mean':
