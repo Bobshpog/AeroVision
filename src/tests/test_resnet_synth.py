@@ -3,14 +3,12 @@ from functools import partial
 from unittest import TestCase
 
 import h5py
+import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torchvision import transforms
 
 import src.util.image_transforms as my_transforms
-from src.geometry.animations.synth_wing_animations import *
-from src.model_datasets.image_dataset import ImageDataset
-from src.models.resnet_synth import CustomInputResnet, run_resnet_synth
+from src.models.resnet_synth import run_resnet_synth
+from src.util.loss_functions import L_infinity, reconstruction_loss_3d, y_hat_get_scale_i, y_get_scale_i
 
 
 class TestCustomInputResnet(TestCase):
@@ -45,25 +43,25 @@ class TestCustomInputResnet(TestCase):
     #         # todo reconstruct X
     #         cv2.imwrite(trash_path + name_of_picture + str(i) + ".png", np.asarray(X * 255, np.uint8))
 
-        # create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
-        #                     name_of_picture, show_ssim=True,res=[100,400])
+    # create_vid_by_scales(scale1, scale2, vid_path, trash_path, texture_path, mode_shape_path, frames, num_of_scales,
+    #                     name_of_picture, show_ssim=True,res=[100,400])
 
     def test_run_resnet_synth(self):
-        BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
+        BATCH_SIZE = 32  # 16 for Resnet50, 64 for resnet 18
         NUM_EPOCHS = 1000
         NUM_INPUT_LAYERS = 1
-        NUM_OUTPUTS = 5
+        NUM_OUTPUTS = 10
         RESNET_TYPE = '18'  # '18', '50', '34'
         LOSS_FUNC = F.smooth_l1_loss
         EXPERIMENT_NAME = None
         TRAINING_DB_PATH = ""
         VALIDATION_DB_PATH = TRAINING_DB_PATH
-        with open('data/validation_splits/2/val_split.pkl','rb') as f:
-            VAL_SPLIT=pickle.load(f)
-        #Total possible cahce is around 6500 total images (640,480,3) total space
-        VAL_CACHE_SIZE=len(VAL_SPLIT)
-        TRAIN_CACHE_SIZE=6500*3-VAL_CACHE_SIZE
-        TRANSFORM = my_transforms.single_camera_bw
+        with open('data/validation_splits/2/val_split.pkl', 'rb') as f:
+            VAL_SPLIT = pickle.load(f)
+        # Total possible cahce is around 6500 total images (640,480,3) total space
+        VAL_CACHE_SIZE = len(VAL_SPLIT)
+        TRAIN_CACHE_SIZE = 6500 * 3 - VAL_CACHE_SIZE
+        TRANSFORM = my_transforms.top_middle_bw
         OUTPUT_SCALE = 1e4
         LEARNING_RATE = 1e-2
         WEIGTH_DECAY = 0
@@ -72,9 +70,25 @@ class TestCustomInputResnet(TestCase):
         NORMAL_CAMS = 6
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
             mean_image = hf['generator metadata']['mean images'][()]
-        transform = TRANSFORM(0, mean_image)
+            mode_shapes = hf['generator metadata']['modal shapes'][()]
+            ir = hf['generator metadata'].attrs['ir'][()]
+            _scales = hf['data']['scales'][()]
+            scales_mean = _scales.mean(dim=0)
+            scales_std = _scales.std(dim=0)
+        transform = TRANSFORM(mean_image)
+        reduce_dict = {'L_inf_mean': partial(L_infinity, mode_shapes, OUTPUT_SCALE),
+                       'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 'max'),
+                       'Worst_20%_mean': partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE),
+                       'Worst_20%_max': (
+                           partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE), 'max')}
+        hist_dict = {f'scale{i}_real': partial(y_get_scale_i, scales_mean, scales_std, i) for i in
+                     range(NUM_OUTPUTS)}
+        hist_dict.update(
+            {f'scale{i}_nn': partial(y_hat_get_scale_i, scales_mean, scales_std, i) for i in range(NUM_OUTPUTS)})
+
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
-                         transform,train_cache_size=TRAIN_CACHE_SIZE,val_cache_size=VAL_CACHE_SIZE)
+                         transform, reduce_dict, hist_dict, train_cache_size=TRAIN_CACHE_SIZE, val_cache_size=VAL_CACHE_SIZE,
+                         batch_size=BATCH_SIZE)
 
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
@@ -156,6 +170,6 @@ class TestCustomInputResnet(TestCase):
 
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
             mean_image = hf['generator metadata']['mean images'][()]
-        transform=TRANSFORM(list(range(6)),mean_image)
+        transform = TRANSFORM(list(range(6)), mean_image)
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "first experiment six cameras: ",
                          TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT, transform)
