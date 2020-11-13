@@ -118,11 +118,7 @@ class CustomInputResnet(pl.LightningModule):
                 self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)
             if isinstance(metric,TextMetric):
                 values=metric.compute()
-                for pair in values:
-                    y_hat=tuple(pair[0])
-                    y=tuple(pair[1])
-                    text_dict[name]={'y_hat':y_hat,'y':y}
-            self.logger.experiment.log_text(json.dump(text_dict),step=self.current_epoch)
+                self.logger.experiment.log_text(values.tobytes(),step=self.current_epoch,metadata={'metric':name})
 
 
 #
