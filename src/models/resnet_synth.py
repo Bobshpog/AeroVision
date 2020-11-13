@@ -36,7 +36,6 @@ class CustomInputResnet(pl.LightningModule):
                        '50': models.resnet50}
         if "loss" in list(mean_error_func_dict.keys()) + list(hist_error_func_dict.keys()):
             raise ValueError("Bad function names")
-        self.SAVED_VALUES=5
         self.num_input_layers = num_input_layers
         self.num_outputs = num_outputs
         self.loss_func = loss_func
@@ -51,7 +50,7 @@ class CustomInputResnet(pl.LightningModule):
         self.val_metrics.update(
             {f"val_hist_{name}": HistMetric(foo) for name, foo in hist_error_func_dict.items()})
         self.val_metrics.update(
-            {name: TextMetric(foo, self.SAVED_VALUES,output_scaling, num_outputs) for name, foo in text_error_func_dict.items()})
+            {name: TextMetric(foo, num_outputs,output_scaling) for name, foo in text_error_func_dict.items()})
         self.current_step = 0
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
