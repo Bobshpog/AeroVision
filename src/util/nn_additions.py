@@ -66,21 +66,21 @@ class TextMetric(Metric):
         self.count=count
         self.foo=foo
         # trashy, for now...
-        batch_size = 64
+        batch_size = 32
         self.add_state("worst_evals", default=torch.zeros(count + batch_size, dtype=torch.float, device='cuda'), dist_reduce_fx=None)
         self.add_state("worst_y", default=torch.zeros((count + batch_size, 2, num_scales), dtype=torch.float, device='cuda'),
                        dist_reduce_fx=None)
 
     def update(self, y_hat: torch.Tensor, y: torch.Tensor):
 
-        self.worst_evals[self.count:]= self.foo(y_hat, y).flatten()
+        self.worst_evals[self.count:self.count+len(y)]= self.foo(y_hat, y).flatten()
         self.worst_evals,order=self.worst_evals.sort(descending=True)
-        self.worst_y[self.count:]=y_hat,y
+        self.worst_y[self.count:]=torch.stack((y_hat,y)).transpose(0,1)
         self.worst_y=self.worst_y[order]
 
     def compute(self):
         worst_y=self.worst_y[:self.count]
-        return worst_y.cpu()
+        return worst_y.cpu().numpy()
 
 
 

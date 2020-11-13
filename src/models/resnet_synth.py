@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 from typing import List, Any
 
+import numpy as np
 import h5py
 import pytorch_lightning as pl
 import torch
@@ -111,14 +112,14 @@ class CustomInputResnet(pl.LightningModule):
             self, outputs: List[Any]) -> None:
         self.logger.experiment.log_metric('val_loss', torch.stack(outputs).mean(), step=self.current_epoch)
         for name, metric in self.val_metrics.items():
-            text_dict={}
             if isinstance(metric, ReduceMetric):
                 self.logger.experiment.log_metric(name, metric.compute(), step=self.current_epoch)
             if isinstance(metric, HistMetric):
                 self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)
             if isinstance(metric,TextMetric):
                 values=metric.compute()
-                self.logger.experiment.log_text(values.tobytes(),step=self.current_epoch,metadata={'metric':name})
+                np.save('src/tests/temp/worst.npy',values)
+                self.logger.experiment.log_asset('src/tests/temp/worst.npy',file_name=name,step=self.current_epoch)
 
 
 #
