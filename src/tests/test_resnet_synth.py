@@ -73,8 +73,8 @@ class TestCustomInputResnet(TestCase):
             mode_shapes = hf['generator metadata']['modal shapes'][()]
             ir = hf['generator metadata'].attrs['ir'][()]
             _scales = hf['data']['scales'][()]
-            scales_mean = _scales.mean(dim=0)
-            scales_std = _scales.std(dim=0)
+            scales_mean = _scales.mean(axis=0)
+            scales_std = _scales.std(axis=0)
         transform = TRANSFORM(mean_image)
         reduce_dict = {'L_inf_mean': partial(L_infinity, mode_shapes, OUTPUT_SCALE),
                        'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 'max'),
