@@ -89,7 +89,7 @@ class TestDatabaseBuilder(TestCase):
                                                Config.resolution, Config.cameras,
                                                Config.texture, Config.cmap)
         database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=300)
-        data_file_path = database(dtype=np.float64)
+        data_file_path = database(dtype=np.float32)
         with h5py.File(data_file_path, 'r') as f:
             print(list(f['data']['video_names']))
             pass
