@@ -216,7 +216,7 @@ def L1_normalized_loss(min, max):
 
 def run_resnet_synth(num_input_layers, num_outputs,
                      comment, train_db_path, val_db_path, val_split, transform, mean_error_func_dict,
-                     hist_error_func_dict, output_scaling=1e4, lr=1e-2,
+                     hist_error_func_dict,text_error_func_dict, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
                      weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, subsampler_size=640):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
@@ -251,8 +251,9 @@ def run_resnet_synth(num_input_layers, num_outputs,
                               sampler=SubsetChoiceSampler(subsampler_size, len(train_dset)))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
-                              mean_error_func_dict=mean_error_func_dict
-                              , hist_error_func_dict=hist_error_func_dict,
+                              mean_error_func_dict=mean_error_func_dict,
+                              hist_error_func_dict=hist_error_func_dict,
+                              text_error_func_dict=text_error_func_dict,
                               resnet_type=resnet_type, learning_rate=lr,
                               cosine_annealing_steps=10, weight_decay=weight_decay)
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
