@@ -87,7 +87,7 @@ class TestCustomInputResnet(TestCase):
         hist_dict.update(
             {f'scale{i}_nn': partial(y_hat_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
              range(NUM_OUTPUTS)})
-        text_dict = {'L_inf_max': partial(L_infinity, mode_shapes, OUTPUT_SCALE)}
+        text_dict = {'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE),5,BATCH_SIZE)}
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
                          transform, reduce_dict, hist_dict,text_dict, train_cache_size=TRAIN_CACHE_SIZE,
                          val_cache_size=VAL_CACHE_SIZE,
