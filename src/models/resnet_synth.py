@@ -235,7 +235,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
     torch_to_np_dtypes = {
         torch.float16: np.float16,
         torch.float32: np.float32,
-        torch.float: np.float
+        torch.float64: np.float64
     }
     np_dtype = torch_to_np_dtypes[dtype]
     transform = Functor(transform)
