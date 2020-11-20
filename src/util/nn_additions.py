@@ -7,7 +7,7 @@ from torch.utils.data import Sampler
 class ReduceMetric(Metric):
     def __init__(self, foo, compute_on_step=False, dist_sync_on_step=False):
         super().__init__(compute_on_step=compute_on_step, dist_sync_on_step=dist_sync_on_step)
-        self.min = torch.tensor(-float('inf'), dtype=torch.float, device='cuda')
+        self.min = torch.tensor(float('inf'), dtype=torch.float, device='cuda')
         if isinstance(foo, tuple):
             if len(foo) == 3:
                 self.max_val = foo[2]
@@ -42,9 +42,6 @@ class ReduceMetric(Metric):
             retval = self.value / self.max_val
         self.min = torch.min(retval, self.min)
         return retval.cpu()
-
-    def min(self):
-        return self.min.cpu()
 
 
 class HistMetric(Metric):
