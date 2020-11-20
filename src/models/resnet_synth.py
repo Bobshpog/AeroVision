@@ -124,8 +124,8 @@ class CustomInputResnet(pl.LightningModule):
                                           epoch=self.current_epoch)
         for name, metric in self.val_metrics.items():
             if isinstance(metric, ReduceMetric):
-                self.logger.experiment.log_metric(name, metric.compute(), step=self.current_epoch)
-                self.logger.experiment.log_metric(f'min_{name}', metric.min.cpu().numpy(), step=self.current_epoch)
+                self.logger.experiment.log_metric(name, metric.compute(), step=self.current_epoch,epoch=self.current_epoch)
+                self.logger.experiment.log_metric(f'min_{name}', metric.min.cpu().numpy(), step=self.current_epoch,epoch=self.current_epoch)
 
             if isinstance(metric, HistMetric):
                 self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)
