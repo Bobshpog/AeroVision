@@ -237,6 +237,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
         torch.float32: np.float32,
         torch.float: np.float
     }
+    np_dtype = torch_to_np_dtypes[dtype]
     transform = Functor(transform)
     params = {'batch_size': batch_size, 'train_db': train_db_path.split('/')[-1],
               'val_db': val_db_path.split('/')[-1], 'train-val_split_index': val_split,
@@ -249,20 +250,20 @@ def run_resnet_synth(num_input_layers, num_outputs,
     if isinstance(val_split, int):
         train_dset = ImageDataset(train_db_path,
                                   transform=transform, out_transform=out_transform, cache_size=train_cache_size,
-                                  max_index=val_split)
+                                  max_index=val_split,dtype=np_dtype)
         val_dset = ImageDataset(val_db_path,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
-                                min_index=val_split)
+                                min_index=val_split,dtype=np_dtype)
     else:
         train_split = set(range(db_size))
         train_split -= set(val_split)
         train_split = tuple(train_split)
         train_dset = ImageDataset(train_db_path,
                                   transform=transform, out_transform=out_transform, cache_size=train_cache_size,
-                                  index_list=train_split, dtype=torch_to_np_dtypes[dtype])
+                                  index_list=train_split, dtype=np_dtype)
         val_dset = ImageDataset(val_db_path,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
-                                index_list=val_split, dtype=torch_to_np_dtypes[dtype])
+                                index_list=val_split, dtype=np_dtype)
     train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,
                               sampler=SubsetChoiceSampler(subsampler_size, len(train_dset)))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
