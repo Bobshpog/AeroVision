@@ -84,18 +84,18 @@ class CustomInputResnet(pl.LightningModule):
                 result[name] = metric.compute()
                 result[f'min_{name}'] = metric.min.cpu().numpy()
             for name, metric in self.train_epoch_metrics.items():
-                metric.update(y_hat,y)
+                metric.update(y_hat, y)
         self.logger.experiment.log_metric('train_loss', loss, step=self.current_step)
         self.logger.experiment.log_metrics(result, step=self.current_step)
         self.current_step += 1
         return loss
+
     def training_epoch_end(self, outputs: List[Any]) -> None:
-        result={}
+        result = {}
         for name, metric in self.train_epoch_metrics.items():
             result[name] = metric.compute()
             result[f'min_{name}'] = metric.min.cpu().numpy()
         self.logger.experiment.log_metrics(result, epoch=self.current_epoch)
-
 
     # def training_step_end(self, output):
     #     result = {}
@@ -228,9 +228,15 @@ def run_resnet_synth(num_input_layers, num_outputs,
                      comment, train_db_path, val_db_path, val_split, transform, mean_error_func_dict,
                      hist_error_func_dict, text_error_func_dict, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
-                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, subsampler_size=640,dtype=torch.float32):
+                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, subsampler_size=640,
+                     dtype=torch.float32):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
         raise ValueError('Config not fully initialized')
+    torch_to_np_dtypes = {
+        torch.float16: np.float16,
+        torch.float32: np.float32,
+        torch.float: np.float
+    }
     transform = Functor(transform)
     params = {'batch_size': batch_size, 'train_db': train_db_path.split('/')[-1],
               'val_db': val_db_path.split('/')[-1], 'train-val_split_index': val_split,
@@ -253,10 +259,10 @@ def run_resnet_synth(num_input_layers, num_outputs,
         train_split = tuple(train_split)
         train_dset = ImageDataset(train_db_path,
                                   transform=transform, out_transform=out_transform, cache_size=train_cache_size,
-                                  index_list=train_split,dtype=dtype)
+                                  index_list=train_split, dtype=torch_to_np_dtypes[dtype])
         val_dset = ImageDataset(val_db_path,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
-                                index_list=val_split,dtype=dtype)
+                                index_list=val_split, dtype=torch_to_np_dtypes[dtype])
     train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,
                               sampler=SubsetChoiceSampler(subsampler_size, len(train_dset)))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
@@ -265,7 +271,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
                               hist_error_func_dict=hist_error_func_dict,
                               text_error_func_dict=text_error_func_dict,
                               resnet_type=resnet_type, learning_rate=lr,
-                              cosine_annealing_steps=10, weight_decay=weight_decay,dtype=dtype)
+                              cosine_annealing_steps=10, weight_decay=weight_decay, dtype=dtype)
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
                          experiment_name=comment)
     logger.log_hyperparams(params=params)
