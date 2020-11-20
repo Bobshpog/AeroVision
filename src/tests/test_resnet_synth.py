@@ -76,14 +76,16 @@ class TestCustomInputResnet(TestCase):
             scales_mean = _scales.mean(axis=0)
             scales_std = _scales.std(axis=0)
         transform = TRANSFORM(mean_image)
-        reduce_dict = {'L_inf_mean': partial(L_infinity, mode_shapes, OUTPUT_SCALE),
-                       'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 'max'),
-                       '3D_Worst_20%_mean': partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir],
+        reduce_dict = {'L_inf_mean_loss': partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE),
+                       'L_inf_max_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), 'max'),
+                       '3D_20%_mean_loss': partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir],
                                                     OUTPUT_SCALE),
-                       '3D_Worst_20%_max': (
+                       '3D_20%_max_loss': (
                            partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE), 'max'),
-                       '3D_mean': partial(reconstruction_loss_3d, torch.norm, mode_shapes,
+                       '3D_100%': partial(reconstruction_loss_3d, torch.norm, mode_shapes,
                                           OUTPUT_SCALE),
+                       'L1_regression': F.l1_loss,
+                       'l1_smooth':F.smooth_l1_loss
                        }
         hist_dict = {f'scale{i}_real': partial(y_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
                      range(NUM_OUTPUTS)}

@@ -7,6 +7,7 @@ from torch.utils.data import Sampler
 class ReduceMetric(Metric):
     def __init__(self, foo, compute_on_step=False, dist_sync_on_step=False):
         super().__init__(compute_on_step=compute_on_step, dist_sync_on_step=dist_sync_on_step)
+        self.min = torch.tensor(-float('inf'), dtype=torch.float, device='cuda')
         if isinstance(foo, tuple):
             if len(foo) == 3:
                 self.max_val = foo[2]
@@ -39,7 +40,11 @@ class ReduceMetric(Metric):
             retval = self.value / (self.max_val * self.count)
         elif self.reduction == 'max':
             retval = self.value / self.max_val
+        self.min = torch.min(retval, self.min)
         return retval.cpu()
+
+    def min(self):
+        return self.min.cpu()
 
 
 class HistMetric(Metric):
@@ -61,10 +66,10 @@ class HistMetric(Metric):
 
 
 class TextMetric(Metric):
-    def __init__(self, foo, num_scales,scaling_factor, dist_sync_on_step=False):
+    def __init__(self, foo, num_scales, scaling_factor, dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.foo, self.count, self.batch_size = foo
-        self.scaling_factor=scaling_factor
+        self.scaling_factor = scaling_factor
         self.add_state("worst_evals",
                        default=torch.zeros(self.count + self.batch_size, dtype=torch.float, device='cuda'),
                        dist_reduce_fx=None)
@@ -75,12 +80,12 @@ class TextMetric(Metric):
     def update(self, y_hat: torch.Tensor, y: torch.Tensor):
         self.worst_evals[self.count:self.count + len(y)] = self.foo(y_hat, y).flatten()
         self.worst_evals, order = self.worst_evals.sort(descending=True)
-        self.worst_y[self.count:self.count +len(y)] = torch.stack((y_hat, y)).transpose(0, 1)
+        self.worst_y[self.count:self.count + len(y)] = torch.stack((y_hat, y)).transpose(0, 1)
         self.worst_y = self.worst_y[order]
 
     def compute(self):
         worst_y = self.worst_y[:self.count]
-        return worst_y.cpu().numpy()/self.scaling_factor
+        return worst_y.cpu().numpy() / self.scaling_factor
 
 
 class SubsetChoiceSampler(Sampler):

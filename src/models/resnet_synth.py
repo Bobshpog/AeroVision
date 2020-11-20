@@ -80,6 +80,7 @@ class CustomInputResnet(pl.LightningModule):
             for name, metric in self.train_metrics.items():
                 metric.update(y_hat, y)
                 result[name] = metric.compute()
+                result[f'min_{name}']=metric.min()
         self.logger.experiment.log_metric('train_loss', loss, step=self.current_step, epoch=self.current_epoch)
         self.logger.experiment.log_metrics(result, step=self.current_step, epoch=self.current_epoch)
         self.current_step += 1
@@ -108,10 +109,12 @@ class CustomInputResnet(pl.LightningModule):
 
     def validation_epoch_end(
             self, outputs: List[Any]) -> None:
-        self.logger.experiment.log_metric('val_loss', torch.stack(outputs).mean(), step=self.current_epoch)
+        self.logger.experiment.log_metric('val_loss', torch.stack(outputs).mean(), step=self.current_epoch,epoch=self.current_epoch)
         for name, metric in self.val_metrics.items():
             if isinstance(metric, ReduceMetric):
                 self.logger.experiment.log_metric(name, metric.compute(), step=self.current_epoch)
+                self.logger.experiment.log_metric(f'min_{name}', metric.min(), step=self.current_epoch)
+
             if isinstance(metric, HistMetric):
                 self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)
             if isinstance(metric,TextMetric):
