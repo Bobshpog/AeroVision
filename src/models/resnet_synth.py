@@ -27,7 +27,7 @@ class CustomInputResnet(pl.LightningModule):
                  output_scaling,
                  resnet_type, learning_rate,
                  cosine_annealing_steps,
-                 weight_decay, dtype=torch.float64):
+                 weight_decay, dtype=torch.float32):
         super().__init__()
         # TODO consider removing pretrained
         resnet_dict = {'18': models.resnet18,
@@ -228,7 +228,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
                      comment, train_db_path, val_db_path, val_split, transform, mean_error_func_dict,
                      hist_error_func_dict, text_error_func_dict, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
-                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, subsampler_size=640):
+                     weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, subsampler_size=640,dtype=torch.float32):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
         raise ValueError('Config not fully initialized')
     transform = Functor(transform)
@@ -253,10 +253,10 @@ def run_resnet_synth(num_input_layers, num_outputs,
         train_split = tuple(train_split)
         train_dset = ImageDataset(train_db_path,
                                   transform=transform, out_transform=out_transform, cache_size=train_cache_size,
-                                  index_list=train_split)
+                                  index_list=train_split,dtype=dtype)
         val_dset = ImageDataset(val_db_path,
                                 transform=transform, out_transform=out_transform, cache_size=val_cache_size,
-                                index_list=val_split)
+                                index_list=val_split,dtype=dtype)
     train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,
                               sampler=SubsetChoiceSampler(subsampler_size, len(train_dset)))
     val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
@@ -265,7 +265,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
                               hist_error_func_dict=hist_error_func_dict,
                               text_error_func_dict=text_error_func_dict,
                               resnet_type=resnet_type, learning_rate=lr,
-                              cosine_annealing_steps=10, weight_decay=weight_decay)
+                              cosine_annealing_steps=10, weight_decay=weight_decay,dtype=dtype)
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
                          experiment_name=comment)
     logger.log_hyperparams(params=params)
