@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import src.util.image_transforms as my_transforms
 from src.models.resnet_synth import run_resnet_synth
 from src.util.loss_functions import L_infinity, reconstruction_loss_3d, y_hat_get_scale_i, y_get_scale_i, \
-    l1_norm_indexed
+    l1_norm_indexed, l1_norm
 
 
 class TestCustomInputResnet(TestCase):
@@ -87,7 +87,7 @@ class TestCustomInputResnet(TestCase):
                            MM_IN_METER, 'max'),
                        '3D_100%': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
                                            OUTPUT_SCALE), MM_IN_METER, 'mean'),
-                       'L1_regression': (lambda y_hat,y: F.l1_loss(y_hat,y).mean(dim=-1)),
+                       'L1_regression': (lambda y_hat,y: l1_norm(y_hat,y).mean(dim=-1)),
                        'l1_smooth': (lambda y_hat, y: F.smooth_l1_loss(y_hat, y, reduction='none').mean(dim=-1))
                        }
         for i in range(NUM_OUTPUTS):
