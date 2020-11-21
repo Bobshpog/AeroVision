@@ -19,12 +19,12 @@ def l2_norm(a, b):
 
 
 @cached(max_size=2)
-def l1_norm(x, dim=None):
-    return torch.norm(x, p=1, dim=dim)
+def l1_norm(y_hat, y):
+    return (y_hat - y).abs()
 
 
 def l1_norm_indexed(i, y_hat, y):
-    return l1_norm(y_hat - y, dim=0)[i]
+    return l1_norm(y_hat, y)[i]
 
 
 def vertex_mean_rms(mode_shapes, scale_factor, x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
