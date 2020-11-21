@@ -91,7 +91,7 @@ class TestCustomInputResnet(TestCase):
                        'l1_smooth': (lambda y_hat, y: F.smooth_l1_loss(y_hat, y, reduction='none'))
                        }
         for i in range(NUM_OUTPUTS):
-            reduce_dict[f'l1_scale{i}_regression'] = (partial(l1_norm_indexed, i), 'mean')
+            reduce_dict[f'l1_scale{i}_regression'] = (partial(l1_norm_indexed,OUTPUT_SCALE, i), 'mean')
 
         hist_dict = {f'scale{i}_real': partial(y_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
                      range(NUM_OUTPUTS)}
