@@ -42,8 +42,8 @@ class CustomInputResnet(pl.LightningModule):
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.train_step_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
-                                   name, foo in reduce_error_func_dict.items()}
+        # self.train_step_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
+        #                            name, foo in reduce_error_func_dict.items()}
         self.train_epoch_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=False, dist_sync_on_step=True)
                                     for
                                     name, foo in reduce_error_func_dict.items()}
