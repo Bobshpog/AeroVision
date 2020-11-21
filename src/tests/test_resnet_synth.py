@@ -87,8 +87,8 @@ class TestCustomInputResnet(TestCase):
                            MM_IN_METER, 'max'),
                        '3D_100%': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
                                            OUTPUT_SCALE), MM_IN_METER, 'mean'),
-                       'L1_regression': F.l1_loss,
-                       'l1_smooth': (lambda y_hat, y: F.smooth_l1_loss(y_hat, y, reduction='none'))
+                       'L1_regression': (lambda y_hat,y: F.l1_loss(y_hat,y).mean(dim=-1)),
+                       'l1_smooth': (lambda y_hat, y: F.smooth_l1_loss(y_hat, y, reduction='none').mean(dim=-1))
                        }
         for i in range(NUM_OUTPUTS):
             reduce_dict[f'l1_scale{i}_regression'] = (partial(l1_norm_indexed,OUTPUT_SCALE, i), 'mean')
