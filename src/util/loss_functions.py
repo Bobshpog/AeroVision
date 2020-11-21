@@ -24,7 +24,7 @@ def l1_norm(y_hat, y):
 
 
 def l1_norm_indexed(i, y_hat, y):
-    return l1_norm(y_hat, y)[i]
+    return l1_norm(y_hat, y)[:,i]
 
 
 def vertex_mean_rms(mode_shapes, scale_factor, x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
