@@ -80,8 +80,8 @@ class TestCustomInputResnet(TestCase):
         transform = TRANSFORM(mean_image)
         reduce_dict = {'L_inf_mean_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'mean'),
                        'L_inf_max_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'max'),
-                       '3D_20%_mean_loss': partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], MM_IN_METER,
-                                                   OUTPUT_SCALE),
+                       '3D_20%_mean_loss': (partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir],
+                                                   OUTPUT_SCALE),MM_IN_METER,'mean')
                        '3D_20%_max_loss': (
                            partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE),
                            MM_IN_METER, 'max'),

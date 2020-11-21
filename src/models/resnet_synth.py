@@ -78,13 +78,13 @@ class CustomInputResnet(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         result = {}
-        # with torch.no_grad():
+        with torch.no_grad():
         #     for name, metric in self.train_step_metrics.items():
         #         metric.update(y_hat, y)
         #         result[name] = metric.compute()
         #         result[f'min_{name}'] = metric.min.cpu().numpy()
-        #     for name, metric in self.train_epoch_metrics.items():
-        #         metric.update(y_hat, y)
+            for name, metric in self.train_epoch_metrics.items():
+                metric.update(y_hat, y)
         # self.logger.experiment.log_metric('train_loss', loss, step=self.current_step)
         # self.logger.experiment.log_metrics(result, step=self.current_step)
         self.current_step += 1
