@@ -81,14 +81,14 @@ class TestCustomInputResnet(TestCase):
         reduce_dict = {'L_inf_mean_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'mean'),
                        'L_inf_max_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'max'),
                        '3D_20%_mean_loss': (partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir],
-                                                   OUTPUT_SCALE),MM_IN_METER,'mean'),
+                                                    OUTPUT_SCALE), MM_IN_METER, 'mean'),
                        '3D_20%_max_loss': (
                            partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE),
                            MM_IN_METER, 'max'),
                        '3D_100%': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
                                            OUTPUT_SCALE), MM_IN_METER, 'mean'),
                        'L1_regression': F.l1_loss,
-                       'l1_smooth': F.smooth_l1_loss
+                       'l1_smooth': (lambda y_hat, y: F.smooth_l1_loss(y_hat, y, reduction='none'))
                        }
         for i in range(NUM_OUTPUTS):
             reduce_dict[f'l1_scale{i}_regression'] = (partial(l1_norm_indexed, i), 'mean')
