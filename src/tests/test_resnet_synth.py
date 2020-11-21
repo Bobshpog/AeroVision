@@ -69,7 +69,7 @@ class TestCustomInputResnet(TestCase):
         COSINE_ANNEALING_STEPS = 10
         MAX_CAMERAS = 9
         NORMAL_CAMS = 6
-        MM_IN_METER = 1000
+        MM_IN_METER = 1e-3
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
             mean_image = hf['generator metadata']['mean images'][()]
             mode_shapes = hf['generator metadata']['modal shapes'][()]
