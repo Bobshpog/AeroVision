@@ -8,7 +8,8 @@ import torch.nn.functional as F
 
 import src.util.image_transforms as my_transforms
 from src.models.resnet_synth import run_resnet_synth
-from src.util.loss_functions import L_infinity, reconstruction_loss_3d, y_hat_get_scale_i, y_get_scale_i
+from src.util.loss_functions import L_infinity, reconstruction_loss_3d, y_hat_get_scale_i, y_get_scale_i, \
+    l1_norm_indexed
 
 
 class TestCustomInputResnet(TestCase):
@@ -68,6 +69,7 @@ class TestCustomInputResnet(TestCase):
         COSINE_ANNEALING_STEPS = 10
         MAX_CAMERAS = 9
         NORMAL_CAMS = 6
+        MM_IN_METER = 1000
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
             mean_image = hf['generator metadata']['mean images'][()]
             mode_shapes = hf['generator metadata']['modal shapes'][()]
@@ -76,17 +78,21 @@ class TestCustomInputResnet(TestCase):
             scales_mean = _scales.mean(axis=0)
             scales_std = _scales.std(axis=0)
         transform = TRANSFORM(mean_image)
-        reduce_dict = {'L_inf_mean_loss': partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE),
-                       'L_inf_max_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), 'max'),
-                       '3D_20%_mean_loss': partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir],
-                                                    OUTPUT_SCALE),
+        reduce_dict = {'L_inf_mean_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'mean'),
+                       'L_inf_max_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'max'),
+                       '3D_20%_mean_loss': partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], MM_IN_METER,
+                                                   OUTPUT_SCALE),
                        '3D_20%_max_loss': (
-                           partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE), 'max'),
-                       '3D_100%': partial(reconstruction_loss_3d, torch.norm, mode_shapes,
-                                          OUTPUT_SCALE),
+                           partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE),
+                           MM_IN_METER, 'max'),
+                       '3D_100%': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
+                                           OUTPUT_SCALE), MM_IN_METER, 'mean'),
                        'L1_regression': F.l1_loss,
-                       'l1_smooth':F.smooth_l1_loss
+                       'l1_smooth': F.smooth_l1_loss
                        }
+        for i in range(NUM_OUTPUTS):
+            reduce_dict[f'l1_scale{i}_regression'] = (partial(l1_norm_indexed, i), 'mean')
+
         hist_dict = {f'scale{i}_real': partial(y_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
                      range(NUM_OUTPUTS)}
         hist_dict.update(
@@ -99,7 +105,7 @@ class TestCustomInputResnet(TestCase):
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
                          transform, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
                          val_cache_size=VAL_CACHE_SIZE,
-                         batch_size=BATCH_SIZE,subsampler_size=len(VAL_SPLIT))
+                         batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
 
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18

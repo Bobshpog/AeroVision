@@ -3,6 +3,8 @@ from typing import Union
 import numpy as np
 import torch
 
+from src.util.memoization.memoization.memoization import cached
+
 
 def mse_weighted(weights, a, b):
     loss = (a - b) ** 2
@@ -16,8 +18,13 @@ def l2_norm(a, b):
     return mse_weighted(1, a, b)
 
 
+@cached(max_size=2)
 def l1_norm(x, dim=None):
     return torch.norm(x, p=1, dim=dim)
+
+
+def l1_norm_indexed(i, x):
+    return l1_norm(x, dim=0)[i]
 
 
 def vertex_mean_rms(mode_shapes, scale_factor, x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
@@ -57,10 +64,10 @@ def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, scale_factor:
     num_vertices = mode_shapes.size / (3 * x.shape[-1])
     device = x.device
     with torch.no_grad():
-        _x = x.detach().clone().to(torch.float64)/scale_factor
-        _y = y.detach().clone().to(torch.float64)/scale_factor
-        _x = _x.view(x.shape[-1],-1)
-        _y = _y.view(y.shape[-1],-1)
+        _x = x.detach().clone().to(torch.float64) / scale_factor
+        _y = y.detach().clone().to(torch.float64) / scale_factor
+        _x = _x.view(x.shape[-1], -1)
+        _y = _y.view(y.shape[-1], -1)
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
         pos_a = (mode_shapes @ _x)
         pos_b = (mode_shapes @ _y)
@@ -87,21 +94,21 @@ def L_infinity(mode_shapes: np.ndarray, scale_factor: int,
                           torch.tensor(y, device=device)).detach().numpy()
     device = x.device
     with torch.no_grad():
-        _x = x.detach().clone().to(torch.float64)/scale_factor
-        _y = y.detach().clone().to(torch.float64)/scale_factor
+        _x = x.detach().clone().to(torch.float64) / scale_factor
+        _y = y.detach().clone().to(torch.float64) / scale_factor
         _x = _x.view(x.shape[-1], -1)
         _y = _y.view(y.shape[-1], -1)
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
         pos_a = (mode_shapes @ _x)
         pos_b = (mode_shapes @ _y)
-        diff = (pos_b-pos_a).reshape((x.shape[0], int(mode_shapes.shape[0]/3), 3))
+        diff = (pos_b - pos_a).reshape((x.shape[0], int(mode_shapes.shape[0] / 3), 3))
         diff = torch.norm(diff, dim=2)
         return torch.norm(diff, dim=1, p=float('inf'))
 
 
 def y_hat_get_scale_i(scale, y_mean, y_sd, i, y_hat, y):
-    return (y_hat[:, i]-y_mean[i])/y_sd[i] / scale
+    return (y_hat[:, i] - y_mean[i]) / y_sd[i] / scale
 
 
 def y_get_scale_i(scale, y_mean, y_sd, i, y_hat, y):
-    return (y[:, i]-y_mean[i])/y_sd[i] / scale
+    return (y[:, i] - y_mean[i]) / y_sd[i] / scale
