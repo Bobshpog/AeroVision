@@ -1,5 +1,6 @@
 import os
 import shutil
+from copy import deepcopy
 from pathlib import Path
 from typing import List, Any
 
@@ -15,7 +16,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from torch.utils.data import DataLoader
 
-import src.util.image_transforms as my_transforms
 from src.model_datasets.image_dataset import ImageDataset
 from src.util.general import Functor
 from src.util.nn_additions import SubsetChoiceSampler, ReduceMetric, HistMetric, TextMetric
@@ -27,7 +27,7 @@ class CustomInputResnet(pl.LightningModule):
                  output_scaling,
                  resnet_type, learning_rate,
                  cosine_annealing_steps,
-                 weight_decay, dtype=torch.float32):
+                 weight_decay, dtype=torch.float32, track_perfect_y_metrics=False):
         super().__init__()
         # TODO consider removing pretrained
         resnet_dict = {'18': models.resnet18,
@@ -42,17 +42,22 @@ class CustomInputResnet(pl.LightningModule):
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
+        self.track_perfect_y_metrics = track_perfect_y_metrics
         # self.train_step_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
         #                            name, foo in reduce_error_func_dict.items()}
         self.train_epoch_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=False, dist_sync_on_step=True)
-                                    for
-                                    name, foo in reduce_error_func_dict.items()}
+                                    for name, foo in reduce_error_func_dict.items()}
+        self.train_epoch_metrics_noisy_y = {name + "_ideal": deepcopy(foo)
+                                            for name, foo in self.train_epoch_metrics.items()}
+
         self.val_metrics = {f"val_{name}": ReduceMetric(foo, compute_on_step=False) for name, foo in
                             reduce_error_func_dict.items()}
         self.val_metrics.update(
             {f"val_hist_{name}": HistMetric(foo) for name, foo in hist_error_func_dict.items()})
         self.val_metrics.update(
             {name: TextMetric(foo, num_outputs, output_scaling) for name, foo in text_error_func_dict.items()})
+        self.val_metrics_noisy_y = {name + "_ideal": deepcopy(foo)
+                                    for name, foo in self.val_metrics.items()}
         self.current_step = 0
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
@@ -74,17 +79,23 @@ class CustomInputResnet(pl.LightningModule):
         return [adam], [scheduler]
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        x = batch[0]
+        y = batch[-1]
+        if self.track_perfect_y_metrics:
+            y_perfect = batch[1]
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         result = {}
         with torch.no_grad():
-        #     for name, metric in self.train_step_metrics.items():
-        #         metric.update(y_hat, y)
-        #         result[name] = metric.compute()
-        #         result[f'min_{name}'] = metric.min.cpu().numpy()
+            #     for name, metric in self.train_step_metrics.items():
+            #         metric.update(y_hat, y)
+            #         result[name] = metric.compute()
+            #         result[f'min_{name}'] = metric.min.cpu().numpy()
             for name, metric in self.train_epoch_metrics.items():
                 metric.update(y_hat, y)
+            if self.track_perfect_y_metrics:
+                for name, metric in self.train_epoch_metrics_noisy_y.items():
+                    metric.update(y_hat, y_perfect)
         # self.logger.experiment.log_metric('train_loss', loss, step=self.current_step)
         # self.logger.experiment.log_metrics(result, step=self.current_step)
         self.current_step += 1
@@ -92,10 +103,10 @@ class CustomInputResnet(pl.LightningModule):
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
         result = {}
-        for name, metric in self.train_epoch_metrics.items():
+        for name, metric in {**self.train_epoch_metrics.items(), **self.train_epoch_metrics_noisy_y}:
             result[name] = metric.compute()
             result[f'min_{name}'] = metric.min.cpu().numpy()
-        self.logger.experiment.log_metrics(result,step=self.current_epoch, epoch=self.current_epoch)
+        self.logger.experiment.log_metrics(result, step=self.current_epoch, epoch=self.current_epoch)
 
     # def training_step_end(self, output):
     #     result = {}
@@ -105,12 +116,18 @@ class CustomInputResnet(pl.LightningModule):
     #     self.log_dict(result, on_step=True)
     #
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        x = batch[0]
+        y = batch[-1]
+        if self.track_perfect_y_metrics:
+            y_noisy = batch[1]
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
             for name, metric in self.val_metrics.items():
                 metric.update(y_hat, y)
+            if self.track_perfect_y_metrics:
+                for name, metric in self.val_metrics_noisy_y.items():
+                    metric.update(y_hat, y_noisy)
         return loss
 
     # def validation_step_end(self, output):
@@ -122,10 +139,12 @@ class CustomInputResnet(pl.LightningModule):
             self, outputs: List[Any]) -> None:
         self.logger.experiment.log_metric('val_loss', torch.stack(outputs).mean(), step=self.current_epoch,
                                           epoch=self.current_epoch)
-        for name, metric in self.val_metrics.items():
+        for name, metric in {**self.val_metrics.items(), **self.val_metrics.items()}:
             if isinstance(metric, ReduceMetric):
-                self.logger.experiment.log_metric(name, metric.compute(), step=self.current_epoch,epoch=self.current_epoch)
-                self.logger.experiment.log_metric(f'min_{name}', metric.min.cpu().numpy(), step=self.current_epoch,epoch=self.current_epoch)
+                self.logger.experiment.log_metric(name, metric.compute(), step=self.current_epoch,
+                                                  epoch=self.current_epoch)
+                self.logger.experiment.log_metric(f'min_{name}', metric.min.cpu().numpy(), step=self.current_epoch,
+                                                  epoch=self.current_epoch)
 
             if isinstance(metric, HistMetric):
                 self.logger.experiment.log_histogram_3d(metric.compute(), name=name, step=self.current_epoch)
@@ -225,11 +244,11 @@ def L1_normalized_loss(min, max):
 
 
 def run_resnet_synth(num_input_layers, num_outputs,
-                     comment, train_db_path, val_db_path, val_split, transform, mean_error_func_dict,
+                     comment, train_db_path, val_db_path, val_split, transform, out_transform, mean_error_func_dict,
                      hist_error_func_dict, text_error_func_dict, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
                      weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, subsampler_size=640,
-                     dtype=torch.float32):
+                     dtype=torch.float32, track_ideal_metrics=False):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
         raise ValueError('Config not fully initialized')
     torch_to_np_dtypes = {
@@ -244,25 +263,28 @@ def run_resnet_synth(num_input_layers, num_outputs,
               'loss_func': loss_func.__name__, 'num_outputs': num_outputs,
               'output_scaling': output_scaling, 'resnet_type': resnet_type, 'lr': lr,
               'weight_decay': weight_decay, 'cosine_annealing_steps': cosine_annealing_steps}
-    out_transform = my_transforms.scale_by(output_scaling)
     with h5py.File(train_db_path, 'r') as hf:
         db_size = hf['data']['images'].len()
     if isinstance(val_split, int):
         train_dset = ImageDataset(train_db_path,
-                                  transform=transform, out_transform=out_transform, cache_size=train_cache_size,
-                                  max_index=val_split,dtype=np_dtype)
+                                  transform=transform, output_scaling=output_scaling, out_transform=out_transform,
+                                  cache_size=train_cache_size,
+                                  max_index=val_split, dtype=np_dtype)
         val_dset = ImageDataset(val_db_path,
-                                transform=transform, out_transform=out_transform, cache_size=val_cache_size,
-                                min_index=val_split,dtype=np_dtype)
+                                transform=transform, output_scaling=output_scaling, out_transform=out_transform,
+                                cache_size=val_cache_size,
+                                min_index=val_split, dtype=np_dtype)
     else:
         train_split = set(range(db_size))
         train_split -= set(val_split)
         train_split = tuple(train_split)
         train_dset = ImageDataset(train_db_path,
-                                  transform=transform, out_transform=out_transform, cache_size=train_cache_size,
+                                  transform=transform, output_scaling=output_scaling, out_transform=out_transform,
+                                  cache_size=train_cache_size,
                                   index_list=train_split, dtype=np_dtype)
         val_dset = ImageDataset(val_db_path,
-                                transform=transform, out_transform=out_transform, cache_size=val_cache_size,
+                                transform=transform, output_scaling=output_scaling, out_transform=out_transform,
+                                cache_size=val_cache_size,
                                 index_list=val_split, dtype=np_dtype)
     train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,
                               sampler=SubsetChoiceSampler(subsampler_size, len(train_dset)))
@@ -272,7 +294,9 @@ def run_resnet_synth(num_input_layers, num_outputs,
                               hist_error_func_dict=hist_error_func_dict,
                               text_error_func_dict=text_error_func_dict,
                               resnet_type=resnet_type, learning_rate=lr,
-                              cosine_annealing_steps=10, weight_decay=weight_decay, dtype=dtype)
+                              cosine_annealing_steps=10, weight_decay=weight_decay, dtype=dtype,
+                              track_ideal_metrics=track_ideal_metrics)
+
     logger = CometLogger(api_key="sjNiwIhUM0j1ufNwaSjEUHHXh", project_name="AeroVision",
                          experiment_name=comment)
     logger.log_hyperparams(params=params)

@@ -1,11 +1,13 @@
-import h5py
-from torch.utils.data import Dataset
 import multiprocessing as mp
+
+import h5py
 import numpy as np
+from torch.utils.data import Dataset
 
 
 class ImageDataset(Dataset):
-    def __init__(self, hdf5_path, transform=None, out_transform=None, cache_size=0, min_index=0, max_index=None,
+    def __init__(self, hdf5_path, transform=None, output_scaling=None, out_transform=None, cache_size=0, min_index=0,
+                 max_index=None,
                  index_list=None, dtype=np.float):
         """
         Initialization
@@ -21,16 +23,17 @@ class ImageDataset(Dataset):
         self.hdf5_path = hdf5_path
         self.hf = None
         self.transform = transform
+        self.output_scaling = output_scaling
         self.out_transform = out_transform
         self.cache_size = cache_size
         self.cache_dict = mp.Manager().dict()
         self.min_index = min_index
         self.index_list = index_list
-        self.dtype=dtype
+        self.dtype = dtype
         with h5py.File(self.hdf5_path, 'r') as hf:
             if max_index is None:
                 if index_list:
-                    max_index=len(index_list)
+                    max_index = len(index_list)
                 else:
                     max_index = hf['data']['images'].len()
             self.database_len = min(hf['data']['images'].len(), max_index - min_index)
@@ -40,7 +43,7 @@ class ImageDataset(Dataset):
         if self.index_list:
             item = self.index_list[item]
         if item in self.cache_dict:
-            image,scales =self.cache_dict[item]
+            image, scales = self.cache_dict[item]
         else:
             if self.hf is None:
                 self.hf = h5py.File(self.hdf5_path, 'r')
@@ -52,11 +55,16 @@ class ImageDataset(Dataset):
             if transform:
                 image = transform(image)
             if out_transform:
-                scales = out_transform(scales)
+                scales *= self.output_scaling
 
             if len(self.cache_dict) < self.cache_size:
                 self.cache_dict[item] = image, scales
-        return image.astype(self.dtype), scales.astype(self.dtype)
+        scales = scales.astype(self.dtype)
+        if self.out_transform:
+            noisy_scales = self.out_transform(scales)
+            return image.astype(self.dtype), scales,noisy_scales
+        else:
+            return image.astype(self.dtype), scales
 
     def __len__(self):
         return self.database_len
