@@ -2,12 +2,15 @@ from dataclasses import dataclass
 from typing import Union
 
 import cv2
+import torch
 from src.util.SSIM_PIL import compare_ssim
 from tqdm import trange
 from src.geometry.numpy.mesh import *
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
 from src.data import matlab_reader
 from src.util.error_helper_functions import calc_errors
+from src.util.loss_functions import L_infinity
+
 @dataclass
 class FiniteElementWingModel:
     coordinates: np.ndarray
@@ -219,7 +222,7 @@ class SyntheticWingModel:
 
     @staticmethod
     def photo_from_scales(mode_shape, scales, texture, resolution, camera, plotter=None, compatibility_arr=None,
-                          tip_index_arr=None, cv=False, title=None):
+                          tip_index_arr=None, cv=False, title=None, numpy_scales=False):
         """
         Creates a list of photos from mode shape and scales
         Args:
@@ -259,7 +262,10 @@ class SyntheticWingModel:
         curr_scale = np.zeros(mode_shape.shape[2])
         h1 = np.zeros((tip_vertices_num, 3), dtype='float')
         for i in range(len(scales)):
-            temp = np.fromstring(scales[i], dtype=np.float32, sep=' ')
+            if numpy_scales:
+                temp = scales[i]
+            else:
+                temp = np.fromstring(scales[i], dtype=np.float32, sep=' ')
             curr_scale[:temp.shape[0]] = temp
             difference = (curr_scale * mode_shape).sum(axis=2).T
             g1 = mesh.vertices + difference[compatibility_arr]
@@ -279,7 +285,7 @@ class SyntheticWingModel:
     @staticmethod
     def two_scales_to_compare(mode_shape, real_scales, reconstruct_scales, texture, resolution, camera, loss_function,
                               ir,
-                              plotter=None, compatibility_arr=None, tip_index_arr=None, cv=False):
+                              plotter=None, compatibility_arr=None, tip_index_arr=None, cv=False, numpy_scales=False,):
         """
         Creates a list of photos from mode shape and scales
         Args:
@@ -302,19 +308,29 @@ class SyntheticWingModel:
 
         """
         first_photo = SyntheticWingModel.photo_from_scales(mode_shape, real_scales, texture, resolution, camera,
-                                                           plotter, compatibility_arr, tip_index_arr, cv)
+                                                           plotter, compatibility_arr, tip_index_arr, cv,
+                                                           numpy_scales=numpy_scales)
         second_photo = SyntheticWingModel.photo_from_scales(mode_shape, reconstruct_scales, texture, resolution, camera,
-                                                            plotter, compatibility_arr, tip_index_arr, cv)
+                                                            plotter, compatibility_arr, tip_index_arr, cv,
+                                                            numpy_scales=numpy_scales)
         to_return = []
         color1 = (0, 0, 0)
         color2 = (0, 0, 0)
         color3 = (0, 0, 255)
         padding = 150
-        for i in range(len(real_scales)):
-            real_scales[i] = np.fromstring(real_scales[i], dtype=np.float32, sep=' ')
-            reconstruct_scales[i] = np.fromstring(reconstruct_scales[i], dtype=np.float32, sep=' ')
-        real_scales = np.array(real_scales)
-        reconstruct_scales = np.array(reconstruct_scales)
+
+        if not numpy_scales:
+            for i in range(len(real_scales)):
+                real_scales[i] = np.fromstring(real_scales[i], dtype=np.float32, sep=' ')
+                reconstruct_scales[i] = np.fromstring(reconstruct_scales[i], dtype=np.float32, sep=' ')
+            real_scales = np.array(real_scales)
+            reconstruct_scales = np.array(reconstruct_scales)
+        #real_scales = torch.tensor(real_scales, device="cpu")
+        #reconstruct_scales = torch.tensor(reconstruct_scales, device="cpu")
+        l_inf = L_infinity(mode_shape, 1, real_scales, reconstruct_scales)
+        #print(torch.max(l_inf))
+        #l_inf = l_inf.numpy()
+        print(l_inf.flatten())
         err = calc_errors(loss_function, mode_shape, 1, ir, real_scales, reconstruct_scales)
         scale_err = err[3].numpy()
         for i in range(len(first_photo)):
@@ -339,6 +355,8 @@ class SyntheticWingModel:
             cv2.putText(img_d, "ir reconstruct:" + f'{err[1][i]: .3e}', (0, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
             cv2.putText(img_d, "avg reconstruct:" + f'{err[2][i]: .3e}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+                        lineType=2)
+            cv2.putText(img_d, "L inifinity:" + f'{l_inf[i]: .3e}', (0, 170), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
             cv2.putText(img_d, "scale 0:" + f'{scale_err[0][i]: .3e}', (resolution[0] + 1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,

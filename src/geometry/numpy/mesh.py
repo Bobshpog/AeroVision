@@ -1,7 +1,7 @@
 from collections import defaultdict
 from itertools import cycle
 from time import sleep
-
+import random
 import numpy as np
 import pyvista as pv
 from PIL import Image, ImageDraw
@@ -473,7 +473,7 @@ class Mesh:
 
     @staticmethod
     def get_photo(mesh, movement, resolution, cmap,
-                  plotter, camera, title=None, title_location="upper_edge"):
+                  plotter, camera, title=None, title_location="upper_edge", background_photos=None):
         """
         Take a photo of the mesh in a certain position
         all args in case for more then one mesh should be in list
@@ -486,17 +486,18 @@ class Mesh:
            plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
            camera: the [camera position , focal point, view up] each (x,y,z) tuple
            resolution: the image resolution [w,h]
+           background_photos: list of background photos to use in random
 
 
         Returns:
            An image shot from camera of the mesh
         """
         return Mesh.get_many_photos(mesh, movement, resolution, cmap,
-                                    plotter, [camera], title, title_location)[0]
+                                    plotter, [camera], title, title_location, background_photos=background_photos)[0]
 
     @staticmethod
     def get_many_photos(mesh, movement, resolution, cmap,
-                        plotter, camera, title=None, title_location="upper_edge"):
+                        plotter, camera, title=None, title_location="upper_edge", background_photos=None):
         """
         Take a photo of the mesh in a cerain position
         all args in case for more then one mesh should be in list
@@ -509,6 +510,7 @@ class Mesh:
            plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
            camera: list of [camera position , focal point, view up] each (x,y,z) tuple
            resolution: the image resolution [w,h]
+           background_photos: list of background photos to use in random
 
 
         Returns:
@@ -516,7 +518,8 @@ class Mesh:
         """
         to_return = np.zeros(shape=(len(camera), resolution[1], resolution[0], 4))
         num_of_mesh = len(mesh)
-
+        if background_photos is not None:
+            plotter.add_background_image(random.choice(background_photos))
         if num_of_mesh == 1:
             mesh = [mesh]
         for i in range(num_of_mesh):
@@ -539,6 +542,8 @@ class Mesh:
             screen = plotter.screenshot(window_size=resolution)
             screen = screen / 255
             to_return[idx] = np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
+        if background_photos:
+            plotter.remove_background_image()
         return np.asarray(to_return, np.float32)
 
     # ----------------------------Basic Properties----------------------------#

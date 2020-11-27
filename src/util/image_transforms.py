@@ -179,3 +179,48 @@ class TransformManyCameraBw:
             to_ret += str(i) + ","
         return to_ret + ")"
 
+
+class TranformPoissonNoise:
+    def __init__(self, lamda):
+        self.lamda = lamda
+
+    def __call__(self, img):
+        noise = np.random.poisson(self.lamda, size=img.shape)
+        return img + noise
+
+    def __repr__(self):
+        return "POISSON_NOISE_TRANSFORM_LAMDA:_" + str(self.lamda)
+
+
+class TransformSaltAndPeper:
+    def __init__(self, amount, s_vs_p=0.5):     # for 1 cam and n channels: img.shape = [h,w,channels]
+        self.amount = amount
+        self.s_vs_p = s_vs_p
+
+    def __call__(self, img):
+        out = np.copy(img)
+        num_salt = np.ceil(self.amount * img.size * self.s_vs_p)
+        coords = [np.random.randint(0, i - 1, int(num_salt))
+                  for i in img.shape[:2]]
+        out[tuple(coords)] = 1
+        num_pepper = np.ceil(self.amount * img[0].size * (1. - self.s_vs_p))
+        coords = [np.random.randint(0, i - 1, int(num_pepper))
+                  for i in img.shape[:2]]
+        out[tuple(coords)] = 0
+        return out
+
+    def __repr__(self):
+        return "S&P_NOISE_TRANFORM_SV:" + str(self.s_vs_p) + "_AMOUNT:_" + str(self.amount)
+
+
+class TransformGaussian:
+    def __init__(self, mean, ver):
+        self.mean = mean
+        self.ver = ver
+
+    def __call__(self, img):
+        noise = np.random.normal(self.mean,self.ver, size=img.shape)
+        return img + noise
+
+    def __repr__(self):
+        return "GAUSSIAN_NOISE_TRANFORM_MEAN:" + str(self.mean) + "VER:_" + str(self.ver)
