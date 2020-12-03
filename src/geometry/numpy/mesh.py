@@ -473,7 +473,8 @@ class Mesh:
 
     @staticmethod
     def get_photo(mesh, movement, resolution, cmap,
-                  plotter, camera, title=None, title_location="upper_edge", background_photos=None):
+                  plotter, camera, title=None, title_location="upper_edge", background_photos=None, background_scale=1,
+                  title_color="black"):
         """
         Take a photo of the mesh in a certain position
         all args in case for more then one mesh should be in list
@@ -493,11 +494,13 @@ class Mesh:
            An image shot from camera of the mesh
         """
         return Mesh.get_many_photos(mesh, movement, resolution, cmap,
-                                    plotter, [camera], title, title_location, background_photos=background_photos)[0]
+                                    plotter, [camera], title, title_location, background_photos=background_photos,
+                                    background_scale=background_scale, title_color=title_color)[0]
 
     @staticmethod
     def get_many_photos(mesh, movement, resolution, cmap,
-                        plotter, camera, title=None, title_location="upper_edge", background_photos=None):
+                        plotter, camera, title=None, title_location="upper_edge", background_photos=None, background_scale=1,
+                        title_color="black"):
         """
         Take a photo of the mesh in a cerain position
         all args in case for more then one mesh should be in list
@@ -519,7 +522,7 @@ class Mesh:
         to_return = np.zeros(shape=(len(camera), resolution[1], resolution[0], 4))
         num_of_mesh = len(mesh)
         if background_photos is not None:
-            plotter.add_background_image(random.choice(background_photos))
+            plotter.add_background_image(random.choice(background_photos), scale=background_scale)
         if num_of_mesh == 1:
             mesh = [mesh]
         for i in range(num_of_mesh):
@@ -530,7 +533,7 @@ class Mesh:
                 plotter.add_mesh(mesh[i].pv_mesh, texture=mesh[i].texture, name='get_photo_mesh_' + str(i))
             plotter.update_coordinates(movement[i], mesh=mesh[i].pv_mesh)
         if title is not None:
-            plotter.add_text(title, position=title_location, font_size=10, color="black", name="title")
+            plotter.add_text(title, position=title_location, font_size=10, color=title_color, name="title", shadow=True)
         plotter.set_background(color="white")
         plotter.show(auto_close=False, window_size=resolution)
         for idx, cam in enumerate(camera):

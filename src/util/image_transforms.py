@@ -203,7 +203,7 @@ class TransformSaltAndPeper:
         coords = [np.random.randint(0, i - 1, int(num_salt))
                   for i in img.shape[:2]]
         out[tuple(coords)] = 1
-        num_pepper = np.ceil(self.amount * img[0].size * (1. - self.s_vs_p))
+        num_pepper = np.ceil(self.amount * img.size * (1. - self.s_vs_p))
         coords = [np.random.randint(0, i - 1, int(num_pepper))
                   for i in img.shape[:2]]
         out[tuple(coords)] = 0
