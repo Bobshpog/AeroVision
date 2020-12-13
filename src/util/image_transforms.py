@@ -38,9 +38,11 @@ def scale_by(scale):
 
 
 
-
 def single_rgb_to_bw(img):
-    return np.expand_dims(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY), axis=0)
+
+    a = img[:,:,2] * 0.2989 + img[:,:,0] * 0.1140 + img[:,:,2] * 0.5870
+    return np.expand_dims(a, axis=0)
+    #return np.expand_dims(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY), axis=0)
 
 
 def many_rgb_to_bw(img):
@@ -198,15 +200,16 @@ class TransformSaltAndPeper:
         self.s_vs_p = s_vs_p
 
     def __call__(self, img):
+        print(img.shape)
         out = np.copy(img)
         num_salt = np.ceil(self.amount * img.size * self.s_vs_p)
         coords = [np.random.randint(0, i - 1, int(num_salt))
-                  for i in img.shape[:2]]
-        out[tuple(coords)] = 1
+                  for i in img.shape[1:]]
+        out[0][tuple(coords)] = 1
         num_pepper = np.ceil(self.amount * img.size * (1. - self.s_vs_p))
         coords = [np.random.randint(0, i - 1, int(num_pepper))
-                  for i in img.shape[:2]]
-        out[tuple(coords)] = 0
+                  for i in img.shape[1:]]
+        out[0][tuple(coords)] = 0
         return out
 
     def __repr__(self):
@@ -224,3 +227,26 @@ class TransformGaussian:
 
     def __repr__(self):
         return "GAUSSIAN_NOISE_TRANFORM_MEAN:" + str(self.mean) + "VER:_" + str(self.ver)
+
+class TranformOnePhotoNoisyBW:
+    def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_var, salt_peper_amount, salt_pepper_ratio=0.5):
+        self.tform = []
+        self.tform.append(top_middle_bw(mean_photo))
+        if gauss_var:
+            self.tform.append(TransformGaussian(gauss_mean, gauss_var))
+        if pois_lamda:
+            self.tform.append(TranformPoissonNoise(pois_lamda))
+        if salt_peper_amount:
+            self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
+        self.tranform = transforms.Compose(self.tform)
+
+    def __call__(self, img):
+        return self.tranform(img)
+
+    def __repr__(self):
+        to_return = "NOISY ONE IMAGE BW "
+        for o in self.tform:
+            to_return += '\n' + repr(o)
+        return to_return
+
+

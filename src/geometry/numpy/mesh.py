@@ -177,7 +177,7 @@ class Mesh:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
-        plotter.add_mesh(self.pv_mesh, style='wireframe', line_width=line_width)
+        plotter.add_mesh(self.pv_mesh, style='wireframe', line_width=line_width, show_scalar_bar=False, color="white")
         if show:
             plotter.show()
         return plotter
@@ -295,7 +295,7 @@ class Mesh:
             plotter.set_viewup(camera[2])
 
         if texture is None:
-            plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture)
+            plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture, show_scalar_bar=False)
         else:
             if isinstance(texture, np.ndarray):
                 tex = pv.numpy_to_texture(texture)
@@ -472,9 +472,8 @@ class Mesh:
         plotter.close()
 
     @staticmethod
-    def get_photo(mesh, movement, resolution, cmap,
-                  plotter, camera, title=None, title_location="upper_edge", background_photos=None, background_scale=1,
-                  title_color="black"):
+    def get_photo(mesh, movement, resolution, cmap, plotter, camera, title=None, title_location="upper_edge",
+                  background_photos=None, background_scale=1, title_color="black"):
         """
         Take a photo of the mesh in a certain position
         all args in case for more then one mesh should be in list
@@ -498,9 +497,8 @@ class Mesh:
                                     background_scale=background_scale, title_color=title_color)[0]
 
     @staticmethod
-    def get_many_photos(mesh, movement, resolution, cmap,
-                        plotter, camera, title=None, title_location="upper_edge", background_photos=None, background_scale=1,
-                        title_color="black"):
+    def get_many_photos(mesh, movement, resolution, cmap,plotter, camera, title=None, title_location="upper_edge",
+                        background_photos=None, background_scale=1, title_color="black"):
         """
         Take a photo of the mesh in a cerain position
         all args in case for more then one mesh should be in list

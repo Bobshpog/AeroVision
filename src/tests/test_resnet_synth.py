@@ -107,6 +107,74 @@ class TestCustomInputResnet(TestCase):
                          val_cache_size=VAL_CACHE_SIZE,
                          batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
 
+    def test_resnet_noisy(self):
+        BATCH_SIZE = 32  # 16 for Resnet50, 64 for resnet 18
+        NUM_EPOCHS = 1000
+        NUM_INPUT_LAYERS = 1
+        NUM_OUTPUTS = 10
+        RESNET_TYPE = '18'  # '18', '50', '34'
+        LOSS_FUNC = F.smooth_l1_loss
+        EXPERIMENT_NAME = None
+        TRAINING_DB_PATH = ""
+        VALIDATION_DB_PATH = TRAINING_DB_PATH
+        with open('data/validation_splits/2/val_split.pkl', 'rb') as f:
+            VAL_SPLIT = pickle.load(f)
+        # Total possible cahce is around 6500 total images (640,480,3) total space
+        VAL_CACHE_SIZE = len(VAL_SPLIT)
+        TRAIN_CACHE_SIZE = 6500 * 3 - VAL_CACHE_SIZE
+
+        TRANSFORM = my_transforms.TranformOnePhotoNoisyBW
+        OUTPUT_SCALE = 1e4
+        LEARNING_RATE = 1e-2
+        WEIGTH_DECAY = 0
+        COSINE_ANNEALING_STEPS = 10
+        MAX_CAMERAS = 9
+        NORMAL_CAMS = 6
+        MM_IN_METER = 1e-3
+
+        poisson_rate = 0.01
+        gauss_mean = 0
+        gauss_var = 0.05
+        sp_rate = None
+
+        with h5py.File(TRAINING_DB_PATH, 'r') as hf:
+            mean_image = hf['generator metadata']['mean images'][()]
+            mode_shapes = hf['generator metadata']['modal shapes'][()]
+            ir = hf['generator metadata'].attrs['ir'][()]
+            _scales = hf['data']['scales'][()]
+            scales_mean = _scales.mean(axis=0)
+            scales_std = _scales.std(axis=0)
+        transform = TRANSFORM(mean_image, poisson_rate, gauss_mean, gauss_var, sp_rate)
+        reduce_dict = {'L_inf_mean_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'mean'),
+                       'L_inf_max_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'max'),
+                       '3D_20%_mean_loss': (partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir],
+                                                    OUTPUT_SCALE), MM_IN_METER, 'mean'),
+                       '3D_20%_max_loss': (
+                           partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir], OUTPUT_SCALE),
+                           MM_IN_METER, 'max'),
+                       '3D_100%': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
+                                           OUTPUT_SCALE), MM_IN_METER, 'mean'),
+                       'L1_regression': (lambda y_hat, y: l1_norm(y_hat, y).mean(dim=-1)),
+                       'l1_smooth': (lambda y_hat, y: F.smooth_l1_loss(y_hat, y, reduction='none').mean(dim=-1))
+                       }
+        for i in range(NUM_OUTPUTS):
+            reduce_dict[f'l1_scale{i}_regression'] = (partial(l1_norm_indexed, OUTPUT_SCALE, i), 'mean')
+
+        hist_dict = {f'scale{i}_real': partial(y_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
+                     range(NUM_OUTPUTS)}
+        hist_dict.update(
+            {f'scale{i}_nn': partial(y_hat_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
+             range(NUM_OUTPUTS)})
+        text_dict = {'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 5, BATCH_SIZE),
+                     '3D_mean': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
+                                         OUTPUT_SCALE), 5, BATCH_SIZE)
+                     }
+        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
+                         transform, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
+                         val_cache_size=VAL_CACHE_SIZE,
+                         batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
+
+
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
         NUM_EPOCHS = 1000
