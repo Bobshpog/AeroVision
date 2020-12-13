@@ -105,6 +105,7 @@ class CustomInputResnet(pl.LightningModule):
         result = {}
         for name, metric in {**self.train_epoch_metrics.items(), **self.train_epoch_metrics_noisy_y}:
             result[name] = metric.compute()
+            self.log(name, result[name])
             result[f'min_{name}'] = metric.min.cpu().numpy()
         self.logger.experiment.log_metrics(result, step=self.current_epoch, epoch=self.current_epoch)
 
@@ -141,8 +142,10 @@ class CustomInputResnet(pl.LightningModule):
                                           epoch=self.current_epoch)
         for name, metric in {**self.val_metrics.items(), **self.val_metrics.items()}:
             if isinstance(metric, ReduceMetric):
-                self.logger.experiment.log_metric(name, metric.compute(), step=self.current_epoch,
+                metric_res=metric.compute()
+                self.logger.experiment.log_metric(name, metric_res, step=self.current_epoch,
                                                   epoch=self.current_epoch)
+                self.log(name,metric_res)
                 self.logger.experiment.log_metric(f'min_{name}', metric.min.cpu().numpy(), step=self.current_epoch,
                                                   epoch=self.current_epoch)
 
