@@ -200,7 +200,7 @@ class TransformSaltAndPeper:
         self.s_vs_p = s_vs_p
 
     def __call__(self, img):
-        print(img.shape)
+
         out = np.copy(img)
         num_salt = np.ceil(self.amount * img.size * self.s_vs_p)
         coords = [np.random.randint(0, i - 1, int(num_salt))
