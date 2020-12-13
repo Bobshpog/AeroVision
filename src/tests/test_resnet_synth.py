@@ -87,11 +87,11 @@ class TestCustomInputResnet(TestCase):
                            MM_IN_METER, 'max'),
                        '3D_100%': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
                                            OUTPUT_SCALE), MM_IN_METER, 'mean'),
-                       'L1_regression': (lambda y_hat,y: l1_norm(y_hat,y).mean(dim=-1)),
+                       'L1_regression': (lambda y_hat, y: l1_norm(y_hat, y).mean(dim=-1)),
                        'l1_smooth': (lambda y_hat, y: F.smooth_l1_loss(y_hat, y, reduction='none').mean(dim=-1))
                        }
         for i in range(NUM_OUTPUTS):
-            reduce_dict[f'l1_scale{i}_regression'] = (partial(l1_norm_indexed,OUTPUT_SCALE, i), 'mean')
+            reduce_dict[f'l1_scale{i}_regression'] = (partial(l1_norm_indexed, OUTPUT_SCALE, i), 'mean')
 
         hist_dict = {f'scale{i}_real': partial(y_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
                      range(NUM_OUTPUTS)}
@@ -132,10 +132,10 @@ class TestCustomInputResnet(TestCase):
         NORMAL_CAMS = 6
         MM_IN_METER = 1e-3
 
-        poisson_rate = 0.01
-        gauss_mean = 0
-        gauss_var = 0.05
-        sp_rate = None
+        POISSON_RATE = 0.01
+        GAUSS_MEAN = 0
+        GAUSS_VAR = 0.05
+        SP_RATE = None
 
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
             mean_image = hf['generator metadata']['mean images'][()]
@@ -144,7 +144,7 @@ class TestCustomInputResnet(TestCase):
             _scales = hf['data']['scales'][()]
             scales_mean = _scales.mean(axis=0)
             scales_std = _scales.std(axis=0)
-        transform = TRANSFORM(mean_image, poisson_rate, gauss_mean, gauss_var, sp_rate)
+        transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
         reduce_dict = {'L_inf_mean_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'mean'),
                        'L_inf_max_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'max'),
                        '3D_20%_mean_loss': (partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir],
@@ -173,7 +173,6 @@ class TestCustomInputResnet(TestCase):
                          transform, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
                          val_cache_size=VAL_CACHE_SIZE,
                          batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
-
 
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
