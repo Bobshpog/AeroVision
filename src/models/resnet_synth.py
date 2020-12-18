@@ -103,7 +103,7 @@ class CustomInputResnet(pl.LightningModule):
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
         result = {}
-        for name, metric in {**self.train_epoch_metrics.items(), **self.train_epoch_metrics_noisy_y}:
+        for name, metric in {**self.train_epoch_metrics, **self.train_epoch_metrics_noisy_y}:
             result[name] = metric.compute()
             self.log(name, result[name])
             result[f'min_{name}'] = metric.min.cpu().numpy()
@@ -140,7 +140,7 @@ class CustomInputResnet(pl.LightningModule):
             self, outputs: List[Any]) -> None:
         self.logger.experiment.log_metric('val_loss', torch.stack(outputs).mean(), step=self.current_epoch,
                                           epoch=self.current_epoch)
-        for name, metric in {**self.val_metrics.items(), **self.val_metrics.items()}:
+        for name, metric in {**self.val_metrics, **self.val_metrics}:
             if isinstance(metric, ReduceMetric):
                 metric_res=metric.compute()
                 self.logger.experiment.log_metric(name, metric_res, step=self.current_epoch,
