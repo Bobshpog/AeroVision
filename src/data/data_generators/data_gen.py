@@ -3,7 +3,7 @@ from functools import lru_cache
 
 import h5py
 import numpy as np
-from memoization import cached
+from src.util.memoization.memoization import cached
 
 
 class DataGenerator(ABC):
