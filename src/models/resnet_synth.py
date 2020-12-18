@@ -140,7 +140,7 @@ class CustomInputResnet(pl.LightningModule):
             self, outputs: List[Any]) -> None:
         self.logger.experiment.log_metric('val_loss', torch.stack(outputs).mean(), step=self.current_epoch,
                                           epoch=self.current_epoch)
-        for name, metric in {**self.val_metrics, **self.val_metrics}:
+        for name, metric in {**self.val_metrics, **self.val_metrics_noisy_y}:
             if isinstance(metric, ReduceMetric):
                 metric_res=metric.compute()
                 self.logger.experiment.log_metric(name, metric_res, step=self.current_epoch,
