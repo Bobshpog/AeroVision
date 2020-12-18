@@ -49,12 +49,11 @@ class ImageDataset(Dataset):
                 self.hf = h5py.File(self.hdf5_path, 'r')
             dataset = self.hf['data']
             transform = self.transform
-            out_transform = self.out_transform
             image = dataset['images'][item]
             scales = dataset['scales'][item]
             if transform:
                 image = transform(image)
-            if out_transform:
+            if self.output_scaling:
                 scales *= self.output_scaling
 
             if len(self.cache_dict) < self.cache_size:
