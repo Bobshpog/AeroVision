@@ -1,6 +1,6 @@
 from threading import RLock
 
-from memoization.model import DummyWithable, CacheInfo
+from src.util.memoization.memoization.model import DummyWithable, CacheInfo
 
 
 def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent, custom_key_maker):
