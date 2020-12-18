@@ -27,7 +27,7 @@ class CustomInputResnet(pl.LightningModule):
                  output_scaling,
                  resnet_type, learning_rate,
                  cosine_annealing_steps,
-                 weight_decay, dtype=torch.float32, track_perfect_y_metrics=False):
+                 weight_decay, dtype=torch.float32, track_ideal_metrics=False):
         super().__init__()
         # TODO consider removing pretrained
         resnet_dict = {'18': models.resnet18,
@@ -42,7 +42,7 @@ class CustomInputResnet(pl.LightningModule):
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.track_perfect_y_metrics = track_perfect_y_metrics
+        self.track_perfect_y_metrics = track_ideal_metrics
         # self.train_step_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
         #                            name, foo in reduce_error_func_dict.items()}
         self.train_epoch_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=False, dist_sync_on_step=True)
