@@ -23,7 +23,10 @@ class ImageDataset(Dataset):
         self.hdf5_path = hdf5_path
         self.hf = None
         self.transform = transform
-        self.output_scaling = output_scaling
+        if output_scaling is None:
+            self.output_scaling = 1
+        else:
+            self.output_scaling = output_scaling
         self.out_transform = out_transform
         self.cache_size = cache_size
         self.cache_dict = mp.Manager().dict()
@@ -53,15 +56,16 @@ class ImageDataset(Dataset):
             scales = dataset['scales'][item]
             if transform:
                 image = transform(image)
-            if self.output_scaling:
-                scales *= self.output_scaling
 
             if len(self.cache_dict) < self.cache_size:
                 self.cache_dict[item] = image, scales
+        noisy_scales = self.output_scaling * self.out_transform(scales) if self.out_transform else None
+        scales *= self.output_scaling
         scales = scales.astype(self.dtype)
-        if self.out_transform:
-            noisy_scales = self.out_transform(scales)
-            return image.astype(self.dtype), scales,noisy_scales
+        if noisy_scales:
+            noisy_scales *= self.output_scaling
+            noisy_scales = noisy_scales.astype(self.dtype)
+            return image.astype(self.dtype), scales, noisy_scales
         else:
             return image.astype(self.dtype), scales
 
