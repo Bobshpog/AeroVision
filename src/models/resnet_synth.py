@@ -42,13 +42,13 @@ class CustomInputResnet(pl.LightningModule):
         self.resnet_type = resnet_type
         self.cosine_annealing_steps = cosine_annealing_steps
         self.weight_decay = weight_decay
-        self.track_perfect_y_metrics = track_ideal_metrics
+        self.track_ideal_metrics = track_ideal_metrics
         # self.train_step_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=True, dist_sync_on_step=True) for
         #                            name, foo in reduce_error_func_dict.items()}
         self.train_epoch_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=False, dist_sync_on_step=True)
                                     for name, foo in reduce_error_func_dict.items()}
         self.train_epoch_metrics_noisy_y = {name + "_ideal": deepcopy(foo)
-                                            for name, foo in self.train_epoch_metrics.items()}
+                                            for name, foo in self.train_epoch_metrics.items()} if track_ideal_metrics else {}
 
         self.val_metrics = {f"val_{name}": ReduceMetric(foo, compute_on_step=False) for name, foo in
                             reduce_error_func_dict.items()}
@@ -57,7 +57,7 @@ class CustomInputResnet(pl.LightningModule):
         self.val_metrics.update(
             {name: TextMetric(foo, num_outputs, output_scaling) for name, foo in text_error_func_dict.items()})
         self.val_metrics_noisy_y = {name + "_ideal": deepcopy(foo)
-                                    for name, foo in self.val_metrics.items()}
+                                    for name, foo in self.val_metrics.items()} if track_ideal_metrics else {}
         self.current_step = 0
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
@@ -81,7 +81,7 @@ class CustomInputResnet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x = batch[0]
         y = batch[-1]
-        if self.track_perfect_y_metrics:
+        if self.track_ideal_metrics:
             y_perfect = batch[1]
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
@@ -93,7 +93,7 @@ class CustomInputResnet(pl.LightningModule):
             #         result[f'min_{name}'] = metric.min.cpu().numpy()
             for name, metric in self.train_epoch_metrics.items():
                 metric.update(y_hat, y)
-            if self.track_perfect_y_metrics:
+            if self.track_ideal_metrics:
                 for name, metric in self.train_epoch_metrics_noisy_y.items():
                     metric.update(y_hat, y_perfect)
         # self.logger.experiment.log_metric('train_loss', loss, step=self.current_step)
@@ -119,14 +119,14 @@ class CustomInputResnet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x = batch[0]
         y = batch[-1]
-        if self.track_perfect_y_metrics:
+        if self.track_ideal_metrics:
             y_noisy = batch[1]
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
         with torch.no_grad():
             for name, metric in self.val_metrics.items():
                 metric.update(y_hat, y)
-            if self.track_perfect_y_metrics:
+            if self.track_ideal_metrics:
                 for name, metric in self.val_metrics_noisy_y.items():
                     metric.update(y_hat, y_noisy)
         return loss
