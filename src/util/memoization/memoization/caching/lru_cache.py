@@ -1,10 +1,10 @@
 from threading import RLock
 
-from memoization.model import DummyWithable, CacheInfo
-import memoization.caching.general.keys_order_dependent as keys_toolkit_order_dependent
-import memoization.caching.general.keys_order_independent as keys_toolkit_order_independent
-import memoization.caching.general.values_with_ttl as values_toolkit_with_ttl
-import memoization.caching.general.values_without_ttl as values_toolkit_without_ttl
+from src.util.memoization.memoization.model import DummyWithable, CacheInfo
+import src.util.memoization.memoization.caching.general.keys_order_dependent as keys_toolkit_order_dependent
+import src.util.memoization.memoization.caching.general.keys_order_independent as keys_toolkit_order_independent
+import src.util.memoization.memoization.caching.general.values_with_ttl as values_toolkit_with_ttl
+import src.util.memoization.memoization.caching.general.values_without_ttl as values_toolkit_without_ttl
 
 
 def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent, custom_key_maker):

@@ -1,4 +1,4 @@
-from memoization.model import HashedList
+from src.util.memoization.memoization.model import HashedList
 
 
 def make_key(args, kwargs, kwargs_mark=(object(), )):

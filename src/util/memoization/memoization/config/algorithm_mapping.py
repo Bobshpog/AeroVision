@@ -1,7 +1,7 @@
-from memoization.constant.flag import CachingAlgorithmFlag
-import memoization.caching.fifo_cache as fifo_cache
-import memoization.caching.lru_cache as lru_cache
-import memoization.caching.lfu_cache as lfu_cache
+from src.util.memoization.memoization.constant.flag import CachingAlgorithmFlag
+import src.util.memoization.memoization.caching.fifo_cache as fifo_cache
+import src.util.memoization.memoization.caching.lru_cache as lru_cache
+import src.util.memoization.memoization.caching.lfu_cache as lfu_cache
 
 
 def get_cache_toolkit(algorithm=CachingAlgorithmFlag.FIFO):
