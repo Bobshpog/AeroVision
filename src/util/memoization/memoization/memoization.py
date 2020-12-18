@@ -2,10 +2,10 @@ from functools import partial, update_wrapper
 import inspect
 import warnings
 
-import memoization.caching.statistic_cache as statistic_cache
-import memoization.caching.plain_cache as plain_cache
-from memoization.constant.flag import CachingAlgorithmFlag
-from memoization.config.algorithm_mapping import get_cache_toolkit
+import src.util.memoization.memoization.caching.statistic_cache as statistic_cache
+import src.util.memoization.memoization.caching.plain_cache as plain_cache
+from src.util.memoization.memoization.constant.flag import CachingAlgorithmFlag
+from src.util.memoization.memoization.config.algorithm_mapping import get_cache_toolkit
 
 
 # Public symbols
