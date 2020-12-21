@@ -40,9 +40,7 @@ def scale_by(scale):
 
 def single_rgb_to_bw(img):
 
-    a = img[:,:,2] * 0.2989 + img[:,:,0] * 0.1140 + img[:,:,2] * 0.5870
-    return np.expand_dims(a, axis=0)
-    #return np.expand_dims(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY), axis=0)
+    return np.expand_dims(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY), axis=0)
 
 
 def many_rgb_to_bw(img):
