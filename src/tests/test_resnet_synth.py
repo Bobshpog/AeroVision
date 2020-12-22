@@ -169,7 +169,7 @@ class TestCustomInputResnet(TestCase):
                      '3D_mean': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
                                          OUTPUT_SCALE), 5, BATCH_SIZE)
                      }
-        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, "test", TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
+        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
                          transform,None, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
                          val_cache_size=VAL_CACHE_SIZE,
                          batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
