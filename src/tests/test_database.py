@@ -36,7 +36,7 @@ class TestDatabaseBuilder(TestCase):
                          6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
         radical_list = wing_models.SyntheticWingModel.radical_list_creation(mesh_wing_path,0.2)
         # cameras in pyvista format
-        cameras = [
+        all_cameras = [
                         [(0.047, -0.053320266561896174, 0.026735639600027315),
                          (0.05, 0.3, 0.02),
                          (0, 0, 1)],
@@ -77,6 +77,8 @@ class TestDatabaseBuilder(TestCase):
                          (0.05, 0.35, 0.02),
                          (0, 0.16643488101070833, 1)]
                 ]
+        #chaneg this to select db cameras
+        cameras=[all_cameras[-1]]
         texture = 'data/textures/checkers_dark_blue.png'
         cmap = 'jet'
 
