@@ -37,9 +37,7 @@ def scale_by(scale):
     return partial(_scale_by, scale)
 
 
-
 def single_rgb_to_bw(img):
-
     return np.expand_dims(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY), axis=0)
 
 
@@ -226,10 +224,13 @@ class TransformGaussian:
     def __repr__(self):
         return "GAUSSIAN_NOISE_TRANFORM_MEAN:" + str(self.mean) + "VER:_" + str(self.ver)
 
+
 class TranformOnePhotoNoisyBW:
-    def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_var, salt_peper_amount, salt_pepper_ratio=0.5):
+    def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_var, salt_peper_amount, salt_pepper_ratio=0.5,
+                 cam_pos=0):
+        #   (defult into up middle)
         self.tform = []
-        self.tform.append(top_middle_bw(mean_photo))
+        self.tform.append(TransformSingleCameraBw(cam_pos, mean_photo))
         if gauss_var:
             self.tform.append(TransformGaussian(gauss_mean, gauss_var))
         if pois_lamda:
