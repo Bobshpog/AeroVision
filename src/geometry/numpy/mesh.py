@@ -498,7 +498,7 @@ class Mesh:
 
     @staticmethod
     def get_many_photos(mesh, movement, resolution, cmap,plotter, camera, title=None, title_location="upper_edge",
-                        background_photos=None, background_scale=1, title_color="black"):
+                        background_photos=None, background_scale=1, title_color="black", cam_noise_lamda=None):
         """
         Take a photo of the mesh in a cerain position
         all args in case for more then one mesh should be in list
@@ -521,6 +521,14 @@ class Mesh:
         num_of_mesh = len(mesh)
         if background_photos is not None:
             plotter.add_background_image(random.choice(background_photos), scale=background_scale)
+        if cam_noise_lamda is not None:
+            cam_noise = np.zeros((len(camera), 3))
+            cam_noise[:,0] += np.random.normal(0, cam_noise_lamda[0], len(camera))
+            cam_noise[:,1] += np.random.normal(0, cam_noise_lamda[1], len(camera))
+            cam_noise[:,2] += np.random.normal(0, cam_noise_lamda[2], len(camera))
+            camera = np.array(camera) + cam_noise
+
+
         if num_of_mesh == 1:
             mesh = [mesh]
         for i in range(num_of_mesh):

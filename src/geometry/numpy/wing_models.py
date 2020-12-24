@@ -10,7 +10,7 @@ from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_c
 from src.data import matlab_reader
 from src.util.error_helper_functions import calc_errors
 from src.util.loss_functions import L_infinity
-
+import src.util.image_transforms as tforms
 @dataclass
 class FiniteElementWingModel:
     coordinates: np.ndarray
@@ -395,6 +395,27 @@ class SyntheticWingModel:
             to_return.append(img_d)
 
         return to_return
+
+    @staticmethod
+    def noisy_image_creation(cam,cam_noise, pois, s_p, gaussian_var,gaussian_mean=0):
+        mesh = Mesh("data/wing_off_files/synth_wing_v5.off", "data/textures/checkers_dark_blue.png")
+        tip = Mesh('data/wing_off_files/fem_tip.off')
+        plotter = pv.Plotter(off_screen=True)
+        plotter.set_background('white')
+        text = "gauss:" + f'{gaussian_var: .2f}' + " poisson:" + f'{pois: .2f}' + " S&P:"+f'{s_p: .2f}'
+        res = [320, 240]
+        normal_factor = res[0]/640
+        photo = Mesh.get_many_photos([mesh, tip], [mesh.vertices, tip.vertices], res, "jet", plotter,
+                                     [cam], cam_noise_lamda=cam_noise)
+        tform = tforms.TranformOnePhotoNoisyBW(np.zeros(photo.shape).astype(np.float32), pois, gaussian_mean,
+                                               gaussian_var, s_p)
+        photo = tform(photo)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        org = (int(30*normal_factor), int(30 * normal_factor))
+        font_scale = normal_factor
+        color = (0, 0, 0)
+        thickness = 2
+        return cv2.putText(photo[0], text, org, font, font_scale, color, thickness, cv2.LINE_AA)
 
     @staticmethod
     def radical_list_creation(wing_path, p):

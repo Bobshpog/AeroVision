@@ -5,6 +5,7 @@ from unittest import TestCase
 import h5py
 import torch
 import torch.nn.functional as F
+import numpy as np
 
 import src.util.image_transforms as my_transforms
 from src.models.resnet_synth import run_resnet_synth
@@ -132,9 +133,9 @@ class TestCustomInputResnet(TestCase):
         NORMAL_CAMS = 6
         MM_IN_METER = 1e-3
 
-        POISSON_RATE = 0.01
+        POISSON_RATE = None
         GAUSS_MEAN = 0
-        GAUSS_VAR = 0.05
+        GAUSS_VAR = 0
         SP_RATE = None
 
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
@@ -169,10 +170,14 @@ class TestCustomInputResnet(TestCase):
                      '3D_mean': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
                                          OUTPUT_SCALE), 5, BATCH_SIZE)
                      }
-        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
-                         transform,None, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
-                         val_cache_size=VAL_CACHE_SIZE,
-                         batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
+        
+        for i in np.linspace(3.2, 0.1, 10):
+            GAUSS_VAR = i
+            transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
+            run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
+                             transform,None, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
+                             val_cache_size=VAL_CACHE_SIZE,
+                             batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
 
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
