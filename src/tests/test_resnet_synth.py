@@ -3,9 +3,9 @@ from functools import partial
 from unittest import TestCase
 
 import h5py
+import numpy as np
 import torch
 import torch.nn.functional as F
-import numpy as np
 
 import src.util.image_transforms as my_transforms
 from src.models.resnet_synth import run_resnet_synth
@@ -137,9 +137,6 @@ class TestCustomInputResnet(TestCase):
         GAUSS_MEAN = 0
         GAUSS_VAR = 0
         SP_RATE = None
-        MAX_GAISS_VAR = 3.2
-        MIN_GAUSS_VAR = 0.1
-        NUM_OF_TESTS = 10
 
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
             mean_image = hf['generator metadata']['mean images'][()]
@@ -174,11 +171,13 @@ class TestCustomInputResnet(TestCase):
                                          OUTPUT_SCALE), 5, BATCH_SIZE)
                      }
 
-        for i in np.linspace(MAX_GAISS_VAR, MIN_GAUSS_VAR, NUM_OF_TESTS):
+        for i in -np.linspace(-3.2, 0, 10, endpoint=False):
             GAUSS_VAR = i
+            EXPERIMENT_NAME=f"noisy gauss={i}"
             transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
-            run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH, VAL_SPLIT,
-                             transform,None, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
+            run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH,
+                             VAL_SPLIT,
+                             transform, None, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
                              val_cache_size=VAL_CACHE_SIZE,
                              batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
 
