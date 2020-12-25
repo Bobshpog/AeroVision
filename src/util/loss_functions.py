@@ -64,14 +64,14 @@ def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, scale_factor:
     num_vertices = mode_shapes.size / (3 * x.shape[-1])
     device = x.device
     with torch.no_grad():
-        _x = x.detach().clone().to(torch.float64) / scale_factor
-        _y = y.detach().clone().to(torch.float64) / scale_factor
+        _x = x.detach().clone().to(torch.float64)
+        _y = y.detach().clone().to(torch.float64)
         _x = _x.view(x.shape[-1], -1)
         _y = _y.view(y.shape[-1], -1)
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
         pos_a = (mode_shapes @ _x)
         pos_b = (mode_shapes @ _y)
-        return loss_function(pos_a - pos_b, dim=0) / num_vertices
+        return loss_function(pos_a - pos_b, dim=0) / num_vertices/scale_factor
 
 
 def L_infinity(mode_shapes: np.ndarray, scale_factor: int,
@@ -94,8 +94,8 @@ def L_infinity(mode_shapes: np.ndarray, scale_factor: int,
                           torch.tensor(y, device=device)).detach().numpy()
     device = x.device
     with torch.no_grad():
-        _x = x.detach().clone().to(torch.float64) / scale_factor
-        _y = y.detach().clone().to(torch.float64) / scale_factor
+        _x = x.detach().clone().to(torch.float64)
+        _y = y.detach().clone().to(torch.float64)
         _x = _x.view(x.shape[-1], -1)
         _y = _y.view(y.shape[-1], -1)
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
@@ -103,7 +103,7 @@ def L_infinity(mode_shapes: np.ndarray, scale_factor: int,
         pos_b = (mode_shapes @ _y)
         diff = (pos_b - pos_a).reshape((x.shape[0], int(mode_shapes.shape[0] / 3), 3))
         diff = torch.norm(diff, dim=2)
-        return torch.norm(diff, dim=1, p=float('inf'))
+        return torch.norm(diff, dim=1, p=float('inf'))/scale_factor
 
 
 def y_hat_get_scale_i(scale, y_mean, y_sd, i, y_hat, y):
