@@ -522,10 +522,10 @@ class Mesh:
         if background_photos is not None:
             plotter.add_background_image(random.choice(background_photos), scale=background_scale)
         if cam_noise_lamda is not None:
-            cam_noise = np.zeros((len(camera), 3,3))
-            cam_noise[:,0] += np.random.normal(0, cam_noise_lamda[0], (len(camera),3))
-            cam_noise[:,1] += np.random.normal(0, cam_noise_lamda[1], (len(camera),3))
-            cam_noise[:,2] += np.random.normal(0, cam_noise_lamda[2], (len(camera),3))
+            cam_noise = np.zeros((len(camera), 3, 3))
+            cam_noise[:,0] += np.random.normal(0, cam_noise_lamda[0], (len(camera), 3))
+            cam_noise[:,1] += np.random.normal(0, cam_noise_lamda[1], (len(camera), 3))
+            cam_noise[:,2] += np.random.normal(0, cam_noise_lamda[2], (len(camera), 3))
             camera = np.array(camera) + cam_noise
 
 

@@ -403,7 +403,7 @@ class SyntheticWingModel:
         plotter = pv.Plotter(off_screen=True)
         plotter.set_background('white')
         text = "gauss:" + f'{gaussian_var: .2f}' + " poisson:" + f'{pois: .2f}' + " S&P:"+f'{s_p: .2f}'
-        res = [320, 240]
+        res = [640, 640]
         normal_factor = res[0]/640
         photo = Mesh.get_many_photos([mesh, tip], [mesh.vertices, tip.vertices], res, "jet", plotter,
                                      [cam], cam_noise_lamda=cam_noise)
@@ -428,8 +428,7 @@ class SyntheticWingModel:
 
 
     @staticmethod
-    def radical_list_creation_VERY_SLOW(wing_path,p=1, num_of_scales=10):
-        #   changed after testing, proved that its the most moving vers so made it efficient,
+    def radical_list_creation_VERY_SLOW(wing_path, p=1, num_of_scales=10):
         #   it returns (radical list, the total L2 distance for each vertex)
         mesh = Mesh(wing_path)
         mode_shape = matlab_reader.read_modal_shapes("data/mode_shapes/synth_mode_shapes_9103_10.mat", 10)

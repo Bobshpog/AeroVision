@@ -72,7 +72,15 @@ class TestDatabaseBuilder(TestCase):
                          (-0.015600717667910225, 0.440612125193422, 0.9)],
             'sideways': [(0.14, 0, 0),
                          (0.05, 0.35, 0.02),
-                         (0, 0.16643488101070833, 1)]
+                         (0, 0.16643488101070833, 1)],
+
+            'tunnel_front_cam_tip_focus': [(0.005, 0, -0.09), (0.005, 0.6, 0.02), (0, 6.314, 1)],
+            'tunnel_upper_cam_tip_focus': [(0.05, 0, -0.09), (0.05, 0.6, 0.02), (0, 6.314, 1)],
+            'tunnel_lower_cam_tip_focus': [(0.05, 0, 0.09), (0.05, 0.6, -0.02), (0, 6.314, -1)],
+
+            'tunnel_front_cam_middle_focus': [(0.005, 0, -0.09), (0.005, 0.3, 0.02), (0, 6.314, 1)],
+            'tunnel_upper_cam_middle_focus': [(0.05, 0, -0.09), (0.05, 0.3, 0.02), (0, 6.314, 1)],
+            'tunnel_lower_cam_middle_focus': [(0.05, 0, 0.09), (0.05, 0.3, -0.02), (0, 6.314, -1)],
         }
         #chaneg this to select db cameras
         cameras=[all_cameras['sideways']]
