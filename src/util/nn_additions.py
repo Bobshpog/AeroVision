@@ -10,7 +10,7 @@ class ReduceMetric(Metric):
         self.min = torch.tensor(float('inf'), dtype=torch.float, device='cuda')
         if isinstance(foo, tuple):
             if len(foo) == 3:
-                self.max_val = foo[2]
+                self.max_val = foo[1]
             self.reduction = foo[-1]
             self.foo = foo[0]
         else:
