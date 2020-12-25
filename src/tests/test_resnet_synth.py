@@ -166,9 +166,9 @@ class TestCustomInputResnet(TestCase):
         hist_dict.update(
             {f'scale{i}_nn': partial(y_hat_get_scale_i, OUTPUT_SCALE, scales_mean, scales_std, i) for i in
              range(NUM_OUTPUTS)})
-        text_dict = {'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 5, BATCH_SIZE),
+        text_dict = {'L_inf_max': (partial(L_infinity, mode_shapes, OUTPUT_SCALE), 100, BATCH_SIZE),
                      '3D_mean': (partial(reconstruction_loss_3d, torch.norm, mode_shapes,
-                                         OUTPUT_SCALE), 5, BATCH_SIZE)
+                                         OUTPUT_SCALE), 100, BATCH_SIZE)
                      }
 
         for i in -np.linspace(-3.2, 0, 10, endpoint=False):
