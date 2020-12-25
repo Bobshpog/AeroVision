@@ -179,7 +179,7 @@ class TestCustomInputResnet(TestCase):
                              VAL_SPLIT,
                              transform, None, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
                              val_cache_size=VAL_CACHE_SIZE,
-                             batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
+                             batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT),output_scaling=OUTPUT_SCALE)
 
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
