@@ -76,10 +76,9 @@ class TextMetric(Metric):
 
     def update(self, y_hat: torch.Tensor, y: torch.Tensor):
         self.worst_evals[self.count:self.count + len(y)] = self.foo(y_hat, y).flatten()
-        #TODO restore this
-        # self.worst_evals, order = self.worst_evals.sort(descending=True)
-        # self.worst_y[self.count:self.count + len(y)] = torch.stack((y_hat, y)).transpose(0, 1)
-        # self.worst_y = self.worst_y[order]
+        self.worst_evals, order = self.worst_evals.sort(descending=True)
+        self.worst_y[self.count:self.count + len(y)] = torch.stack((y_hat, y)).transpose(0, 1)
+        self.worst_y = self.worst_y[order]
 
     def compute(self):
         worst_y = self.worst_y[:self.count]
