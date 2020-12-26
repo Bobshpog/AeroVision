@@ -66,8 +66,8 @@ def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, scale_factor:
     with torch.no_grad():
         _x = x.detach().clone().to(torch.float64)
         _y = y.detach().clone().to(torch.float64)
-        _x = _x.view(x.shape[-1], -1)
-        _y = _y.view(y.shape[-1], -1)
+        _x = _x.T
+        _y = _y.T
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
         pos_a = (mode_shapes @ _x)
         pos_b = (mode_shapes @ _y)
@@ -123,8 +123,8 @@ def L_infinity(mode_shapes: np.ndarray, scale_factor: int,
     with torch.no_grad():
         _x = x.detach().clone().to(torch.float64)
         _y = y.detach().clone().to(torch.float64)
-        _x = _x.view(x.shape[-1], -1)
-        _y = _y.view(y.shape[-1], -1)
+        _x = _x.T
+        _y = _y.T
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
         pos_a = (mode_shapes @ _x)
         pos_b = (mode_shapes @ _y)
