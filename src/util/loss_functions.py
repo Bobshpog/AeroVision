@@ -98,7 +98,8 @@ def reconstruction_loss_3d_new(loss_function, mode_shapes: np.ndarray, scale_fac
         x_reconst = torch.matmul(torch.tensor(np.swapaxes(mode_shapes, 0, 1)), x.T)
         #   TODO save the mode shape in this format so the transformations wont be done all the time
         y_reconst = torch.matmul(torch.tensor(np.swapaxes(mode_shapes, 0, 1)), y.T)
-        return loss_function(x_reconst - y_reconst, dim=[1, 0]) / scale_factor
+        return loss_function(x_reconst - y_reconst, dim=[1, 0]) / (scale_factor * mode_shapes.shape[1])
+
 
 def L_infinity(mode_shapes: np.ndarray, scale_factor: int,
                x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
