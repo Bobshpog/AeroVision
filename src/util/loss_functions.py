@@ -74,6 +74,32 @@ def reconstruction_loss_3d(loss_function, mode_shapes: np.ndarray, scale_factor:
         return loss_function(pos_a - pos_b, dim=0) / num_vertices/scale_factor
 
 
+def reconstruction_loss_3d_new(loss_function, mode_shapes: np.ndarray, scale_factor: int,
+                           x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
+
+    """
+        return loss between shape (based on the scales) we received and the shape we calculated by our own scales
+          Args:
+              loss_function: loss function takes two |V| vectors and calclate the loss between them
+              mode_shapes: a [V,n] tensor or np array representing the mode shapes (only the Z axis)
+              scale_factor: the power of 10 used to scale the mode scales
+              x: first set of scales
+              y: second set of scales
+           Returns:
+              RMS between the vertex positions calculated from scales
+           """
+
+    if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
+        device = 'cpu'
+        return reconstruction_loss_3d_new(loss_function, mode_shapes, scale_factor, torch.tensor(x, device=device),
+                                      torch.tensor(y, device=device)).detach().numpy()
+
+    with torch.no_grad():
+        x_reconst = torch.matmul(torch.tensor(np.swapaxes(mode_shapes, 0, 1)), x.T)
+        #   TODO save the mode shape in this format so the transformations wont be done all the time
+        y_reconst = torch.matmul(torch.tensor(np.swapaxes(mode_shapes, 0, 1)), y.T)
+        return loss_function(x_reconst - y_reconst, dim=[1, 0]) / scale_factor
+
 def L_infinity(mode_shapes: np.ndarray, scale_factor: int,
                x: Union[torch.tensor, np.ndarray], y: Union[torch.tensor, np.ndarray]):
     """

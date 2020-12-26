@@ -9,8 +9,9 @@ from src.geometry.numpy.mesh import *
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
 from src.data import matlab_reader
 from src.util.error_helper_functions import calc_errors
-from src.util.loss_functions import L_infinity
+from src.util.loss_functions import L_infinity, reconstruction_loss_3d
 import src.util.image_transforms as tforms
+
 @dataclass
 class FiniteElementWingModel:
     coordinates: np.ndarray
@@ -434,7 +435,8 @@ class SyntheticWingModel:
         mode_shape = matlab_reader.read_modal_shapes("data/mode_shapes/synth_mode_shapes_9103_10.mat", 10)
         scales = matlab_reader.read_data("data/synt_data_mat_files/data2.mat")[2]
         comp_arr = mesh_compatibility_creation(mesh.vertices)
-        static_diff = (np.mean(scales, axis=0) * mode_shape).sum(axis=2)
+        mean_scales = np.mean(scales, axis=0)
+        static_diff = (mean_scales * mode_shape).sum(axis=2)
         if num_of_scales < 10:
             static_diff[num_of_scales:] = 0
         tot_distance = np.zeros(mode_shape.shape[1])
@@ -445,3 +447,5 @@ class SyntheticWingModel:
         tot_distance = tot_distance[comp_arr]
         num_to_return = int(mesh.vertices.shape[0] * p)
         return tot_distance.argsort()[-num_to_return:][::-1], tot_distance
+
+
