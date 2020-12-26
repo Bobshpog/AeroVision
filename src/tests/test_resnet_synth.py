@@ -135,7 +135,7 @@ class TestCustomInputResnet(TestCase):
 
         POISSON_RATE = None
         GAUSS_MEAN = 0
-        GAUSS_VAR = 0
+        GAUSS_VAR = None
         SP_RATE = None
 
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
@@ -171,9 +171,9 @@ class TestCustomInputResnet(TestCase):
                                          OUTPUT_SCALE), 100, BATCH_SIZE)
                      }
 
-        for i in -np.linspace(-3.2, 0, 10, endpoint=False):
-            GAUSS_VAR = i
-            EXPERIMENT_NAME=f"noisy gauss={i}"
+        for i in -np.linspace(-3, 0, 10, endpoint=False):
+            POISSON_RATE = i*i
+            EXPERIMENT_NAME=f"noisy pois={i*i}"
             transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
             run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH,
                              VAL_SPLIT,

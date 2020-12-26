@@ -398,7 +398,7 @@ class SyntheticWingModel:
         return to_return
 
     @staticmethod
-    def noisy_image_creation(cam,cam_noise, pois, s_p, gaussian_var,gaussian_mean=0):
+    def noisy_image_creation(cam, pois, s_p, gaussian_var, gaussian_mean=0, cam_noise=None):
         mesh = Mesh("data/wing_off_files/synth_wing_v5.off", "data/textures/checkers_dark_blue.png")
         tip = Mesh('data/wing_off_files/fem_tip.off')
         plotter = pv.Plotter(off_screen=True)
