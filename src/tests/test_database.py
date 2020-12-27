@@ -102,7 +102,7 @@ class TestDatabaseBuilder(TestCase):
                                                "data/mode_shapes/synth_mode_shapes_9103_10.mat", Config.mesh_wing_path,
                                                Config.mesh_tip_path, Config.old_mesh_wing_path, Config.radical_list,
                                                Config.resolution, Config.cameras,
-                                               Config.texture, Config.cmap)
+                                               Config.texture, Config.cmap,background_photos=[], )
         database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=300)
         data_file_path = database(dtype=np.float32)
         with h5py.File(data_file_path, 'r') as f:

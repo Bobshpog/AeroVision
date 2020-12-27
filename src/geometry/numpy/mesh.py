@@ -473,7 +473,7 @@ class Mesh:
 
     @staticmethod
     def get_photo(mesh, movement, resolution, cmap, plotter, camera, title=None, title_location="upper_edge",
-                  background_photos=None, background_scale=1, title_color="black"):
+                  background_photos=None,cam_noise_lambda=None, background_scale=1, title_color="black"):
         """
         Take a photo of the mesh in a certain position
         all args in case for more then one mesh should be in list
@@ -493,12 +493,12 @@ class Mesh:
            An image shot from camera of the mesh
         """
         return Mesh.get_many_photos(mesh, movement, resolution, cmap,
-                                    plotter, [camera], title, title_location, background_photos=background_photos,
+                                    plotter, [camera], title, title_location, background_photos=background_photos,cam_noise_lambda=cam_noise_lambda,
                                     background_scale=background_scale, title_color=title_color)[0]
 
     @staticmethod
-    def get_many_photos(mesh, movement, resolution, cmap,plotter, camera, title=None, title_location="upper_edge",
-                        background_photos=None, background_scale=1, title_color="black", cam_noise_lamda=None):
+    def get_many_photos(mesh, movement, resolution, cmap, plotter, camera, title=None, title_location="upper_edge",
+                        background_photos=None, background_scale=1, title_color="black", cam_noise_lambda=None):
         """
         Take a photo of the mesh in a cerain position
         all args in case for more then one mesh should be in list
@@ -521,11 +521,11 @@ class Mesh:
         num_of_mesh = len(mesh)
         if background_photos is not None:
             plotter.add_background_image(random.choice(background_photos), scale=background_scale)
-        if cam_noise_lamda is not None:
+        if cam_noise_lambda is not None:
             cam_noise = np.zeros((len(camera), 3, 3))
-            cam_noise[:,0] += np.random.normal(0, cam_noise_lamda[0], (len(camera), 3))
-            cam_noise[:,1] += np.random.normal(0, cam_noise_lamda[1], (len(camera), 3))
-            cam_noise[:,2] += np.random.normal(0, cam_noise_lamda[2], (len(camera), 3))
+            cam_noise[:,0] += np.random.normal(0, cam_noise_lambda[0], (len(camera), 3))
+            cam_noise[:,1] += np.random.normal(0, cam_noise_lambda[1], (len(camera), 3))
+            cam_noise[:,2] += np.random.normal(0, cam_noise_lambda[2], (len(camera), 3))
             camera = np.array(camera) + cam_noise
 
 

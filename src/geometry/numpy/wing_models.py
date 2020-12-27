@@ -1,120 +1,125 @@
-from dataclasses import dataclass
-from typing import Union
+from dataclasses import dataclass, field
+from typing import Union, List
 
 import cv2
-import torch
-from src.util.SSIM_PIL import compare_ssim
 from tqdm import trange
+
+import src.util.image_transforms as tforms
+from src.data import matlab_reader
 from src.geometry.numpy.mesh import *
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
-from src.data import matlab_reader
+from src.util.SSIM_PIL import compare_ssim
 from src.util.error_helper_functions import calc_errors
-from src.util.loss_functions import L_infinity, reconstruction_loss_3d
-import src.util.image_transforms as tforms
-
-@dataclass
-class FiniteElementWingModel:
-    coordinates: np.ndarray
-    ir_idx_list: list
-    texture_wing: str
-    texture_tip: Union[str, None]
-    wing_path: str
-    old_wing_path: str
-    tip_path: str
-    cameras: list
-    wing_vertices_num: int
-    tip_vertices_num: int
-    plotter: pv.BasePlotter
-    resolution: list
-    cmap: str
-
-    def __post_init__(self):
-        self.wing = Mesh(self.wing_path, self.texture_wing)
-        self.tip = Mesh(self.tip_path, texture=self.texture_tip)
-        self.old_wing = Mesh(self.old_wing_path)
-        self.compatibility_arr = mesh_compatibility_creation(self.wing.vertices)
-        self.tip_arr = tip_arr_creation(self.old_wing.vertices)
-
-    def _get_new_position(self, displacement):
-        """
-        Recovers the new coordinates of the wing updated with displacement
-
-        Args:
-            displacement: np array of the displacement for each row size N*3
-
-        Returns:
-            (new wing position, new tip position)
+from src.util.loss_functions import L_infinity
 
 
-        """
-        TIP_RADIUS = 0.008
-        NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
-        wing_table = self.wing.table
-        tip_table = self.tip.table
-        new_tip_position = np.zeros((self.tip_vertices_num, 3), dtype='float')
-        new_wing_position = np.zeros((self.wing_vertices_num, 3), dtype='float')
-        tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
-        x = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
-        y = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
-        count, tip_count, wing_count = 0, 0, 0
-        for idx, cord in enumerate(self.coordinates):
-            if cord[1] >= 0.605:
-                for i in range(30):
-                    new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
-                tip_count += 1
-            elif cord2index(cord) in wing_table:
-                new_wing_position[wing_table[cord2index(cord)]] = displacement[idx]
-                wing_count += 1
-            else:
-                count += 1
-        # TODO: Ido, Runs fine without Assertions
-        # assert(wing_count==self.wing_vertices_num-self.tip_vertices_num/30)
-        # assert(tip_count==self.tip_vertices_num/30)
-        return self.wing.vertices + new_wing_position, self.tip.vertices + new_tip_position
-
-    def _get_ir_cords(self, displacement):
-        """
-        Retrieves a np.array of the coordinates related to the movement
-        Args:
-            displacement: np array of the displacement for each row size N*3
-
-        Returns:
-            returns an np.array of the coordinates of the vertices associates with the ir coordinates
-
-        """
-        return self.coordinates[self.ir_idx_list] + displacement[self.ir_idx_list]
-
-    def _get_wing_photo(self, movement):
-        """
-        Take a photo of the wing with the tip in a cerain position
-
-       Args:
-           movement: [wing movement, tip movement]
-
-        Returns:
-           An image shot from camera of the wing and tip
-        """
-        cameras = self.cameras
-        photos = Mesh.get_photo((self.wing, self.tip),
-                                movement=movement, resolution=self.resolution, camera=cameras,
-                                cmap=self.cmap, plotter=self.plotter)
-
-        return photos
-
-    def __call__(self, displacement):
-        """
-        Creates a photo and ir coordinates associated with a displacement
-        Args:
-            displacement: np array of the displacement in each axis
-
-        Returns:
-            photo, ir
-
-        """
-        movement = self._get_new_position(displacement)
-        ir = self._get_ir_cords(displacement)
-        photo = self._get_wing_photo(movement=movement)
-        return photo, ir
+#
+# @dataclass
+# class FiniteElementWingModel:
+#     coordinates: np.ndarray
+#     ir_idx_list: list
+#     texture_wing: str
+#     texture_tip: Union[str, None]
+#     wing_path: str
+#     old_wing_path: str
+#     tip_path: str
+#     cameras: list
+#     wing_vertices_num: int
+#     tip_vertices_num: int
+#     plotter: pv.BasePlotter
+#     resolution: list
+#     cmap: str
+#
+#
+#     def __post_init__(self):
+#         self.wing = Mesh(self.wing_path, self.texture_wing)
+#         self.tip = Mesh(self.tip_path, texture=self.texture_tip)
+#         self.old_wing = Mesh(self.old_wing_path)
+#         self.compatibility_arr = mesh_compatibility_creation(self.wing.vertices)
+#         self.tip_arr = tip_arr_creation(self.old_wing.vertices)
+#
+#
+#     def _get_new_position(self, displacement):
+#         """
+#         Recovers the new coordinates of the wing updated with displacement
+#
+#         Args:
+#             displacement: np array of the displacement for each row size N*3
+#
+#         Returns:
+#             (new wing position, new tip position)
+#
+#
+#         """
+#         TIP_RADIUS = 0.008
+#         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
+#         wing_table = self.wing.table
+#         tip_table = self.tip.table
+#         new_tip_position = np.zeros((self.tip_vertices_num, 3), dtype='float')
+#         new_wing_position = np.zeros((self.wing_vertices_num, 3), dtype='float')
+#         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
+#         x = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
+#         y = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
+#         count, tip_count, wing_count = 0, 0, 0
+#         for idx, cord in enumerate(self.coordinates):
+#             if cord[1] >= 0.605:
+#                 for i in range(30):
+#                     new_tip_position[tip_table[cord2index(cord + (0, x[i], y[i]))]] = displacement[idx]
+#                 tip_count += 1
+#             elif cord2index(cord) in wing_table:
+#                 new_wing_position[wing_table[cord2index(cord)]] = displacement[idx]
+#                 wing_count += 1
+#             else:
+#                 count += 1
+#         # TODO: Ido, Runs fine without Assertions
+#         # assert(wing_count==self.wing_vertices_num-self.tip_vertices_num/30)
+#         # assert(tip_count==self.tip_vertices_num/30)
+#         return self.wing.vertices + new_wing_position, self.tip.vertices + new_tip_position
+#
+#     def _get_ir_cords(self, displacement):
+#         """
+#         Retrieves a np.array of the coordinates related to the movement
+#         Args:
+#             displacement: np array of the displacement for each row size N*3
+#
+#         Returns:
+#             returns an np.array of the coordinates of the vertices associates with the ir coordinates
+#
+#         """
+#         return self.coordinates[self.ir_idx_list] + displacement[self.ir_idx_list]
+#
+#     def _get_wing_photo(self, movement):
+#         """
+#         Take a photo of the wing with the tip in a cerain position
+#
+#        Args:
+#            movement: [wing movement, tip movement]
+#
+#         Returns:
+#            An image shot from camera of the wing and tip
+#         """
+#         cameras = self.cameras
+#         photos = Mesh.get_photo((self.wing, self.tip),
+#                                 movement=movement, resolution=self.resolution, camera=cameras,
+#                                 cmap=self.cmap, plotter=self.plotter, background_photos=self.background_photos,
+#                                 cam_noise_lambda=self.cam_noise_lambda)
+#
+#         return photos
+#
+#     def __call__(self, displacement):
+#         """
+#         Creates a photo and ir coordinates associated with a displacement
+#         Args:
+#             displacement: np array of the displacement in each axis
+#
+#         Returns:
+#             photo, ir
+#
+#         """
+#         movement = self._get_new_position(displacement)
+#         ir = self._get_ir_cords(displacement)
+#         photo = self._get_wing_photo(movement=movement)
+#         return photo, ir
 
 
 @dataclass
@@ -132,6 +137,8 @@ class SyntheticWingModel:
     plotter: pv.BasePlotter
     resolution: list
     cmap: str
+    background_photos: List[str] = field(default_factory=list)
+    cam_noise_lambda: float = 0
 
     def __post_init__(self):
         self.wing = Mesh(self.wing_path, texture=self.texture_wing)
@@ -139,6 +146,7 @@ class SyntheticWingModel:
         self.old_wing = Mesh(self.old_wing_path)
         self.compatibility_arr = mesh_compatibility_creation(self.wing.vertices)
         self.tip_arr = tip_arr_creation(self.old_wing.vertices)
+        self.background_photos = self.background_photos[:]
 
     def _get_new_position(self, displacement):
         """
@@ -203,7 +211,8 @@ class SyntheticWingModel:
         cameras = self.cameras
         photos = Mesh.get_many_photos((self.wing, self.tip),
                                       movement=movement, resolution=self.resolution, camera=cameras,
-                                      cmap=self.cmap, plotter=self.plotter)
+                                      cmap=self.cmap, plotter=self.plotter, background_photos=self.background_photos,
+                                      cam_noise_lambda=self.cam_noise_lambda)
         return photos
 
     def __call__(self, displacement):
@@ -286,7 +295,7 @@ class SyntheticWingModel:
     @staticmethod
     def two_scales_to_compare(mode_shape, real_scales, reconstruct_scales, texture, resolution, camera, loss_function,
                               ir,
-                              plotter=None, compatibility_arr=None, tip_index_arr=None, cv=False, numpy_scales=False,):
+                              plotter=None, compatibility_arr=None, tip_index_arr=None, cv=False, numpy_scales=False, ):
         """
         Creates a list of photos from mode shape and scales
         Args:
@@ -326,11 +335,11 @@ class SyntheticWingModel:
                 reconstruct_scales[i] = np.fromstring(reconstruct_scales[i], dtype=np.float32, sep=' ')
             real_scales = np.array(real_scales)
             reconstruct_scales = np.array(reconstruct_scales)
-        #real_scales = torch.tensor(real_scales, device="cpu")
-        #reconstruct_scales = torch.tensor(reconstruct_scales, device="cpu")
+        # real_scales = torch.tensor(real_scales, device="cpu")
+        # reconstruct_scales = torch.tensor(reconstruct_scales, device="cpu")
         l_inf = L_infinity(mode_shape, 1, real_scales, reconstruct_scales)
-        #print(torch.max(l_inf))
-        #l_inf = l_inf.numpy()
+        # print(torch.max(l_inf))
+        # l_inf = l_inf.numpy()
         print(l_inf.flatten())
         err = calc_errors(loss_function, mode_shape, 1, ir, real_scales, reconstruct_scales)
         scale_err = err[3].numpy()
@@ -351,42 +360,55 @@ class SyntheticWingModel:
                         lineType=2)
             cv2.putText(img_d, "ssim:" + f'{ssim: .2f}', (0, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "3d reconstruction:" + f'{err[0][i]: .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+            cv2.putText(img_d, "3d reconstruction:" + f'{err[0][i]: .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+                        color1,
                         lineType=2)
-            cv2.putText(img_d, "ir reconstruction:" + f'{err[1][i]: .3e}', (0, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+            cv2.putText(img_d, "ir reconstruction:" + f'{err[1][i]: .3e}', (0, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+                        color1,
                         lineType=2)
-            cv2.putText(img_d, "avg reconstruction:" + f'{err[2][i]: .3e}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+            cv2.putText(img_d, "avg reconstruction:" + f'{err[2][i]: .3e}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+                        color1,
                         lineType=2)
             cv2.putText(img_d, "L inifinity:" + f'{l_inf[i]: .3e}', (0, 170), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "scale 0:" + f'{scale_err[0][i]: .3e}', (resolution[0] + 1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 0:" + f'{scale_err[0][i]: .3e}', (resolution[0] + 1, 50),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 1:" + f'{scale_err[1][i]: .3e}', (resolution[0] + 1, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 1:" + f'{scale_err[1][i]: .3e}', (resolution[0] + 1, 80),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 2:" + f'{scale_err[2][i]: .3e}', (resolution[0] + 1, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 2:" + f'{scale_err[2][i]: .3e}', (resolution[0] + 1, 110),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 3:" + f'{scale_err[3][i]: .3e}', (resolution[0] + 1, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 3:" + f'{scale_err[3][i]: .3e}', (resolution[0] + 1, 140),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 4:" + f'{scale_err[4][i]: .3e}', (resolution[0] + 1, 170), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
+            cv2.putText(img_d, "scale 4:" + f'{scale_err[4][i]: .3e}', (resolution[0] + 1, 170),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 5:" + f'{scale_err[5][i]: .3e}', (2 * resolution[0] - 260, 50), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 5:" + f'{scale_err[5][i]: .3e}', (2 * resolution[0] - 260, 50),
+                        cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 6:" + f'{scale_err[6][i]: .3e}', (2 * resolution[0] - 260, 80), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 6:" + f'{scale_err[6][i]: .3e}', (2 * resolution[0] - 260, 80),
+                        cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 7:" + f'{scale_err[7][i]: .3e}', (2 * resolution[0] - 260, 110), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 7:" + f'{scale_err[7][i]: .3e}', (2 * resolution[0] - 260, 110),
+                        cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 8:" + f'{scale_err[8][i]: .3e}', (2 * resolution[0] - 260, 140), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 8:" + f'{scale_err[8][i]: .3e}', (2 * resolution[0] - 260, 140),
+                        cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "scale 9:" + f'{scale_err[9][i]: .3e}', (2 * resolution[0] - 260, 170), cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.putText(img_d, "scale 9:" + f'{scale_err[9][i]: .3e}', (2 * resolution[0] - 260, 170),
+                        cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
             cv2.putText(img_d, "reconstructed scales:", (800, 210), cv2.FONT_HERSHEY_TRIPLEX, 1, color3,
@@ -403,16 +425,16 @@ class SyntheticWingModel:
         tip = Mesh('data/wing_off_files/fem_tip.off')
         plotter = pv.Plotter(off_screen=True)
         plotter.set_background('white')
-        text = "gauss:" + f'{gaussian_var: .2f}' + " poisson:" + f'{pois: .2f}' + " S&P:"+f'{s_p: .2f}'
+        text = "gauss:" + f'{gaussian_var: .2f}' + " poisson:" + f'{pois: .2f}' + " S&P:" + f'{s_p: .2f}'
         res = [640, 640]
-        normal_factor = res[0]/640
+        normal_factor = res[0] / 640
         photo = Mesh.get_many_photos([mesh, tip], [mesh.vertices, tip.vertices], res, "jet", plotter,
-                                     [cam], cam_noise_lamda=cam_noise)
+                                     [cam], cam_noise_lambda=cam_noise)
         tform = tforms.TranformOnePhotoNoisyBW(np.zeros(photo.shape).astype(np.float32), pois, gaussian_mean,
                                                gaussian_var, s_p)
         photo = tform(photo)
         font = cv2.FONT_HERSHEY_SIMPLEX
-        org = (int(30*normal_factor), int(30 * normal_factor))
+        org = (int(30 * normal_factor), int(30 * normal_factor))
         font_scale = normal_factor
         color = (0, 0, 0)
         thickness = 2
@@ -426,7 +448,6 @@ class SyntheticWingModel:
         mesh = Mesh(wing_path)
         num_to_return = int(mesh.vertices.shape[0] * p)
         return mesh.vertices[:, 1].argsort()[-num_to_return:][::-1]
-
 
     @staticmethod
     def radical_list_creation_VERY_SLOW(wing_path, p=1, num_of_scales=10):
@@ -447,5 +468,3 @@ class SyntheticWingModel:
         tot_distance = tot_distance[comp_arr]
         num_to_return = int(mesh.vertices.shape[0] * p)
         return tot_distance.argsort()[-num_to_return:][::-1], tot_distance
-
-
