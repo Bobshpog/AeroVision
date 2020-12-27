@@ -113,7 +113,7 @@ class TestCustomInputResnet(TestCase):
         NUM_EPOCHS = 1000
         NUM_INPUT_LAYERS = 1
         NUM_OUTPUTS = 10
-        RESNET_TYPE = '18'  # '18', '50', '34'
+        RESNET_TYPE = 'mobile2'  # '18', '50', '34'
         LOSS_FUNC = F.smooth_l1_loss
         EXPERIMENT_NAME = None
         TRAINING_DB_PATH = ""
@@ -171,15 +171,15 @@ class TestCustomInputResnet(TestCase):
                                          OUTPUT_SCALE), 100, BATCH_SIZE)
                      }
 
-        for i in -np.linspace(-3, 0, 10, endpoint=False):
-            POISSON_RATE = i*i
-            EXPERIMENT_NAME=f"noisy pois={i*i}"
-            transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
-            run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH,
-                             VAL_SPLIT,
-                             transform, None, reduce_dict, hist_dict, text_dict, train_cache_size=TRAIN_CACHE_SIZE,
-                             val_cache_size=VAL_CACHE_SIZE,
-                             batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT),output_scaling=OUTPUT_SCALE)
+        # for i in -np.linspace(-3, 0, 10, endpoint=False):
+        #     POISSON_RATE = i*i
+        #     EXPERIMENT_NAME=f"noisy pois={i*i}"
+        # transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
+        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH,
+                         VAL_SPLIT,
+                         transform, None, reduce_dict, hist_dict, text_dict,resnet_type=RESNET_TYPE, train_cache_size=TRAIN_CACHE_SIZE,
+                         val_cache_size=VAL_CACHE_SIZE,
+                         batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT),output_scaling=OUTPUT_SCALE)
 
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
