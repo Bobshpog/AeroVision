@@ -15,6 +15,7 @@ import torchvision.models as models
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from torch.utils.data import DataLoader
+from torchvision.models.mobilenet import ConvBNReLU
 
 from src.model_datasets.image_dataset import ImageDataset
 from src.util.general import Functor
@@ -25,7 +26,7 @@ class CustomInputResnet(pl.LightningModule):
     def __init__(self, num_input_layers, num_outputs, loss_func, reduce_error_func_dict, hist_error_func_dict,
                  text_error_func_dict,
                  output_scaling,
-                 resnet_type:str, learning_rate,
+                 resnet_type: str, learning_rate,
                  cosine_annealing_steps,
                  weight_decay, dtype=torch.float32, track_ideal_metrics=False):
         super().__init__()
@@ -49,7 +50,8 @@ class CustomInputResnet(pl.LightningModule):
         self.train_epoch_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=False, dist_sync_on_step=True)
                                     for name, foo in reduce_error_func_dict.items()}
         self.train_epoch_metrics_noisy_y = {name + "_ideal": deepcopy(foo)
-                                            for name, foo in self.train_epoch_metrics.items()} if track_ideal_metrics else {}
+                                            for name, foo in
+                                            self.train_epoch_metrics.items()} if track_ideal_metrics else {}
 
         self.val_metrics = {f"val_{name}": ReduceMetric(foo, compute_on_step=False) for name, foo in
                             reduce_error_func_dict.items()}
@@ -65,6 +67,9 @@ class CustomInputResnet(pl.LightningModule):
         if resnet_type.startswith('res'):
             self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
                                           bias=False)
+        if resnet_type == 'mobile2':
+            self.resnet.features[0] = ConvBNReLU(num_input_layers, 1280, stride=2,
+                                                 norm_layer=self.resnet.nn.BatchNorm2D)
         self.type(dst_type=dtype)
 
     def forward(self, x):
@@ -144,10 +149,10 @@ class CustomInputResnet(pl.LightningModule):
                                           epoch=self.current_epoch)
         for name, metric in {**self.val_metrics, **self.val_metrics_noisy_y}.items():
             if isinstance(metric, ReduceMetric):
-                metric_res=metric.compute()
+                metric_res = metric.compute()
                 self.logger.experiment.log_metric(name, metric_res, step=self.current_epoch,
                                                   epoch=self.current_epoch)
-                self.log(name,metric_res)
+                self.log(name, metric_res)
                 self.logger.experiment.log_metric(f'min_{name}', metric.min.cpu().numpy(), step=self.current_epoch,
                                                   epoch=self.current_epoch)
 
