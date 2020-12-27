@@ -25,14 +25,15 @@ class CustomInputResnet(pl.LightningModule):
     def __init__(self, num_input_layers, num_outputs, loss_func, reduce_error_func_dict, hist_error_func_dict,
                  text_error_func_dict,
                  output_scaling,
-                 resnet_type, learning_rate,
+                 resnet_type:str, learning_rate,
                  cosine_annealing_steps,
                  weight_decay, dtype=torch.float32, track_ideal_metrics=False):
         super().__init__()
         # TODO consider removing pretrained
-        resnet_dict = {'18': models.resnet18,
-                       '34': models.resnet34,
-                       '50': models.resnet50}
+        resnet_dict = {'res18': models.resnet18,
+                       'res34': models.resnet34,
+                       'res50': models.resnet50,
+                       'mobile2': models.mobilenet_v2}
         if "loss" in list(reduce_error_func_dict.keys()) + list(hist_error_func_dict.keys()):
             raise ValueError("Bad function names")
         self.num_input_layers = num_input_layers
@@ -61,8 +62,9 @@ class CustomInputResnet(pl.LightningModule):
         self.current_step = 0
         self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
-        self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
-                                      bias=False)
+        if resnet_type.startswith('res'):
+            self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
+                                          bias=False)
         self.type(dst_type=dtype)
 
     def forward(self, x):
