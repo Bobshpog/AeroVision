@@ -12,7 +12,7 @@ import src.data.database_builder as db
 from src.data.data_generators.synthetic_mat_gen import SyntheticMatGenerator
 from src.data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayingGen
 from src.util.timing import profile
-
+import os
 
 class Test(TestCase):
     def test_process_csv_pair(self):
@@ -86,6 +86,8 @@ class TestDatabaseBuilder(TestCase):
             'little_shake': [(0.0005, 0.001, 0.01)],
             'normal_shake': [(0.0005, 0.001, 0.05)]
         }
+        background_pictures_path = "data/background_pictures/lab/"
+        background_pictures_list = [background_pictures_path + b for b in os.listdir(background_pictures_path)]
         #chaneg this to select db cameras
         cameras=[all_cameras['sideways']]
         texture = 'data/textures/checkers_dark_blue.png'
