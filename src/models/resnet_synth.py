@@ -8,7 +8,7 @@ import h5py
 import numpy as np
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models as models
@@ -69,7 +69,7 @@ class CustomInputResnet(pl.LightningModule):
                                           bias=False)
         if resnet_type == 'mobile2':
             self.resnet.features[0] = ConvBNReLU(num_input_layers, 1280, stride=2,
-                                                 norm_layer=self.resnet.nn.BatchNorm2D)
+                                                 norm_layer=nn.BatchNorm2d)
         self.type(dst_type=dtype)
 
     def forward(self, x):
