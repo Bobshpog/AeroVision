@@ -351,11 +351,11 @@ class SyntheticWingModel:
                         lineType=2)
             cv2.putText(img_d, "ssim:" + f'{ssim: .2f}', (0, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "3d reconstruct:" + f'{err[0][i]: .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+            cv2.putText(img_d, "3d reconstruction:" + f'{err[0][i]: .3e}', (0, 80), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "ir reconstruct:" + f'{err[1][i]: .3e}', (0, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+            cv2.putText(img_d, "ir reconstruction:" + f'{err[1][i]: .3e}', (0, 110), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
-            cv2.putText(img_d, "avg reconstruct:" + f'{err[2][i]: .3e}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
+            cv2.putText(img_d, "avg reconstruction:" + f'{err[2][i]: .3e}', (0, 140), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
             cv2.putText(img_d, "L inifinity:" + f'{l_inf[i]: .3e}', (0, 170), cv2.FONT_HERSHEY_TRIPLEX, 0.75, color1,
                         lineType=2)
@@ -389,7 +389,7 @@ class SyntheticWingModel:
             cv2.putText(img_d, "scale 9:" + f'{scale_err[9][i]: .3e}', (2 * resolution[0] - 260, 170), cv2.FONT_HERSHEY_TRIPLEX,
                         0.75, color2,
                         lineType=2)
-            cv2.putText(img_d, "reconstruct scales:", (800, 210), cv2.FONT_HERSHEY_TRIPLEX, 1, color3,
+            cv2.putText(img_d, "reconstructed scales:", (800, 210), cv2.FONT_HERSHEY_TRIPLEX, 1, color3,
                         lineType=2)
             cv2.putText(img_d, "real scales:", (200, 210), cv2.FONT_HERSHEY_TRIPLEX, 1, color3,
                         lineType=2)
