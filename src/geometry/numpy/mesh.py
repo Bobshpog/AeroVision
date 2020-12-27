@@ -519,9 +519,9 @@ class Mesh:
         """
         to_return = np.zeros(shape=(len(camera), resolution[1], resolution[0], 4))
         num_of_mesh = len(mesh)
-        if background_photos is not None:
+        if background_photos:
             plotter.add_background_image(random.choice(background_photos), scale=background_scale)
-        if cam_noise_lambda is not None:
+        if cam_noise_lambda:
             cam_noise = np.zeros((len(camera), 3, 3))
             cam_noise[:,0] += np.random.normal(0, cam_noise_lambda[0], (len(camera), 3))
             cam_noise[:,1] += np.random.normal(0, cam_noise_lambda[1], (len(camera), 3))
