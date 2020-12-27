@@ -83,8 +83,8 @@ class TestDatabaseBuilder(TestCase):
             'tunnel_lower_cam_middle_focus': [(0.05, 0, 0.09), (0.05, 0.3, -0.02), (0, 6.314, -1)],
         }
         camera_noise = {
-            'little_shake': [(0.0005, 0.001, 0.01)],
-            'normal_shake': [(0.0005, 0.001, 0.05)]
+            'little_shake': (0.0005, 0.001, 0.01),
+            'normal_shake': (0.0005, 0.001, 0.05)
         }
         #chaneg this to select db cameras
         cameras=[all_cameras['sideways']]
