@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Union, List
+from typing import Union, List, Tuple
 
 import cv2
 from tqdm import trange
@@ -138,7 +138,7 @@ class SyntheticWingModel:
     resolution: list
     cmap: str
     background_photos: List[str] = field(default_factory=list)
-    cam_noise_lambda: float = 0
+    cam_noise_lambda: Tuple[float]= None
 
     def __post_init__(self):
         self.wing = Mesh(self.wing_path, texture=self.texture_wing)

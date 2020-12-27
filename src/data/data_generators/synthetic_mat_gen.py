@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Tuple
 
 import h5py
 import numpy as np
@@ -26,14 +26,13 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
     cameras: list = field(repr=False)
     texture_path_wing: Union[str, Path]
 
-
     cmap: str = field(repr=False)
     mesh_wing_path: Union[Path, str]
     mesh_tip_path: Union[Path, str]
     texture_path_tip: Union[None, str, Path] = field(repr=False, default=None)
 
     background_photos: List[str] = field(default_factory=list)
-    cam_noise_lambda: float = 0
+    cam_noise_lambda: Tuple[float] = None
 
     def __post_init__(self):
         if isinstance(self.mat_path, str):
@@ -56,7 +55,8 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
         self.wing_model = SyntheticWingModel(self.cords, self.ir_list, self.texture_path_wing, self.texture_path_tip,
                                              self.mesh_wing_path, self.mesh_tip_path, self.old_mesh_wing_path,
                                              self.cameras, self.num_vertices_wing, self.num_vertices_tip, plotter,
-                                             self.resolution, self.cmap,background_photos=self.background_photos,cam_noise_lambda=self.cam_noise_lambda)
+                                             self.resolution, self.cmap, background_photos=self.background_photos,
+                                             cam_noise_lambda=self.cam_noise_lambda)
 
     def __len__(self):
         return self.num_frames
