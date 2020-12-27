@@ -109,11 +109,11 @@ class TestCustomInputResnet(TestCase):
                          batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT))
 
     def test_resnet_noisy(self):
-        BATCH_SIZE = 32  # 16 for Resnet50, 64 for resnet 18
+        BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
         NUM_EPOCHS = 1000
         NUM_INPUT_LAYERS = 1
         NUM_OUTPUTS = 10
-        RESNET_TYPE = 'mobile2'  # '18', '50', '34'
+        RESNET_TYPE = ''  # 'res18', 'res50', 'res34', 'mobile2'
         LOSS_FUNC = F.smooth_l1_loss
         EXPERIMENT_NAME = None
         TRAINING_DB_PATH = ""
