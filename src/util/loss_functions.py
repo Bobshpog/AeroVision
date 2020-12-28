@@ -128,9 +128,9 @@ def L_infinity(mode_shapes: np.ndarray, scale_factor: int,
         mode_shapes = torch.tensor(mode_shapes, device=device, dtype=torch.float64).reshape(-1, len(_x))
         pos_a = (mode_shapes @ _x)
         pos_b = (mode_shapes @ _y)
-        diff = (pos_b - pos_a).reshape((x.shape[0], int(mode_shapes.shape[0] / 3), 3))
-        diff = torch.norm(diff, dim=2)
-        return torch.norm(diff, dim=1, p=float('inf'))/scale_factor
+        diff = (pos_b - pos_a).reshape((int(mode_shapes.shape[0] / 3), 3,-1))
+        diff = torch.norm(diff, dim=1)
+        return torch.norm(diff, dim=0, p=float('inf'))/scale_factor
 
 
 def y_hat_get_scale_i(scale, y_mean, y_sd, i, y_hat, y):
