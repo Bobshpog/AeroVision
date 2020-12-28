@@ -78,9 +78,9 @@ class TestDatabaseBuilder(TestCase):
             'tunnel_upper_cam_tip_focus': [(0.05, 0, -0.09), (0.05, 0.6, 0.02), (0, 6.314, 1)],
             'tunnel_lower_cam_tip_focus': [(0.05, 0, 0.09), (0.05, 0.6, -0.02), (0, 6.314, -1)],
 
-            'tunnel_front_cam_middle_focus': [(0.005, 0, -0.09), (0.005, 0.3, 0.02), (0, 6.314, 1)],
-            'tunnel_upper_cam_middle_focus': [(0.05, 0, -0.09), (0.05, 0.3, 0.02), (0, 6.314, 1)],
-            'tunnel_lower_cam_middle_focus': [(0.05, 0, 0.09), (0.05, 0.3, -0.02), (0, 6.314, -1)],
+            'tunnel_front_cam_middle_focus': [(0.005, -0.003, -0.09), (0.005, 0.35, 0), (0, 1, -4)],
+            'tunnel_upper_cam_middle_focus': [(0.05, -0.003, -0.09), (0.05, 0.35, 0), (0, 1, -4)],
+            'tunnel_lower_cam_middle_focus': [(0.05, -0.003, 0.09), (0.05, 0.35, 0), (0, 1, 4)],
         }
         camera_noise = {
             'little_shake': (0.0005, 0.001, 0.01),
