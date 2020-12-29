@@ -28,8 +28,8 @@ class TestDatabaseBuilder(TestCase):
         old_mesh_wing_path = 'data/wing_off_files/synth_wing_v3.off'
         compression = 'gzip'
 
-        im_width = 640
-        im_height = 480
+        im_width = 320
+        im_height = 240
         resolution = [im_width, im_height]
         ir_list = ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
                          6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
@@ -74,9 +74,6 @@ class TestDatabaseBuilder(TestCase):
                          (0.05, 0.35, 0.02),
                          (0, 0.16643488101070833, 1)],
 
-            'tunnel_front_cam_tip_focus': [(0.005, 0, -0.09), (0.005, 0.6, 0.02), (0, 6.314, 1)],
-            'tunnel_upper_cam_tip_focus': [(0.05, 0, -0.09), (0.05, 0.6, 0.02), (0, 6.314, 1)],
-            'tunnel_lower_cam_tip_focus': [(0.05, 0, 0.09), (0.05, 0.6, -0.02), (0, 6.314, -1)],
 
             'tunnel_front_cam_middle_focus': [(0.005, -0.003, -0.09), (0.005, 0.35, 0), (0, 1, -4)],
             'tunnel_upper_cam_middle_focus': [(0.05, -0.003, -0.09), (0.05, 0.35, 0), (0, 1, -4)],
@@ -87,9 +84,8 @@ class TestDatabaseBuilder(TestCase):
             'normal_shake': (0.0005, 0.001, 0.05)
         }
         background_pictures_path = "data/background_pictures/lab/"
-        background_pictures_list = [background_pictures_path + b for b in os.listdir(background_pictures_path)]
         #chaneg this to select db cameras
-        cameras=[all_cameras['sideways']]
+        cameras=[all_cameras['tunnel_upper_cam_middle_focus']]
         texture = 'data/textures/checkers_dark_blue.png'
         cmap = 'jet'
 
@@ -100,11 +96,12 @@ class TestDatabaseBuilder(TestCase):
                                                       Config.mesh_tip_path, 5, 2, Config.ir_list, Config.resolution,
                                                       Config.cameras, Config.texture, Config.cmap
                                                       )
+        background_pictures_list = [Config.background_pictures_path + b for b in os.listdir(Config.background_pictures_path)]
         data_generator = SyntheticMatGenerator('data/data_samples/Daniella_data.mat',
                                                "data/mode_shapes/synth_mode_shapes_9103_10.mat", Config.mesh_wing_path,
                                                Config.mesh_tip_path, Config.old_mesh_wing_path, Config.radical_list,
                                                Config.resolution, Config.cameras, Config.texture, Config.cmap,
-                                               background_photos=Config.background_pictures_list, )
+                                               background_photos=background_pictures_list, )
         database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=300)
         data_file_path = database(dtype=np.float32)
         with h5py.File(data_file_path, 'r') as f:
