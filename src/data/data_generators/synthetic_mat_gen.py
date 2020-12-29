@@ -49,12 +49,12 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
             self.texture_path_tip = Path(self.texture_path_tip)
         self.num_vertices_wing, _ = read_off_size(self.mesh_wing_path)
         self.num_vertices_tip, _ = read_off_size(self.mesh_tip_path)
-        if self.background_photos is None:
-            plotter = [pv.Plotter(off_screen=True)]
-        else:
+        if self.background_photos:
             plotter = [pv.Plotter(off_screen=True) for _ in self.background_photos]
             for path, plot in zip(self.background_photos, plotter):
                 plot.add_background_image(path)
+        else:
+            plotter = [pv.Plotter(off_screen=True)]
         self.cords, self.disp_arr, self.scales_arr = read_data(str(self.mat_path))
         self.num_frames, self.num_scales = self.scales_arr.shape
         self.wing_model = SyntheticWingModel(self.cords, self.ir_list, self.texture_path_wing, self.texture_path_tip,
