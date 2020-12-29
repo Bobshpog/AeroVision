@@ -31,7 +31,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
     mesh_tip_path: Union[Path, str]
     texture_path_tip: Union[None, str, Path] = field(repr=False, default=None)
 
-    background_photos: List[str] = field(default_factory=list)
+    background_photos: Union[List[str], None] = field(default_factory=list)
     cam_noise_lambda: Tuple[float] = None
 
     def __post_init__(self):
@@ -49,7 +49,12 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
             self.texture_path_tip = Path(self.texture_path_tip)
         self.num_vertices_wing, _ = read_off_size(self.mesh_wing_path)
         self.num_vertices_tip, _ = read_off_size(self.mesh_tip_path)
-        plotter = pv.Plotter(off_screen=True)
+        if self.background_photos is None:
+            plotter = [pv.Plotter(off_screen=True)]
+        else:
+            plotter = [pv.Plotter(off_screen=True) for _ in self.background_photos]
+            for path, plot in zip(self.background_photos, plotter):
+                plot.add_background_image(path)
         self.cords, self.disp_arr, self.scales_arr = read_data(str(self.mat_path))
         self.num_frames, self.num_scales = self.scales_arr.shape
         self.wing_model = SyntheticWingModel(self.cords, self.ir_list, self.texture_path_wing, self.texture_path_tip,

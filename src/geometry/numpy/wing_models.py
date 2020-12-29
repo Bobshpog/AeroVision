@@ -134,7 +134,7 @@ class SyntheticWingModel:
     cameras: list
     wing_vertices_num: int
     tip_vertices_num: int
-    plotter: pv.BasePlotter
+    plotter: list   # list of plotters to choose in random
     resolution: list
     cmap: str
     background_photos: List[str] = field(default_factory=list)
@@ -211,7 +211,7 @@ class SyntheticWingModel:
         cameras = self.cameras
         photos = Mesh.get_many_photos((self.wing, self.tip),
                                       movement=movement, resolution=self.resolution, camera=cameras,
-                                      cmap=self.cmap, plotter=self.plotter, background_photos=self.background_photos,
+                                      cmap=self.cmap, plotter=random.choice(self.plotter), background_photos=None,
                                       cam_noise_lambda=self.cam_noise_lambda)
         return photos
 
