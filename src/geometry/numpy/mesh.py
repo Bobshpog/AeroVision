@@ -169,7 +169,7 @@ class Mesh:
         Returns:
             the pyvista plotter
         """
-        if plotter is None:
+        if not plotter:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position=title_location, font_size=font_size, color=font_color)
@@ -204,7 +204,7 @@ class Mesh:
                  the pyvista plotter
         """
 
-        if plotter is None:
+        if not plotter:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position=title_location, font_size=font_size, color=font_color)
@@ -284,7 +284,7 @@ class Mesh:
              Returns:
                  the pyvista plotter
         """
-        if plotter is None:
+        if not plotter:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         if title:
@@ -294,7 +294,7 @@ class Mesh:
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
 
-        if texture is None:
+        if not texture:
             plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture, show_scalar_bar=False)
         else:
             if isinstance(texture, np.ndarray):
@@ -396,7 +396,7 @@ class Mesh:
         Returns:
             the pyvista plotter
         """
-        if plotter is None:
+        if not plotter:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
 
@@ -443,7 +443,7 @@ class Mesh:
            None
         """
 
-        if plotter is None:
+        if not plotter:
             plotter = pv.Plotter()
 
         plotter.subplot(index_column=index_col, index_row=index_row)
@@ -452,7 +452,7 @@ class Mesh:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
-        if texture is None:
+        if not texture:
             plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture)
         else:
             if isinstance(texture, np.ndarray):
@@ -528,17 +528,74 @@ class Mesh:
             cam_noise[:,2] += np.random.normal(0, cam_noise_lambda[2], (len(camera), 3))
             camera = np.array(camera) + cam_noise
 
-
         if num_of_mesh == 1:
             mesh = [mesh]
         for i in range(num_of_mesh):
-            if mesh[i].texture is None:
+            if not mesh[i].texture:
                 plotter.add_mesh(mesh[i].pv_mesh, cmap=cmap,
                                  name='get_photo_' + str(i))
             else:
                 plotter.add_mesh(mesh[i].pv_mesh, texture=mesh[i].texture, name='get_photo_mesh_' + str(i))
             plotter.update_coordinates(movement[i], mesh=mesh[i].pv_mesh)
-        if title is not None:
+        if title:
+            plotter.add_text(title, position=title_location, font_size=10, color=title_color, name="title", shadow=True)
+        plotter.set_background(color="white")
+        plotter.show(auto_close=False, window_size=resolution)
+        for idx, cam in enumerate(camera):
+            plotter.set_position(cam[0])
+            plotter.set_focus(cam[1])
+            plotter.set_viewup(cam[2])
+            depth = plotter.get_image_depth(fill_value=None)
+            depth = np.abs(depth)
+            screen = plotter.screenshot(window_size=resolution)
+            screen = screen / 255
+            to_return[idx] = np.append(screen, depth.reshape(resolution[1], resolution[0], 1), axis=-1)
+        if background_photos:
+            plotter.remove_background_image()
+        return np.asarray(to_return, np.float32)
+
+    @staticmethod
+    def get_many_noisy_photos(mesh, movement, resolution, cmap, plotter, camera, title=None, title_location="upper_edge",
+                        background_photos=None, background_scale=1, title_color="black", cam_noise_lambda=None,
+                              texture_params=(255/2, 155, (1000, 1000, 3))):
+        """
+        Take a photo of the mesh in a cerain position WITH GAUSSIAN TEXTURE
+        all args in case for more then one mesh should be in list
+
+       Args:
+           mesh: the mesh to use
+           movement: V side vector
+           texture: the texture to use
+           cmap: the colormap to use, used only if texture is not supplied
+           plotter: the pyvista plotter, clear the mesh "get_photo" in the plotter
+           camera: list of [camera position , focal point, view up] each (x,y,z) tuple
+           resolution: the image resolution [w,h]
+           background_photos: list of background photos to use in random
+           texture_params: (mean, variance, shape) of the noisy texture
+
+
+        Returns:
+           An image shot from camera of the mesh
+        """
+        to_return = np.zeros(shape=(len(camera), resolution[1], resolution[0], 4))
+        num_of_mesh = len(mesh)
+        if background_photos:
+            plotter.add_background_image(random.choice(background_photos), scale=background_scale)
+        if cam_noise_lambda:
+            cam_noise = np.zeros((len(camera), 3, 3))
+            cam_noise[:,0] += np.random.normal(0, cam_noise_lambda[0], (len(camera), 3))
+            cam_noise[:,1] += np.random.normal(0, cam_noise_lambda[1], (len(camera), 3))
+            cam_noise[:,2] += np.random.normal(0, cam_noise_lambda[2], (len(camera), 3))
+            camera = np.array(camera) + cam_noise
+
+
+        if num_of_mesh == 1:
+            mesh = [mesh]
+        for i in range(num_of_mesh):
+            tex = np.random.normal(texture_params)
+            plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_' + str(i))
+            plotter.update_coordinates(movement[i], mesh=mesh[i].pv_mesh)
+        if title:
             plotter.add_text(title, position=title_location, font_size=10, color=title_color, name="title", shadow=True)
         plotter.set_background(color="white")
         plotter.show(auto_close=False, window_size=resolution)
@@ -722,7 +779,7 @@ class Mesh:
         col = np.tile(np.arange(len(f)).reshape((-1, 1)), (1, f.shape[1])).reshape(-1)  # Data for vertices
         shape = (nv, len(f))
 
-        if data is None:
+        if not data:
             data = np.ones(len(col), dtype=np.bool)
 
         # assemble into sparse matrix
@@ -759,7 +816,7 @@ def animate_few_meshes(mesh, movement, f=None, subplot=(0, 0), texture=None, cma
                             cmap=cmap, plotter=plotter, title=title, font_color=font_color, font_size=font_size,
                             gif_path=gif_path, camera=camera)
 
-    if plotter is None:
+    if not plotter:
         plotter = pv.Plotter()
     pv_mesh = []
     # adding mushes with textures
@@ -774,7 +831,7 @@ def animate_few_meshes(mesh, movement, f=None, subplot=(0, 0), texture=None, cma
             plotter.set_focus(camera[idx][1])
             plotter.set_viewup(camera[idx][2])
         pv_mesh.append(mesh[idx].pv_mesh)
-        if texture[idx] is None:
+        if not texture[idx]:
             plotter.add_mesh(pv_mesh[idx], scalars=f[idx], cmap=cmap[idx], texture=texture[idx])
         else:
             if isinstance(texture[idx], np.ndarray):

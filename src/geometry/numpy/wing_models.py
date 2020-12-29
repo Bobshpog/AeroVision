@@ -138,7 +138,8 @@ class SyntheticWingModel:
     resolution: list
     cmap: str
     background_photos: List[str] = field(default_factory=list)
-    cam_noise_lambda: Tuple[float]= None
+    cam_noise_lambda: Tuple[float] = None
+    random_texture: bool = False
 
     def __post_init__(self):
         self.wing = Mesh(self.wing_path, texture=self.texture_wing)
@@ -209,10 +210,16 @@ class SyntheticWingModel:
            An image shot from camera of the wing and tip
         """
         cameras = self.cameras
-        photos = Mesh.get_many_photos((self.wing, self.tip),
-                                      movement=movement, resolution=self.resolution, camera=cameras,
-                                      cmap=self.cmap, plotter=random.choice(self.plotter), background_photos=None,
-                                      cam_noise_lambda=self.cam_noise_lambda)
+        if self.random_texture:
+            photos = Mesh.get_many_noisy_photos((self.wing, self.tip),
+                                                movement=movement, resolution=self.resolution, camera=cameras,
+                                                cmap=self.cmap, plotter=random.choice(self.plotter),
+                                                background_photos=None, cam_noise_lambda=self.cam_noise_lambda)
+        else:
+            photos = Mesh.get_many_photos((self.wing, self.tip),
+                                          movement=movement, resolution=self.resolution, camera=cameras,
+                                          cmap=self.cmap, plotter=random.choice(self.plotter), background_photos=None,
+                                          cam_noise_lambda=self.cam_noise_lambda)
         return photos
 
     def __call__(self, displacement):

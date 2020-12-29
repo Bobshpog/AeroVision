@@ -33,6 +33,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
 
     background_photos: Union[List[str], None] = field(default_factory=list)
     cam_noise_lambda: Tuple[float] = None
+    random_texture: bool = False
 
     def __post_init__(self):
         if isinstance(self.mat_path, str):
@@ -61,7 +62,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
                                              self.mesh_wing_path, self.mesh_tip_path, self.old_mesh_wing_path,
                                              self.cameras, self.num_vertices_wing, self.num_vertices_tip, plotter,
                                              self.resolution, self.cmap, background_photos=self.background_photos,
-                                             cam_noise_lambda=self.cam_noise_lambda)
+                                             cam_noise_lambda=self.cam_noise_lambda, random_texture=self.random_texture)
 
     def __len__(self):
         return self.num_frames

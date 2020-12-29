@@ -88,6 +88,7 @@ class TestDatabaseBuilder(TestCase):
         cameras=[all_cameras['tunnel_upper_cam_middle_focus']]
         texture = 'data/textures/checkers_dark_blue.png'
         cmap = 'jet'
+        random_texture = False
 
     @profile
     def test___call__(self):
@@ -101,7 +102,8 @@ class TestDatabaseBuilder(TestCase):
                                                "data/mode_shapes/synth_mode_shapes_9103_10.mat", Config.mesh_wing_path,
                                                Config.mesh_tip_path, Config.old_mesh_wing_path, Config.radical_list,
                                                Config.resolution, Config.cameras, Config.texture, Config.cmap,
-                                               background_photos=background_pictures_list, )
+                                               background_photos=background_pictures_list,
+                                               random_texture=Config.random_texture, )
         database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=300)
         data_file_path = database(dtype=np.float32)
         with h5py.File(data_file_path, 'r') as f:
