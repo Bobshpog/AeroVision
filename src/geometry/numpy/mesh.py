@@ -293,8 +293,9 @@ class Mesh:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
-
-        if not texture:
+        if self.texture:
+            plotter.add_mesh(self.pv_mesh, texture=self.texture)
+        elif not texture:
             plotter.add_mesh(self.pv_mesh, scalars=f, cmap=cmap, texture=texture, show_scalar_bar=False)
         else:
             if isinstance(texture, np.ndarray):
