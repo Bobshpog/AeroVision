@@ -556,7 +556,7 @@ class Mesh:
 
     @staticmethod
     def get_many_noisy_photos(mesh, movement, resolution, cmap, plotter, camera, title=None, title_location="upper_edge",
-                        background_photos=None, background_scale=1, title_color="black", cam_noise_lambda=None,
+                              background_photos=None, background_scale=1, title_color="black", cam_noise_lambda=None,
                               texture_params=(255/2, 155, (1000, 1000, 3))):
         """
         Take a photo of the mesh in a cerain position WITH GAUSSIAN TEXTURE
@@ -588,11 +588,14 @@ class Mesh:
             cam_noise[:,2] += np.random.normal(0, cam_noise_lambda[2], (len(camera), 3))
             camera = np.array(camera) + cam_noise
 
-
         if num_of_mesh == 1:
             mesh = [mesh]
         for i in range(num_of_mesh):
-            tex = np.random.normal(texture_params)
+            tex = np.random.normal(texture_params[0], texture_params[1], texture_params[2]).astype(np.uint8)
+            tex[np.where(tex > 255)] = 255
+            tex[np.where(tex < 0)] = 0
+            tex = pv.numpy_to_texture(tex)
+            mesh[i].pv_mesh.texture_map_to_plane(inplace=True)
             plotter.add_mesh(mesh[i].pv_mesh, texture=tex, name='get_photo_mesh_' + str(i))
             plotter.update_coordinates(movement[i], mesh=mesh[i].pv_mesh)
         if title:
