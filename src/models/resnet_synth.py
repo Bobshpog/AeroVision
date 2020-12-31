@@ -25,7 +25,7 @@ class CustomInputResnet(pl.LightningModule):
     def __init__(self, num_input_layers, num_outputs, loss_func, reduce_error_func_dict, hist_error_func_dict,
                  text_error_func_dict,
                  output_scaling,
-                 resnet_type:str, learning_rate,
+                 resnet_type: str, learning_rate,
                  cosine_annealing_steps,
                  weight_decay, dtype=torch.float32, track_ideal_metrics=False):
         super().__init__()
@@ -49,7 +49,8 @@ class CustomInputResnet(pl.LightningModule):
         self.train_epoch_metrics = {f"train_{name}": ReduceMetric(foo, compute_on_step=False, dist_sync_on_step=True)
                                     for name, foo in reduce_error_func_dict.items()}
         self.train_epoch_metrics_noisy_y = {name + "_ideal": deepcopy(foo)
-                                            for name, foo in self.train_epoch_metrics.items()} if track_ideal_metrics else {}
+                                            for name, foo in
+                                            self.train_epoch_metrics.items()} if track_ideal_metrics else {}
 
         self.val_metrics = {f"val_{name}": ReduceMetric(foo, compute_on_step=False) for name, foo in
                             reduce_error_func_dict.items()}
@@ -144,10 +145,10 @@ class CustomInputResnet(pl.LightningModule):
                                           epoch=self.current_epoch)
         for name, metric in {**self.val_metrics, **self.val_metrics_noisy_y}.items():
             if isinstance(metric, ReduceMetric):
-                metric_res=metric.compute()
+                metric_res = metric.compute()
                 self.logger.experiment.log_metric(name, metric_res, step=self.current_epoch,
                                                   epoch=self.current_epoch)
-                self.log(name,metric_res)
+                self.log(name, metric_res)
                 self.logger.experiment.log_metric(f'min_{name}', metric.min.cpu().numpy(), step=self.current_epoch,
                                                   epoch=self.current_epoch)
 
@@ -157,8 +158,6 @@ class CustomInputResnet(pl.LightningModule):
                 values = metric.compute()
                 np.save('src/tests/temp/worst.npy', values)
                 self.logger.experiment.log_asset('src/tests/temp/worst.npy', file_name=name, step=self.current_epoch)
-
-
 
 
 def L1_normalized_loss(min, max):
@@ -171,7 +170,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
                      hist_error_func_dict, text_error_func_dict, output_scaling=1e4, lr=1e-2,
                      resnet_type='18', train_cache_size=5500, val_cache_size=1000, batch_size=64, num_epochs=1000,
                      weight_decay=0, cosine_annealing_steps=10, loss_func=F.smooth_l1_loss, subsampler_size=640,
-                     dtype=torch.float32, track_ideal_metrics=False):
+                     dtype=torch.float32, track_ideal_metrics=False, monitor_metric_name=None):
     if None in [batch_size, num_epochs, resnet_type, train_db_path, val_db_path, val_split, comment]:
         raise ValueError('Config not fully initialized')
     torch_to_np_dtypes = {
@@ -228,14 +227,17 @@ def run_resnet_synth(num_input_layers, num_outputs,
         shutil.rmtree(checkpoints_folder)
     else:
         Path(checkpoints_folder).mkdir(parents=True, exist_ok=True)
-    mcp = ModelCheckpoint(
-        dirpath="checkpoints",
-        filepath="{epoch}",
-        save_last=True,
-        save_top_k=10,
-        period=-1,
-        monitor='val_loss',
-        verbose=True)
+    if monitor_metric_name:
+        mcp = ModelCheckpoint(
+            dirpath="checkpoints",
+            filepath="{epoch}",
+            save_last=True,
+            save_top_k=10,
+            period=1,
+            monitor=monitor_metric_name,
+            verbose=True)
+    else:
+        mcp=None
 
     trainer = pl.Trainer(gpus=1, max_epochs=num_epochs,
                          callbacks=[mcp],
