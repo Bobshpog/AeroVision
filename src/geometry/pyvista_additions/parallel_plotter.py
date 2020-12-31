@@ -4,8 +4,10 @@ from copy import deepcopy
 from abc import ABC
 from src.geometry.pyvista_additions.improvd_pyvista_renderer import ImprovedPlotter
 from src.geometry.numpy.mesh import *
-from data import matlab_reader
+from src.data import matlab_reader
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
+
+
 # ----------------------------------------------------------------------------------------------------------------------#
 #                                               Parallel Plot suite
 # ----------------------------------------------------------------------------------------------------------------------#
@@ -19,7 +21,6 @@ class ParallelPlotterBase(Process, ABC):
         self.sd = Manager().dict()
         self.sd['epoch'] = -1
         self.sd['poison'] = False
-
 
         self.last_plotted_epoch = -1
         # self.f = faces if self.VIS_STRATEGY == 'mesh' else None
@@ -67,7 +68,7 @@ class ParallelPlotterBase(Process, ABC):
         raise NotImplementedError
 
     # Meant to be called by the producer
-    def push(self, new_epoch, new_data): # new_data = (X, Y, reconstructed Y) can be changed though
+    def push(self, new_epoch, new_data):  # new_data = (X, Y, reconstructed Y) can be changed though
         # new_data = (train_dict,vald_dict)
         old_epoch = self.sd['epoch']
         assert new_epoch != old_epoch
@@ -98,8 +99,8 @@ class ParallelPlotterBase(Process, ABC):
 #                                               Parallel Plot suite
 # ----------------------------------------------------------------------------------------------------------------------#
 class RunTimeWingPlotter(ParallelPlotterBase):
-    def __init__(self, mean_photo, texture, cam_location, background_image, mode_shape_path, wing_path, tip_path,
-                 old_mesh_path="data/wing_off_files/synth_wing_v3.off"):
+    def __init__(self, mean_photo, texture, cam_location, mode_shape, wing_path, tip_path,
+                 old_mesh_path, background_image):
         super().__init__()
         self.old_mesh = Mesh(old_mesh_path)
         self.texture = texture
@@ -110,7 +111,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.good_scale_tip = Mesh(tip_path)
         self.bad_scale_mesh = Mesh(wing_path, texture)
         self.bad_scale_tip = Mesh(tip_path)
-        self.mode_shape = matlab_reader.read_modal_shapes(mode_shape_path, 10)
+        self.mode_shape = mode_shape
         self.compatibility_arr = mesh_compatibility_creation(self.good_scale_mesh.vertices)
 
         self.tip_arr = tip_arr_creation(self.old_mesh.vertices)
@@ -119,7 +120,6 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
         self.y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         self.z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
-
 
     # def prepare_plotter_dict(self, params, network_output):
     #
@@ -136,17 +136,16 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter = ImprovedPlotter(shape=(2, 2))
         plotter.set_background("white")
 
-
         self.good_scale_mesh.plot_faces(index_row=1, title="Mesh reconstructed from true scales", plotter=plotter,
                                         show=False, camera=self.cam)
         self.good_scale_tip.plot_faces(show=False, index_row=1, plotter=plotter)
         self.bad_scale_mesh.plot_faces(index_row=1, index_col=1, title="Mesh reconstructed from net generated scales",
-                                        show=False, camera=self.cam, plotter=plotter)
+                                       show=False, camera=self.cam, plotter=plotter)
         self.bad_scale_tip.plot_faces(show=False, index_row=1, index_col=1, plotter=plotter)
 
-        plotter.subplot(0,0)
+        plotter.subplot(0, 0)
         plotter.add_text("Image as fed through the system", position="upper_edge", font_size=10, color="black")
-        plotter.subplot(0,1)
+        plotter.subplot(0, 1)
         plotter.add_text("Image plus avg photo", position="upper_edge", font_size=10, color="black")
 
         plotter.subplot(0, 0)
@@ -186,6 +185,5 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.show()
 
 
-def add_mean_photo_to_photo(mean_photo, X): # TODO most likely need to play with dimantions
+def add_mean_photo_to_photo(mean_photo, X):  # TODO most likely need to play with dimantions
     return mean_photo + X
-
