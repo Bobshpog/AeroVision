@@ -106,6 +106,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     def __init__(self, mean_photo, texture, cam_location, mode_shapes, wing_path, tip_path,
                  old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None):
         super().__init__()
+
         self.old_mesh_path = old_mesh_path
         self.texture = texture
         self.mean_photo = mean_photo
@@ -159,10 +160,10 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
     def plot_row(self, data_point, row, plotter, from_where, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh): # from_where = "training" \ "validation"
         good_mesh.plot_faces(index_row=row, title="Mesh reconstructed from true scales", plotter=plotter, index_col=2,
-                                        show=False, camera=self.cam)
+                             show=False, camera=self.cam)
         good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=2)
         bad_mesh.plot_faces(index_row=row, index_col=3, title="Mesh reconstructed from net generated scales",
-                                       show=False, camera=self.cam, plotter=plotter)
+                            show=False, camera=self.cam, plotter=plotter)
         bad_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
 
         plotter.subplot(row, 0)
