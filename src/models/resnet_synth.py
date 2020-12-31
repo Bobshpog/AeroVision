@@ -229,7 +229,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
         Path(checkpoints_folder).mkdir(parents=True, exist_ok=True)
     if monitor_metric_name:
         mcp = ModelCheckpoint(
-            dirpath="checkpoints",
+            dirpath=f"checkpoints/{comment}",
             filename="{epoch}_{"+monitor_metric_name+"}",
             save_last=True,
             save_top_k=10,
