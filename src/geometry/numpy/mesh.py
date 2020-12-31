@@ -449,7 +449,7 @@ class Mesh:
 
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position="upper_edge", font_size=font_size, color=font_color)
-        if camera:
+        if camera is not None:  # it gives .any() crushes without..
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])

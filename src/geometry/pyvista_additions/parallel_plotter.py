@@ -6,7 +6,7 @@ from src.geometry.pyvista_additions.improvd_pyvista_renderer import ImprovedPlot
 from src.geometry.numpy.mesh import *
 from src.data import matlab_reader
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
-
+import cv2
 
 # ----------------------------------------------------------------------------------------------------------------------#
 #                                               Parallel Plot suite
@@ -140,6 +140,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 4))
         plotter.set_background("white")
         self.set_background_image(plotter)
+
         old_mesh = Mesh(self.old_mesh_path)
         for row, data_point in zip(range(len(self.train_d)), self.train_d):
             good_mesh = Mesh(self.mesh_path, self.texture)
@@ -172,12 +173,19 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.add_text("Image plus avg photo", position="upper_edge", font_size=10, color="black")
 
         plotter.subplot(row, 0)
-        plotter.remove_background_image()
-        plotter.add_background_photo(data_point[0])
+        gray_photo = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
+        gray_photo[:, :, 0] = data_point[0][0]
+        gray_photo[:, :, 1] = data_point[0][0]
+        gray_photo[:, :, 2] = data_point[0][0]
+        plotter.add_background_photo(gray_photo * 255)
 
         plotter.subplot(0, 1)
-        plotter.remove_background_image()
-        plotter.add_background_photo(add_mean_photo_to_photo(self.mean_photo, data_point[0]))
+        gray_photo_with_mean = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
+        photo_with_mean = add_mean_photo_to_photo(self.mean_photo, data_point[0][0])
+        gray_photo_with_mean[:, :, 0] = photo_with_mean
+        gray_photo_with_mean[:, :, 1] = photo_with_mean
+        gray_photo_with_mean[:, :, 2] = photo_with_mean
+        plotter.add_background_photo(gray_photo_with_mean * 255)
 
         right_diff = (data_point[1] * self.mode_shape).sum(axis=2).T
         right_movement = good_mesh.vertices + right_diff[self.compatibility_arr]
@@ -215,5 +223,5 @@ class RunTimeWingPlotter(ParallelPlotterBase):
                 plotter.add_background_image(random.choice(self.background_image), as_global=False)
 
 
-def add_mean_photo_to_photo(mean_photo, X):  # TODO most likely need to play with dimantions
-    return mean_photo + X
+def add_mean_photo_to_photo(mean_photo, X):
+    return cv2.cvtColor(mean_photo, cv2.COLOR_RGB2GRAY) + X
