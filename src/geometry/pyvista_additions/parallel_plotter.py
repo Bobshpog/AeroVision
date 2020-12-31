@@ -104,7 +104,7 @@ class ParallelPlotterBase(Process, ABC):
 # ----------------------------------------------------------------------------------------------------------------------#
 class RunTimeWingPlotter(ParallelPlotterBase):
     def __init__(self, mean_photo, texture, cam_location, mode_shape, wing_path, tip_path,
-                 old_mesh_path, background_image):
+                 old_mesh_path, background_image=None):
         super().__init__()
         self.old_mesh = Mesh(old_mesh_path)
         self.texture = texture
@@ -138,6 +138,8 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
         plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 4))
         plotter.set_background("white")
+        self.set_background_image(plotter)
+
         for row, data_point in zip(range(len(self.train_d)), self.train_d):
             good_mesh = Mesh(self.mesh_path, self.texture)
             good_tip = Mesh(self.tip_path)
@@ -150,18 +152,17 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, self.texture)
             bad_tip = Mesh(self.tip_path)
-            self.plot_row(data_point, row + len(self.train_d), plotter, "training", good_mesh, good_tip, bad_mesh, bad_tip)
+            self.plot_row(data_point, row + len(self.train_d), plotter, "validation", good_mesh, good_tip, bad_mesh, bad_tip)
 
         plotter.show()
 
-
     def plot_row(self, data_point, row, plotter, from_where, good_mesh, good_tip, bad_mesh, bad_tip): # from_where = "training" \ "validation"
-        good_mesh.plot_faces(index_row=row, title="Mesh reconstructed from true scales", plotter=plotter,
+        good_mesh.plot_faces(index_row=row, title="Mesh reconstructed from true scales", plotter=plotter, index_col=2,
                                         show=False, camera=self.cam)
-        good_tip.plot_faces(show=False, index_row=row, plotter=plotter)
-        bad_mesh.plot_faces(index_row=row, index_col=1, title="Mesh reconstructed from net generated scales",
+        good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=2)
+        bad_mesh.plot_faces(index_row=row, index_col=3, title="Mesh reconstructed from net generated scales",
                                        show=False, camera=self.cam, plotter=plotter)
-        bad_tip.plot_faces(show=False, index_row=row, index_col=1, plotter=plotter)
+        bad_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
 
         plotter.subplot(row, 0)
         plotter.add_text("Input image in "+from_where, position="upper_edge", font_size=10, color="black")
@@ -189,7 +190,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
         wrong_diff = (data_point[2] * self.mode_shape).sum(axis=2).T
         wrong_movement = bad_mesh.vertices + wrong_diff[self.compatibility_arr]
-        NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
+
         bad_tip_movement = np.zeros(bad_tip.vertices.shape, dtype='float')
         for id in self.tip_arr:
             for k in range(NUM_OF_VERTICES_ON_CIRCUMFERENCE):
@@ -202,6 +203,14 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.update_coordinates(good_tip_movement, good_tip)
         plotter.update_coordinates(wrong_movement, bad_mesh.pv_mesh)
         plotter.update_coordinates(bad_tip_movement, good_tip)
+
+    def set_background_image(self, plotter, mesh_col=(2, 3)):
+        if not self.background_image:
+            return None
+        for row in range(len(self.val_d) + len(self.train_d)):
+            for col in mesh_col:
+                plotter.subplot(row, col)
+                plotter.add_background_image(random.choice(self.background_image), as_global=False)
 
 
 def add_mean_photo_to_photo(mean_photo, X):  # TODO most likely need to play with dimantions
