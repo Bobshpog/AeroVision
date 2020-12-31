@@ -230,7 +230,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
     if monitor_metric_name:
         mcp = ModelCheckpoint(
             dirpath="checkpoints",
-            filepath="{epoch}",
+            filename="{epoch}_{"+monitor_metric_name+"}",
             save_last=True,
             save_top_k=10,
             period=1,
