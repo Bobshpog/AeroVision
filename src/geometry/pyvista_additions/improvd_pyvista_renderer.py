@@ -9,7 +9,7 @@ class ImprovedPlotter(pyvista.Plotter):
 
         Parameters
         ----------
-        image_path : numpy
+        image : numpy
             numpy img
 
         scale : float, optional
