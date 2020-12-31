@@ -236,12 +236,14 @@ def run_resnet_synth(num_input_layers, num_outputs,
             period=1,
             monitor=monitor_metric_name,
             verbose=True)
+        callbacks=[mcp]
     else:
-        mcp=None
+        callbacks=None
 
     trainer = pl.Trainer(gpus=1, max_epochs=num_epochs,
-                         callbacks=[mcp],
+                         callbacks=callbacks,
                          num_sanity_val_steps=0,
                          profiler=True, logger=logger)
     trainer.fit(model, train_loader, val_loader)
     logger.experiment.log_asset_folder(checkpoints_folder)
+
