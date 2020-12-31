@@ -8,7 +8,7 @@ channels:
 dependencies:
   - python==3.8.6
   - numpy
-  - pytorch-lightning==1.0.5
+  - pytorch-lightning==1.1.2
   - matplotlib
   - opencv
   - pyvista

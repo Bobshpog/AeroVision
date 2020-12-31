@@ -159,88 +159,6 @@ class CustomInputResnet(pl.LightningModule):
                 self.logger.experiment.log_asset('src/tests/temp/worst.npy', file_name=name, step=self.current_epoch)
 
 
-#
-# class LoggerCallback(Callback):
-#     def __init__(self, logger, stopping_metric='val_loss', stopping_patience=10):
-#         self.logger = logger
-#         self.metrics = {}
-#         self.stopping_metric = stopping_metric
-#         self.min_counter = MinCounter(stopping_patience)
-#         self.max_errors = {'l1_3d_loss': 0.0569622089146808, 'l1_3d_ir_loss': 0.0628303256182133,
-#                            'l1_reg_avg': 0.00348652643151581,
-#                            'l2_3d_loss': 0.000732383042264162, 'l2_3d_ir_loss': 0.0141162749770687,
-#                            'l2_reg_avg': 0.00314825028181076}
-#
-#     def on_epoch_end(self, trainer, pl_module):
-#         # training
-#         error_dict = {}
-#         error_dict[f'train_loss'] = torch.mean(
-#             torch.cat([x.flatten() for x in pl_module.train_batch_list[f'train_loss']]))
-#         for i in range(pl_module.num_output_layers):
-#             scale_err_hist = torch.cat(
-#                 [x.flatten() for x in pl_module.train_batch_list[f'train_l1_scale{i}']]).flatten()
-#             error_dict[f'train_scale_err{i}'] = torch.mean(scale_err_hist)
-#             scale_hist = torch.cat([x.flatten() for x in pl_module.train_batch_list[f'train_output{i}']]).flatten()
-#             self.logger.experiment.log_histogram_3d(scale_hist.cpu().numpy(), name='hist_' + f'train_scale{i}',
-#                                                     step=pl_module.current_epoch)
-#             self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'train_scale_err{i}',
-#                                                     step=pl_module.current_epoch)
-#         for error_str in pl_module.error_metrics:
-#             max_error = self.max_errors[error_str]
-#             error_str = f'train_{error_str}'
-#             error_tensor = torch.cat([x.flatten() for x in pl_module.train_batch_list[error_str]]).flatten()
-#             curr_loss = torch.mean(error_tensor)
-#             self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy() / max_error, name='hist_' + error_str,
-#                                                     step=pl_module.current_epoch)
-#             error_dict[error_str] = curr_loss
-#         self.metrics = {**self.metrics, **error_dict}
-#
-#         # Both val and training
-#         self.logger.experiment.log_metrics(self.metrics, step=pl_module.current_epoch, epoch=pl_module.current_epoch)
-#         trainer.should_stop = self.min_counter.add(self.metrics[self.stopping_metric], pl_module.current_epoch)
-#
-#         # cleanup
-#         self.metrics.clear()
-#         for i in pl_module.train_batch_list.values():
-#             i.clear()
-#
-#     def on_validation_epoch_end(self, trainer, pl_module):
-#         error_dict = {}
-#         loss_tensor = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l2_3d_ir_loss']])
-#         error_dict[f'val_loss'] = torch.mean(torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_loss']]))
-#         worst_indices = torch.argsort(loss_tensor, descending=True)[:5]
-#         worst_scales = torch.zeros((2 * 5, pl_module.num_output_layers), dtype=loss_tensor.dtype,
-#                                    device=loss_tensor.device)
-#         worst_string = ""
-#         for i in range(pl_module.num_output_layers):
-#             scale_err_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_l1_scale{i}']])
-#             error_dict[f'val_scale_err{i}'] = torch.mean(scale_err_hist)
-#             output_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_output{i}']])
-#             expected_hist = torch.cat([x.flatten() for x in pl_module.val_batch_list[f'val_expected{i}']])
-#             worst_scales[:5, i] = output_hist[worst_indices]
-#             worst_scales[5:, i] = expected_hist[worst_indices]
-#             self.logger.experiment.log_histogram_3d(output_hist.cpu().numpy(), name='hist_' + f'val_scale{i}',
-#                                                     step=pl_module.current_epoch)
-#             self.logger.experiment.log_histogram_3d(scale_err_hist.cpu().numpy(), name='hist_' + f'val_scale_err{i}',
-#                                                     step=pl_module.current_epoch)
-#         for i in worst_scales:
-#             for j in i:
-#                 worst_string += str(float(j)) + " "
-#             worst_string += ";"
-#
-#         self.logger.experiment.log_text(worst_string, step=pl_module.current_epoch)
-#
-#         for error_str in pl_module.error_metrics:
-#             max_error = self.max_errors[error_str]
-#             error_str = f'val_{error_str}'
-#             error_tensor = torch.cat([x.flatten() for x in pl_module.val_batch_list[error_str]]).flatten()
-#             curr_loss = torch.mean(error_tensor)
-#             self.logger.experiment.log_histogram_3d(error_tensor.cpu().numpy() / max_error, name='hist_' + error_str,
-#                                                     step=pl_module.current_epoch)
-#             error_dict[error_str] = curr_loss
-#         self.metrics = {**self.metrics, **error_dict}
-#         for i in pl_module.val_batch_list.values():
-#             i.clear()
 
 
 def L1_normalized_loss(min, max):
@@ -311,7 +229,8 @@ def run_resnet_synth(num_input_layers, num_outputs,
     else:
         Path(checkpoints_folder).mkdir(parents=True, exist_ok=True)
     mcp = ModelCheckpoint(
-        filepath=checkpoints_folder + "{epoch}",
+        dirpath="checkpoints",
+        filepath="{epoch}",
         save_last=True,
         save_top_k=10,
         period=-1,
