@@ -104,7 +104,7 @@ class ParallelPlotterBase(Process, ABC):
 # ----------------------------------------------------------------------------------------------------------------------#
 class RunTimeWingPlotter(ParallelPlotterBase):
     def __init__(self, mean_photo, texture, cam_location, mode_shape, wing_path, tip_path,
-                 old_mesh_path, background_image=None):
+                 old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None):
         super().__init__()
         self.old_mesh = Mesh(old_mesh_path)
         self.texture = texture
