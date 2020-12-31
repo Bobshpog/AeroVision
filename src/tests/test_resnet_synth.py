@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 
 import src.util.image_transforms as my_transforms
+from src.geometry.pyvista_additions.parallel_plotter import RunTimeWingPlotter
 from src.models.resnet_synth import run_resnet_synth
 from src.util.loss_functions import L_infinity, reconstruction_loss_3d, y_hat_get_scale_i, y_get_scale_i, \
     l1_norm_indexed, l1_norm
@@ -63,7 +64,7 @@ class TestCustomInputResnet(TestCase):
         # Total possible cahce is around 6500 total images (640,480,3) total space
         VAL_CACHE_SIZE = len(VAL_SPLIT)
         TRAIN_CACHE_SIZE = 6500 * 3 - VAL_CACHE_SIZE
-        MONITOR='val_l1_smooth'
+        MONITOR = 'val_l1_smooth'
 
         TRANSFORM = my_transforms.TranformOnePhotoNoisyBW
         OUTPUT_SCALE = 1e4
@@ -80,13 +81,24 @@ class TestCustomInputResnet(TestCase):
         SP_RATE = None
 
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
-            mean_image = hf['generator metadata']['mean images'][()]
-            mode_shapes = hf['generator metadata']['modal shapes'][()]
-            ir = hf['generator metadata'].attrs['ir'][()]
+            metadata = hf['generator metadata']
+            mean_images = metadata['mean images'][()]
+            mode_shapes = metadata['modal shapes'][()]
+            ir = metadata.attrs['ir'][()]
             _scales = hf['data']['scales'][()]
             scales_mean = _scales.mean(axis=0)
             scales_std = _scales.std(axis=0)
-        transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
+            mean_image = mean_images[0]
+            wing_path ='data/wing_off_files'+ metadata['mesh_wing_path']
+            tip_path ='data/wing_off_files'+metadata['mesh_tip_path']
+            resolution = metadata['resolution']
+            camera = metadata['cameras'][0]
+            texture = 'data/textures'+metadata['texture']
+        parallel_plotter=RunTimeWingPlotter(mean_photo=mean_image,
+                                            texture=texture,cam_location=camera,
+                                            mode_shapes=mode_shapes,wing_path=wing_path,tip_path=tip_path)
+
+        transform = TRANSFORM(mean_images, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
         reduce_dict = {'L_inf_mean_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'mean'),
                        'L_inf_max_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'max'),
                        '3D_20%_mean_loss': (partial(reconstruction_loss_3d, torch.norm, mode_shapes[:, ir],
@@ -118,6 +130,8 @@ class TestCustomInputResnet(TestCase):
         # transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
         run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH,
                          VAL_SPLIT,
-                         transform, None, reduce_dict, hist_dict, text_dict,resnet_type=RESNET_TYPE, train_cache_size=TRAIN_CACHE_SIZE,
+                         transform, None, reduce_dict, hist_dict, text_dict, resnet_type=RESNET_TYPE,
+                         train_cache_size=TRAIN_CACHE_SIZE,
                          val_cache_size=VAL_CACHE_SIZE,
-                         batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT),output_scaling=OUTPUT_SCALE,monitor_metric_name=MONITOR)
+                         batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT), output_scaling=OUTPUT_SCALE,
+                         monitor_metric_name=MONITOR,parallel_plotter=parallel_plotter)

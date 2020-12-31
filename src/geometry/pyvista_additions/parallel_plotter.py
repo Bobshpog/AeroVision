@@ -103,8 +103,8 @@ class ParallelPlotterBase(Process, ABC):
 #                                               Parallel Plot suite
 # ----------------------------------------------------------------------------------------------------------------------#
 class RunTimeWingPlotter(ParallelPlotterBase):
-    def __init__(self, mean_photo, texture, cam_location, mode_shape, wing_path, tip_path,
-                 old_mesh_path, background_image):
+    def __init__(self, mean_photo, texture, cam_location, mode_shapes, wing_path, tip_path,
+                 background_image,old_mesh_path='data/wing_off_files/synth_wing_v3.off'):
         super().__init__()
         self.old_mesh = Mesh(old_mesh_path)
         self.texture = texture
@@ -113,7 +113,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.background_image = background_image
         self.mesh_path = wing_path
         self.tip_path = tip_path
-        self.mode_shape = mode_shape
+        self.mode_shape = mode_shapes
         self.compatibility_arr = mesh_compatibility_creation(Mesh(self.mesh_path).vertices)
 
         self.tip_arr = tip_arr_creation(self.old_mesh.vertices)
