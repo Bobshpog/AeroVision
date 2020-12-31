@@ -228,17 +228,21 @@ def run_resnet_synth(num_input_layers, num_outputs,
     else:
         Path(checkpoints_folder).mkdir(parents=True, exist_ok=True)
     if monitor_metric_name:
+        dirpath = f"checkpoints/{comment}"
+        dirpath_path = Path(dirpath)
+        if dirpath_path.exists():
+            shutil.rmtree(dirpath_path)
         mcp = ModelCheckpoint(
-            dirpath=f"checkpoints/{comment}",
-            filename="{epoch}_{"+monitor_metric_name+"}",
+            dirpath=dirpath,
+            filename="{epoch}_{" + monitor_metric_name + "}",
             save_last=True,
             save_top_k=10,
             period=1,
             monitor=monitor_metric_name,
             verbose=True)
-        callbacks=[mcp]
+        callbacks = [mcp]
     else:
-        callbacks=None
+        callbacks = None
 
     trainer = pl.Trainer(gpus=1, max_epochs=num_epochs,
                          callbacks=callbacks,
@@ -246,4 +250,3 @@ def run_resnet_synth(num_input_layers, num_outputs,
                          profiler=True, logger=logger)
     trainer.fit(model, train_loader, val_loader)
     logger.experiment.log_asset_folder(checkpoints_folder)
-
