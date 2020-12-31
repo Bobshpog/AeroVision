@@ -106,7 +106,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     def __init__(self, mean_photo, texture, cam_location, mode_shape, wing_path, tip_path,
                  old_mesh_path, background_image=None):
         super().__init__()
-        self.old_mesh = Mesh(old_mesh_path)
+        self.old_mesh_path = old_mesh_path
         self.texture = texture
         self.mean_photo = mean_photo
         self.cam = cam_location
@@ -116,7 +116,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.mode_shape = mode_shape
         self.compatibility_arr = mesh_compatibility_creation(Mesh(self.mesh_path).vertices)
 
-        self.tip_arr = tip_arr_creation(self.old_mesh.vertices)
+        self.tip_arr = tip_arr_creation(Mesh(old_mesh_path).vertices)
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
         TIP_RADIUS = 0.008
         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
@@ -139,24 +139,25 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 4))
         plotter.set_background("white")
         self.set_background_image(plotter)
-
+        old_mesh = Mesh(self.old_mesh_path)
         for row, data_point in zip(range(len(self.train_d)), self.train_d):
             good_mesh = Mesh(self.mesh_path, self.texture)
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, self.texture)
             bad_tip = Mesh(self.tip_path)
-            self.plot_row(data_point, row, plotter, "training", good_mesh, good_tip, bad_mesh, bad_tip)
+            self.plot_row(data_point, row, plotter, "training", good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
 
         for row, data_point in zip(range(len(self.val_d)), self.val_d):
             good_mesh = Mesh(self.mesh_path, self.texture)
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, self.texture)
             bad_tip = Mesh(self.tip_path)
-            self.plot_row(data_point, row + len(self.train_d), plotter, "validation", good_mesh, good_tip, bad_mesh, bad_tip)
+            self.plot_row(data_point, row + len(self.train_d), plotter, "validation", good_mesh, good_tip, bad_mesh,
+                          bad_tip, old_mesh)
 
         plotter.show()
 
-    def plot_row(self, data_point, row, plotter, from_where, good_mesh, good_tip, bad_mesh, bad_tip): # from_where = "training" \ "validation"
+    def plot_row(self, data_point, row, plotter, from_where, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh): # from_where = "training" \ "validation"
         good_mesh.plot_faces(index_row=row, title="Mesh reconstructed from true scales", plotter=plotter, index_col=2,
                                         show=False, camera=self.cam)
         good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=2)
@@ -183,7 +184,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         good_tip_movement = np.zeros(good_tip.vertices.shape, dtype='float')
         for id in self.tip_arr:
             for k in range(NUM_OF_VERTICES_ON_CIRCUMFERENCE):
-                cord = self.old_mesh.vertices[id]
+                cord = old_mesh.vertices[id]
                 vector = np.array((cord[0] + right_diff[id, 0], cord[1] + self.y_t[k] + right_diff[id, 1],
                                    cord[2] + self.z_t[k] + right_diff[id, 2]))
                 good_tip_movement[good_tip.table[cord2index(cord + (0, self.y_t[k], self.z_t[k]))]] = vector
@@ -194,7 +195,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         bad_tip_movement = np.zeros(bad_tip.vertices.shape, dtype='float')
         for id in self.tip_arr:
             for k in range(NUM_OF_VERTICES_ON_CIRCUMFERENCE):
-                cord = self.old_mesh.vertices[id]
+                cord = old_mesh.vertices[id]
                 vector = np.array((cord[0] + wrong_diff[id, 0], cord[1] + self.y_t[k] + wrong_diff[id, 1],
                                    cord[2] + self.z_t[k] + wrong_diff[id, 2]))
                 bad_tip_movement[bad_tip.table[cord2index(cord + (0, self.y_t[k], self.z_t[k]))]] = vector
