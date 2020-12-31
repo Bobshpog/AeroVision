@@ -101,7 +101,7 @@ class CustomInputResnet(pl.LightningModule):
                 for name, metric in self.train_epoch_metrics_noisy_y.items():
                     metric.update(y_hat, y_perfect)
             if batch_idx==0:
-                self.plotter_train_data=((x[0].numpy(),y[0].numpy(),y_hat[0].numpy()),(x[1].numpy(),y[1].numpy(),y_hat[1].numpy()))
+                self.plotter_train_data=((x[0].cpu().numpy(),y[0].cpu().numpy(),y_hat[0].cpu().numpy()),(x[1].cpu().numpy(),y[1].cpu().numpy(),y_hat[1].cpu().numpy()))
         # self.logger.experiment.log_metric('train_loss', loss, step=self.current_step)
         # self.logger.experiment.log_metrics(result, step=self.current_step)
         self.current_step += 1
@@ -136,7 +136,7 @@ class CustomInputResnet(pl.LightningModule):
                 for name, metric in self.val_metrics_noisy_y.items():
                     metric.update(y_hat, y_noisy)
             if batch_idx == 0:
-                self.plotter_val_data = ((x[0].numpy(), y[0].numpy(), y_hat[0].numpy()), (x[1].numpy(), y[1].numpy(), y_hat[1].numpy()))
+                self.plotter_val_data = ((x[0].cpu().numpy(), y[0].cpu().numpy(), y_hat[0].cpu().numpy()), (x[1].cpu().numpy(), y[1].cpu().numpy(), y_hat[1].cpu().numpy()))
                 self.plotter.push(self.current_epoch,(self.plotter_train_data,self.plotter_val_data))
         return loss
 
