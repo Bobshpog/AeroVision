@@ -53,6 +53,7 @@ class ParallelPlotterBase(Process, ABC):
         if current_epoch != self.last_plotted_epoch:
             self.last_plotted_epoch = current_epoch
             self.train_d, self.val_d = deepcopy(self.sd['data'])
+            #   train_d and val_d are list of tupples (X, Y, reconstructed Y)
         if final:
             self.plt_title = f'Final visualization before closing for Epoch {self.last_plotted_epoch}'
         else:
@@ -67,8 +68,11 @@ class ParallelPlotterBase(Process, ABC):
     def plot_data(self):
         raise NotImplementedError
 
+    # self.sd[data] = (train data, val data) such that:
+    # both data are lists of data_point and each data point is (X, Y, reconstructed Y)
+
     # Meant to be called by the producer
-    def push(self, new_epoch, new_data):  # new_data = (X, Y, reconstructed Y) can be changed though
+    def push(self, new_epoch, new_data):
         # new_data = (train_dict,vald_dict)
         old_epoch = self.sd['epoch']
         assert new_epoch != old_epoch
@@ -107,12 +111,10 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.mean_photo = mean_photo
         self.cam = cam_location
         self.background_image = background_image
-        self.good_scale_mesh = Mesh(wing_path, texture)
-        self.good_scale_tip = Mesh(tip_path)
-        self.bad_scale_mesh = Mesh(wing_path, texture)
-        self.bad_scale_tip = Mesh(tip_path)
+        self.mesh_path = wing_path
+        self.tip_path = tip_path
         self.mode_shape = mode_shape
-        self.compatibility_arr = mesh_compatibility_creation(self.good_scale_mesh.vertices)
+        self.compatibility_arr = mesh_compatibility_creation(Mesh(self.mesh_path).vertices)
 
         self.tip_arr = tip_arr_creation(self.old_mesh.vertices)
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
@@ -133,56 +135,73 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     #     return dict
 
     def plot_data(self):
-        plotter = ImprovedPlotter(shape=(2, 2))
+
+        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 4))
         plotter.set_background("white")
+        for row, data_point in zip(range(len(self.train_d)), self.train_d):
+            good_mesh = Mesh(self.mesh_path, self.texture)
+            good_tip = Mesh(self.tip_path)
+            bad_mesh = Mesh(self.mesh_path, self.texture)
+            bad_tip = Mesh(self.tip_path)
+            self.plot_row(data_point, row, plotter, "training", good_mesh, good_tip, bad_mesh, bad_tip)
 
-        self.good_scale_mesh.plot_faces(index_row=1, title="Mesh reconstructed from true scales", plotter=plotter,
+        for row, data_point in zip(range(len(self.val_d)), self.val_d):
+            good_mesh = Mesh(self.mesh_path, self.texture)
+            good_tip = Mesh(self.tip_path)
+            bad_mesh = Mesh(self.mesh_path, self.texture)
+            bad_tip = Mesh(self.tip_path)
+            self.plot_row(data_point, row + len(self.train_d), plotter, "training", good_mesh, good_tip, bad_mesh, bad_tip)
+
+        plotter.show()
+
+
+    def plot_row(self, data_point, row, plotter, from_where, good_mesh, good_tip, bad_mesh, bad_tip): # from_where = "training" \ "validation"
+        good_mesh.plot_faces(index_row=row, title="Mesh reconstructed from true scales", plotter=plotter,
                                         show=False, camera=self.cam)
-        self.good_scale_tip.plot_faces(show=False, index_row=1, plotter=plotter)
-        self.bad_scale_mesh.plot_faces(index_row=1, index_col=1, title="Mesh reconstructed from net generated scales",
+        good_tip.plot_faces(show=False, index_row=row, plotter=plotter)
+        bad_mesh.plot_faces(index_row=row, index_col=1, title="Mesh reconstructed from net generated scales",
                                        show=False, camera=self.cam, plotter=plotter)
-        self.bad_scale_tip.plot_faces(show=False, index_row=1, index_col=1, plotter=plotter)
+        bad_tip.plot_faces(show=False, index_row=row, index_col=1, plotter=plotter)
 
-        plotter.subplot(0, 0)
-        plotter.add_text("Image as fed through the system", position="upper_edge", font_size=10, color="black")
-        plotter.subplot(0, 1)
+        plotter.subplot(row, 0)
+        plotter.add_text("Input image in "+from_where, position="upper_edge", font_size=10, color="black")
+        plotter.subplot(row, 1)
         plotter.add_text("Image plus avg photo", position="upper_edge", font_size=10, color="black")
 
-        plotter.subplot(0, 0)
+        plotter.subplot(row, 0)
         plotter.remove_background_image()
-        plotter.add_background_photo(self.sd['data'][0])
+        plotter.add_background_photo(data_point[0])
 
         plotter.subplot(0, 1)
         plotter.remove_background_image()
-        plotter.add_background_photo(add_mean_photo_to_photo(self.mean_photo, self.sd['data'][0]))
+        plotter.add_background_photo(add_mean_photo_to_photo(self.mean_photo, data_point[0]))
 
-        right_diff = (self.sd['data'][1] * self.mode_shape).sum(axis=2).T
-        right_movement = self.good_scale_mesh.vertices + right_diff[self.compatibility_arr]
+        right_diff = (data_point[1] * self.mode_shape).sum(axis=2).T
+        right_movement = good_mesh.vertices + right_diff[self.compatibility_arr]
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
-        good_tip_movement = np.zeros(self.good_scale_tip.vertices.shape, dtype='float')
+        good_tip_movement = np.zeros(good_tip.vertices.shape, dtype='float')
         for id in self.tip_arr:
             for k in range(NUM_OF_VERTICES_ON_CIRCUMFERENCE):
                 cord = self.old_mesh.vertices[id]
                 vector = np.array((cord[0] + right_diff[id, 0], cord[1] + self.y_t[k] + right_diff[id, 1],
                                    cord[2] + self.z_t[k] + right_diff[id, 2]))
-                good_tip_movement[self.good_scale_tip.table[cord2index(cord + (0, self.y_t[k], self.z_t[k]))]] = vector
+                good_tip_movement[good_tip.table[cord2index(cord + (0, self.y_t[k], self.z_t[k]))]] = vector
 
-        wrong_diff = (self.sd['data'][2] * self.mode_shape).sum(axis=2).T
-        wrong_movement = self.good_scale_mesh.vertices + wrong_diff[self.compatibility_arr]
+        wrong_diff = (data_point[2] * self.mode_shape).sum(axis=2).T
+        wrong_movement = bad_mesh.vertices + wrong_diff[self.compatibility_arr]
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
-        bad_tip_movement = np.zeros(self.bad_scale_tip.vertices.shape, dtype='float')
+        bad_tip_movement = np.zeros(bad_tip.vertices.shape, dtype='float')
         for id in self.tip_arr:
             for k in range(NUM_OF_VERTICES_ON_CIRCUMFERENCE):
                 cord = self.old_mesh.vertices[id]
                 vector = np.array((cord[0] + wrong_diff[id, 0], cord[1] + self.y_t[k] + wrong_diff[id, 1],
                                    cord[2] + self.z_t[k] + wrong_diff[id, 2]))
-                bad_tip_movement[self.bad_scale_tip.table[cord2index(cord + (0, self.y_t[k], self.z_t[k]))]] = vector
+                bad_tip_movement[bad_tip.table[cord2index(cord + (0, self.y_t[k], self.z_t[k]))]] = vector
 
-        plotter.update_coordinates(right_movement, self.good_scale_mesh.pv_mesh)
-        plotter.update_coordinates(good_tip_movement, self.good_scale_tip)
-        plotter.update_coordinates(wrong_movement, self.bad_scale_mesh.pv_mesh)
-        plotter.update_coordinates(bad_tip_movement, self.bad_scale_tip)
-        plotter.show()
+        plotter.update_coordinates(right_movement, good_mesh.pv_mesh)
+        plotter.update_coordinates(good_tip_movement, good_tip)
+        plotter.update_coordinates(wrong_movement, bad_mesh.pv_mesh)
+        plotter.update_coordinates(bad_tip_movement, good_tip)
 
 
 def add_mean_photo_to_photo(mean_photo, X):  # TODO most likely need to play with dimantions
