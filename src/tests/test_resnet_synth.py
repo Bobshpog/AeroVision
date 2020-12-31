@@ -123,6 +123,7 @@ class TestCustomInputResnet(TestCase):
         # Total possible cahce is around 6500 total images (640,480,3) total space
         VAL_CACHE_SIZE = len(VAL_SPLIT)
         TRAIN_CACHE_SIZE = 6500 * 3 - VAL_CACHE_SIZE
+        MONITOR='val_l1_smooth'
 
         TRANSFORM = my_transforms.TranformOnePhotoNoisyBW
         OUTPUT_SCALE = 1e4
@@ -179,7 +180,7 @@ class TestCustomInputResnet(TestCase):
                          VAL_SPLIT,
                          transform, None, reduce_dict, hist_dict, text_dict,resnet_type=RESNET_TYPE, train_cache_size=TRAIN_CACHE_SIZE,
                          val_cache_size=VAL_CACHE_SIZE,
-                         batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT),output_scaling=OUTPUT_SCALE)
+                         batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT),output_scaling=OUTPUT_SCALE,monitor_metric_name=MONITOR)
 
     def test_run_resnet_synth_one_camera(self):
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
