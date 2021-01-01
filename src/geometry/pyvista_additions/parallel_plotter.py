@@ -163,10 +163,10 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
     def plot_row(self, data_point, row, plotter, from_where, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh): # from_where = "training" \ "validation"
         good_mesh.plot_faces(index_row=row, title="Mesh reconstructed from true scales", plotter=plotter, index_col=2,
-                             show=False, camera=self.cam, font_size=7)
+                             show=False, camera=self.cam, font_size=6)
         good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=2)
         bad_mesh.plot_faces(index_row=row, index_col=3, title="Mesh reconstructed from net generated scales",
-                            show=False, camera=self.cam, plotter=plotter, font_size=7)
+                            show=False, camera=self.cam, plotter=plotter, font_size=6)
         bad_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
 
         plotter.subplot(row, 0)
@@ -175,7 +175,8 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         gray_photo[:, :, 1] = data_point[0][0]
         gray_photo[:, :, 2] = data_point[0][0]
         final_photo_without_mean = cv2.putText(
-            gray_photo*255, "Input image in "+from_where, (0,0), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), lineType=2
+            gray_photo*255, "Input image in "+from_where, (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255),
+            lineType=2
         )
         plotter.add_background_photo(final_photo_without_mean)
 
@@ -186,7 +187,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         gray_photo_with_mean[:, :, 1] = photo_with_mean
         gray_photo_with_mean[:, :, 2] = photo_with_mean
         final_photo_with_mean = cv2.putText(
-            gray_photo_with_mean * 255, "Image plus avg photo", (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255),
+            gray_photo_with_mean * 255, "Image plus avg photo", (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255),
             lineType=2
         )
         plotter.add_background_photo(final_photo_with_mean)
