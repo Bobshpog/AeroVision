@@ -138,8 +138,9 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     #     return dict
 
     def plot_data(self):
-
-        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 4))
+        row_w = [2] + [2 for _ in range(len(self.val_d) + len(self.train_d))]
+        col_w = [0.7] + [1 for _ in range(4)]
+        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 5), row_weights=row_w, col_weights=col_w)
         plotter.set_background("white")
         self.set_background_image(plotter)
 
@@ -149,48 +150,40 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, self.texture)
             bad_tip = Mesh(self.tip_path)
-            self.plot_row(data_point, row, plotter, "training", good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
+            self.plot_row(data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
 
         for row, data_point in zip(range(len(self.val_d)), self.val_d):
             good_mesh = Mesh(self.mesh_path, self.texture)
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, self.texture)
             bad_tip = Mesh(self.tip_path)
-            self.plot_row(data_point, row + len(self.train_d), plotter, "validation", good_mesh, good_tip, bad_mesh,
+            self.plot_row(data_point, row + len(self.train_d), plotter, good_mesh, good_tip, bad_mesh,
                           bad_tip, old_mesh)
 
         plotter.show()
 
-    def plot_row(self, data_point, row, plotter, from_where, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh): # from_where = "training" \ "validation"
-        good_mesh.plot_faces(index_row=row, title="Mesh reconstructed from true scales", plotter=plotter, index_col=2,
+    def plot_row(self, data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh): # from_where = "training" \ "validation"
+        good_mesh.plot_faces(index_row=row, title="", plotter=plotter, index_col=2,
                              show=False, camera=self.cam, font_size=6)
         good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=2)
-        bad_mesh.plot_faces(index_row=row, index_col=3, title="Mesh reconstructed from net generated scales",
+        bad_mesh.plot_faces(index_row=row, index_col=3, title="",
                             show=False, camera=self.cam, plotter=plotter, font_size=6)
         bad_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
 
-        plotter.subplot(row, 0)
+        plotter.subplot(row, 1)
         gray_photo = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
         gray_photo[:, :, 0] = data_point[0][0]
         gray_photo[:, :, 1] = data_point[0][0]
         gray_photo[:, :, 2] = data_point[0][0]
-        final_photo_without_mean = cv2.putText(
-            gray_photo*255, "Input image in "+from_where, (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255),
-            lineType=2
-        )
-        plotter.add_background_photo(final_photo_without_mean)
+        plotter.add_background_photo(gray_photo*255)
+        plotter.subplot(row, 0)
 
-        plotter.subplot(row, 1)
         gray_photo_with_mean = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
         photo_with_mean = add_mean_photo_to_photo(self.mean_photo, data_point[0][0])
         gray_photo_with_mean[:, :, 0] = photo_with_mean
         gray_photo_with_mean[:, :, 1] = photo_with_mean
         gray_photo_with_mean[:, :, 2] = photo_with_mean
-        final_photo_with_mean = cv2.putText(
-            gray_photo_with_mean * 255, "Image plus avg photo", (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255),
-            lineType=2
-        )
-        plotter.add_background_photo(final_photo_with_mean)
+        plotter.add_background_photo(photo_with_mean * 255)
 
         right_movement, good_tip_movement = SyntheticWingModel.create_movement_vector(
             self.mode_shape, data_point[1], self.data_scale, good_mesh, good_tip, old_mesh.vertices,
@@ -213,6 +206,48 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             for col in mesh_col:
                 plotter.subplot(row, col)
                 plotter.add_background_image(random.choice(self.background_image), as_global=False)
+
+    def add_text_to_plotter(self, plotter, num_training, num_valid):# assumes same position of subplots
+        color = (0, 0, 0)
+        font = cv2.FONT_HERSHEY_TRIPLEX
+        size = 1.5
+        txt = cv2.putText(
+            np.ones(shape=(100, 450, 3)) * 255, "epoch " + str(self.last_plotted_epoch), (70, 50), font, size, color,
+            thickness=2
+        )
+        plotter.add_background_photo(txt)
+        txt = cv2.putText(
+            np.ones(shape=(100, 450, 3)) * 255, "Image with mean", (20, 50), font, size, color, thickness=2
+        )
+        plotter.subplot(0, 1)
+        plotter.add_background_photo(txt)
+        txt = cv2.putText(
+            np.ones(shape=(100, 450, 3)) * 255,  "Input image", (20, 50), font, size, color, thickness=2
+        )
+        plotter.subplot(0, 2)
+        plotter.add_background_photo(txt)
+        txt = cv2.putText(
+            np.ones(shape=(100, 450, 3)) * 255, "Reconstructed", (20, 50), font, size, color, thickness=2
+        )
+        plotter.subplot(0, 3)
+        plotter.add_background_photo(txt)
+        txt = cv2.putText(
+            np.ones(shape=(100, 450, 3)) * 255,  "True scales", (20, 50), font, size, color, thickness=2
+        )
+        plotter.subplot(0, 4)
+        plotter.add_background_photo(txt)
+        for i in range(num_training):
+            txt = cv2.putText(
+                np.ones(shape=(300, 450, 3)) * 255,  "Training", (45, 150), font, size + 1, color, thickness=2
+            )
+            plotter.subplot(i+1, 0)
+            plotter.add_background_photo(txt)
+        for i in range(num_valid):
+            txt = cv2.putText(
+                np.ones(shape=(300, 450, 3)) * 255, "Validation", (40, 150), font, size + 0.5, color, thickness=2
+            )
+            plotter.subplot(i+1 + num_training, 0)
+            plotter.add_background_photo(txt)
 
 
 
