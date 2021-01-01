@@ -6,6 +6,7 @@ from src.geometry.pyvista_additions.improvd_pyvista_renderer import ImprovedPlot
 from src.geometry.numpy.mesh import *
 from src.data import matlab_reader
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
+from src.geometry.numpy.wing_models import SyntheticWingModel
 import cv2
 
 # ----------------------------------------------------------------------------------------------------------------------#
@@ -104,7 +105,7 @@ class ParallelPlotterBase(Process, ABC):
 # ----------------------------------------------------------------------------------------------------------------------#
 class RunTimeWingPlotter(ParallelPlotterBase):
     def __init__(self, mean_photo, texture, cam_location, mode_shapes, wing_path, tip_path,
-                 old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None):
+                 old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None, scale_by=10000):
         super().__init__()
 
         self.old_mesh_path = old_mesh_path
@@ -116,6 +117,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.tip_path = tip_path
         self.mode_shape = mode_shapes
         self.compatibility_arr = mesh_compatibility_creation(Mesh(self.mesh_path).vertices)
+        self.data_scale = scale_by
 
         self.tip_arr = tip_arr_creation(Mesh(old_mesh_path).vertices)
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
@@ -161,16 +163,16 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
     def plot_row(self, data_point, row, plotter, from_where, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh): # from_where = "training" \ "validation"
         good_mesh.plot_faces(index_row=row, title="Mesh reconstructed from true scales", plotter=plotter, index_col=2,
-                             show=False, camera=self.cam)
+                             show=False, camera=self.cam, font_size=7)
         good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=2)
         bad_mesh.plot_faces(index_row=row, index_col=3, title="Mesh reconstructed from net generated scales",
-                            show=False, camera=self.cam, plotter=plotter)
+                            show=False, camera=self.cam, plotter=plotter, font_size=7)
         bad_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
 
         plotter.subplot(row, 0)
-        plotter.add_text("Input image in "+from_where, position="upper_edge", font_size=10, color="black")
+        plotter.add_text("Input image in "+from_where, position="upper_edge", font_size=7, color="black")
         plotter.subplot(row, 1)
-        plotter.add_text("Image plus avg photo", position="upper_edge", font_size=10, color="black")
+        plotter.add_text("Image plus avg photo", position="upper_edge", font_size=7, color="black")
 
         plotter.subplot(row, 0)
         gray_photo = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
@@ -179,7 +181,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         gray_photo[:, :, 2] = data_point[0][0]
         plotter.add_background_photo(gray_photo * 255)
 
-        plotter.subplot(0, 1)
+        plotter.subplot(row, 1)
         gray_photo_with_mean = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
         photo_with_mean = add_mean_photo_to_photo(self.mean_photo, data_point[0][0])
         gray_photo_with_mean[:, :, 0] = photo_with_mean
@@ -187,32 +189,19 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         gray_photo_with_mean[:, :, 2] = photo_with_mean
         plotter.add_background_photo(gray_photo_with_mean * 255)
 
-        right_diff = (data_point[1] * self.mode_shape).sum(axis=2).T
-        right_movement = good_mesh.vertices + right_diff[self.compatibility_arr]
-        NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
-        good_tip_movement = np.zeros(good_tip.vertices.shape, dtype='float')
-        for id in self.tip_arr:
-            for k in range(NUM_OF_VERTICES_ON_CIRCUMFERENCE):
-                cord = old_mesh.vertices[id]
-                vector = np.array((cord[0] + right_diff[id, 0], cord[1] + self.y_t[k] + right_diff[id, 1],
-                                   cord[2] + self.z_t[k] + right_diff[id, 2]))
-                good_tip_movement[good_tip.table[cord2index(cord + (0, self.y_t[k], self.z_t[k]))]] = vector
-
-        wrong_diff = (data_point[2] * self.mode_shape).sum(axis=2).T
-        wrong_movement = bad_mesh.vertices + wrong_diff[self.compatibility_arr]
-
-        bad_tip_movement = np.zeros(bad_tip.vertices.shape, dtype='float')
-        for id in self.tip_arr:
-            for k in range(NUM_OF_VERTICES_ON_CIRCUMFERENCE):
-                cord = old_mesh.vertices[id]
-                vector = np.array((cord[0] + wrong_diff[id, 0], cord[1] + self.y_t[k] + wrong_diff[id, 1],
-                                   cord[2] + self.z_t[k] + wrong_diff[id, 2]))
-                bad_tip_movement[bad_tip.table[cord2index(cord + (0, self.y_t[k], self.z_t[k]))]] = vector
+        right_movement, good_tip_movement = SyntheticWingModel.create_movement_vector(
+            self.mode_shape, data_point[1], self.data_scale, good_mesh, good_tip, old_mesh.vertices,
+            self.compatibility_arr, self.tip_arr, self.y_t, self.z_t
+        )
+        wrong_movement, bad_tip_movement = SyntheticWingModel.create_movement_vector(
+            self.mode_shape, data_point[2], self.data_scale, bad_mesh, bad_tip, old_mesh.vertices,
+            self.compatibility_arr, self.tip_arr, self.y_t, self.z_t
+        )
 
         plotter.update_coordinates(right_movement, good_mesh.pv_mesh)
-        plotter.update_coordinates(good_tip_movement, good_tip)
+        plotter.update_coordinates(good_tip_movement, good_tip.pv_mesh)
         plotter.update_coordinates(wrong_movement, bad_mesh.pv_mesh)
-        plotter.update_coordinates(bad_tip_movement, good_tip)
+        plotter.update_coordinates(bad_tip_movement, good_tip.pv_mesh)
 
     def set_background_image(self, plotter, mesh_col=(2, 3)):
         if not self.background_image:
@@ -221,6 +210,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             for col in mesh_col:
                 plotter.subplot(row, col)
                 plotter.add_background_image(random.choice(self.background_image), as_global=False)
+
 
 
 def add_mean_photo_to_photo(mean_photo, X):

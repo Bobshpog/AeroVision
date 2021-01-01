@@ -297,6 +297,7 @@ class SyntheticWingModel:
             if cv:
                 photo = cv2.cvtColor(photo, cv2.COLOR_BGR2RGB)
             to_return.append(photo)
+
         return to_return
 
     @staticmethod
@@ -475,3 +476,19 @@ class SyntheticWingModel:
         tot_distance = tot_distance[comp_arr]
         num_to_return = int(mesh.vertices.shape[0] * p)
         return tot_distance.argsort()[-num_to_return:][::-1], tot_distance
+
+    @staticmethod
+    def create_movement_vector(mode_shape, scale, data_scale, wing, tip, old_mesh_vertices,
+                               compatibility_arr, tip_arr, y_t, z_t):
+        right_diff = (scale * mode_shape).sum(axis=2).T / data_scale
+        right_movement = wing.vertices + right_diff[compatibility_arr]
+        NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
+        good_tip_movement = np.zeros(tip.vertices.shape, dtype='float')
+        for id in tip_arr:
+            for k in range(NUM_OF_VERTICES_ON_CIRCUMFERENCE):
+                cord = old_mesh_vertices[id]
+                vector = np.array((cord[0] + right_diff[id, 0], cord[1] + y_t[k] + right_diff[id, 1],
+                                   cord[2] + z_t[k] + right_diff[id, 2]))
+                good_tip_movement[tip.table[cord2index(cord + (0, y_t[k], z_t[k]))]] = vector
+
+        return right_movement, good_tip_movement
