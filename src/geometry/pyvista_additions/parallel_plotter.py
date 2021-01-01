@@ -140,10 +140,11 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     def plot_data(self):
         row_w = [2] + [2 for _ in range(len(self.val_d) + len(self.train_d))]
         col_w = [0.7] + [1 for _ in range(4)]
-        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 5), row_weights=row_w, col_weights=col_w)
+        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 5), row_weights=row_w, col_weights=col_w,
+                                  border=True, border_width=5, border_color="black")
         plotter.set_background("white")
         self.set_background_image(plotter)
-
+        self.add_text_to_plotter(plotter, 2, 2)
         old_mesh = Mesh(self.old_mesh_path)
         for row, data_point in zip(range(len(self.train_d)), self.train_d):
             good_mesh = Mesh(self.mesh_path, self.texture)
