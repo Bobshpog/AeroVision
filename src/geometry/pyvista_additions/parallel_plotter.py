@@ -141,6 +141,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         row_w = [2] + [5 for _ in range(len(self.val_d) + len(self.train_d))]
         plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d) + 1, 5), row_weights=row_w,
                                   col_weights=[0.7, 0.8, 0.8, 1, 1], border=True, border_width=5, border_color="black")
+        plotter.link_views()
         plotter.set_background("white")
         self.set_background_image(plotter)
         self.add_text_to_plotter(plotter, 2, 2)
