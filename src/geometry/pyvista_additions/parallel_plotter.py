@@ -163,11 +163,9 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.show()
 
     def plot_row(self, data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh): # from_where = "training" \ "validation"
-        good_mesh.plot_faces(index_row=row, title="", plotter=plotter, index_col=3,
-                             show=False, camera=self.cam, font_size=6)
+        good_mesh.plot_faces(index_row=row, plotter=plotter, index_col=3, show=False, camera=self.cam)
         good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=3)
-        bad_mesh.plot_faces(index_row=row, index_col=4, title="",
-                            show=False, camera=self.cam, plotter=plotter, font_size=6)
+        bad_mesh.plot_faces(index_row=row, index_col=4, show=False, camera=self.cam, plotter=plotter)
         bad_tip.plot_faces(show=False, index_row=row, index_col=4, plotter=plotter)
 
         plotter.subplot(row, 2)
@@ -211,7 +209,6 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         color = (0, 0, 0)
         font = cv2.FONT_HERSHEY_TRIPLEX
         size = 1.4
-        pos = (85, 50)
         plotter.subplot(0, 0)
         txt = cv2.putText(
             np.ones(shape=(100, 450, 3)) * 255, "epoch " + str(self.last_plotted_epoch), (120, 50), font, size, color,
@@ -219,12 +216,12 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         )
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 450, 3)) * 255, "Human input", (30, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 450, 3)) * 255, "Human input", (50, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 1)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 550, 3)) * 255,  "Real input", pos, font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255,  "Real input", (120, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 2)
         plotter.add_background_photo(txt)
@@ -234,7 +231,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.subplot(0, 3)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 550, 3)) * 255,  "True scales", pos, font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255,  "True scales", (105, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 4)
         plotter.add_background_photo(txt)
