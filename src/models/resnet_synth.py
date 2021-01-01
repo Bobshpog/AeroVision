@@ -216,7 +216,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
                                 index_list=val_split, dtype=np_dtype)
     train_loader = DataLoader(train_dset, batch_size, shuffle=False, num_workers=4,
                               sampler=SubsetChoiceSampler(subsampler_size, len(train_dset)))
-    val_loader = DataLoader(val_dset, batch_size, shuffle=False, num_workers=4)
+    val_loader = DataLoader(val_dset, batch_size, shuffle=True, num_workers=4)
     model = CustomInputResnet(num_input_layers, num_outputs, loss_func=loss_func, output_scaling=output_scaling,
                               reduce_error_func_dict=mean_error_func_dict,
                               hist_error_func_dict=hist_error_func_dict,
@@ -241,7 +241,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
             shutil.rmtree(dirpath_path)
         mcp = ModelCheckpoint(
             dirpath=dirpath,
-            filename="{epoch}_{" + monitor_metric_name + "}",
+            filename="{epoch}_{" + monitor_metric_name + ":.3e}",
             save_last=True,
             save_top_k=10,
             period=1,
