@@ -139,7 +139,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
     def plot_data(self):
         row_w = [2] + [5 for _ in range(len(self.val_d) + len(self.train_d))]
-        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 5), row_weights=row_w,
+        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d) + 1, 5), row_weights=row_w,
                                   col_weights=[0.7, 0.8, 0.8, 1, 1], border=True, border_width=5, border_color="black")
         plotter.set_background("white")
         self.set_background_image(plotter)
@@ -219,12 +219,12 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         )
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 450, 3)) * 255, "Image with mean", (30, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 450, 3)) * 255, "Human input", (30, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 1)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 550, 3)) * 255,  "Input image", pos, font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255,  "Real input", pos, font, size, color, thickness=2
         )
         plotter.subplot(0, 2)
         plotter.add_background_photo(txt)
