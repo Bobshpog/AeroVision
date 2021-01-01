@@ -170,16 +170,14 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         bad_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
 
         plotter.subplot(row, 0)
-        plotter.add_text("Input image in "+from_where, position="upper_edge", font_size=7, color="black")
-        plotter.subplot(row, 1)
-        plotter.add_text("Image plus avg photo", position="upper_edge", font_size=7, color="black")
-
-        plotter.subplot(row, 0)
         gray_photo = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
         gray_photo[:, :, 0] = data_point[0][0]
         gray_photo[:, :, 1] = data_point[0][0]
         gray_photo[:, :, 2] = data_point[0][0]
-        plotter.add_background_photo(gray_photo * 255)
+        final_photo_without_mean = cv2.putText(
+            gray_photo*255, "Input image in "+from_where, (0,0), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), lineType=2
+        )
+        plotter.add_background_photo(final_photo_without_mean)
 
         plotter.subplot(row, 1)
         gray_photo_with_mean = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
@@ -187,7 +185,11 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         gray_photo_with_mean[:, :, 0] = photo_with_mean
         gray_photo_with_mean[:, :, 1] = photo_with_mean
         gray_photo_with_mean[:, :, 2] = photo_with_mean
-        plotter.add_background_photo(gray_photo_with_mean * 255)
+        final_photo_with_mean = cv2.putText(
+            gray_photo_with_mean * 255, "Image plus avg photo", (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255),
+            lineType=2
+        )
+        plotter.add_background_photo(final_photo_with_mean)
 
         right_movement, good_tip_movement = SyntheticWingModel.create_movement_vector(
             self.mode_shape, data_point[1], self.data_scale, good_mesh, good_tip, old_mesh.vertices,
@@ -201,7 +203,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.update_coordinates(right_movement, good_mesh.pv_mesh)
         plotter.update_coordinates(good_tip_movement, good_tip.pv_mesh)
         plotter.update_coordinates(wrong_movement, bad_mesh.pv_mesh)
-        plotter.update_coordinates(bad_tip_movement, good_tip.pv_mesh)
+        plotter.update_coordinates(bad_tip_movement, bad_tip.pv_mesh)
 
     def set_background_image(self, plotter, mesh_col=(2, 3)):
         if not self.background_image:
