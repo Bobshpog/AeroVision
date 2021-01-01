@@ -243,7 +243,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
             dirpath=dirpath,
             filename="{epoch}_{" + monitor_metric_name + ":.3e}",
             save_last=True,
-            save_top_k=10,
+            save_top_k=1,
             period=1,
             monitor=monitor_metric_name,
             verbose=True)
