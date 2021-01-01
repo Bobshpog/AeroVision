@@ -37,7 +37,7 @@ class Functor:
 
 
 def create_stripes_texture(path, is_long_stripes, num_of_stripes=50, tex_resolution=(640,500,3), color1=(0,0,255),
-                           color2=(0,0,0)):     # colors in cv2 format (g,b,r)
+                           color2=(0,0,0),plot=False):     # colors in cv2 format (g,b,r)
     num_pixel_per_stipe_long = int(tex_resolution[0]/num_of_stripes)
     num_pixel_per_stipe_short = int(tex_resolution[1] / num_of_stripes)
     zero = np.zeros(tex_resolution)
@@ -55,6 +55,7 @@ def create_stripes_texture(path, is_long_stripes, num_of_stripes=50, tex_resolut
 
     mesh = Mesh("data/wing_off_files/synth_wing_v5.off")
     # mesh.plot_faces()
-    cv2.imshow("frame", zero)
-    cv2.imwrite("data/textures/long_stripes.png", zero)
-    mesh.plot_faces(texture=path)
+    if plot:
+        cv2.imshow("frame", zero)
+        mesh.plot_faces(texture=path)
+    cv2.imwrite(path, zero)

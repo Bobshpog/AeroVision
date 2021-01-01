@@ -138,10 +138,9 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     #     return dict
 
     def plot_data(self):
-        row_w = [2] + [2 for _ in range(len(self.val_d) + len(self.train_d))]
-        col_w = [0.7] + [1 for _ in range(4)]
-        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 5), row_weights=row_w, col_weights=col_w,
-                                  border=True, border_width=5, border_color="black")
+        row_w = [2] + [5 for _ in range(len(self.val_d) + len(self.train_d))]
+        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d), 5), row_weights=row_w,
+                                  col_weights=[0.7, 0.8, 0.8, 1, 1], border=True, border_width=5, border_color="black")
         plotter.set_background("white")
         self.set_background_image(plotter)
         self.add_text_to_plotter(plotter, 2, 2)
@@ -151,33 +150,33 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, self.texture)
             bad_tip = Mesh(self.tip_path)
-            self.plot_row(data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
+            self.plot_row(data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
 
         for row, data_point in zip(range(len(self.val_d)), self.val_d):
             good_mesh = Mesh(self.mesh_path, self.texture)
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, self.texture)
             bad_tip = Mesh(self.tip_path)
-            self.plot_row(data_point, row + len(self.train_d), plotter, good_mesh, good_tip, bad_mesh,
+            self.plot_row(data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
                           bad_tip, old_mesh)
 
         plotter.show()
 
     def plot_row(self, data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh): # from_where = "training" \ "validation"
-        good_mesh.plot_faces(index_row=row, title="", plotter=plotter, index_col=2,
+        good_mesh.plot_faces(index_row=row, title="", plotter=plotter, index_col=3,
                              show=False, camera=self.cam, font_size=6)
-        good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=2)
-        bad_mesh.plot_faces(index_row=row, index_col=3, title="",
+        good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=3)
+        bad_mesh.plot_faces(index_row=row, index_col=4, title="",
                             show=False, camera=self.cam, plotter=plotter, font_size=6)
-        bad_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
+        bad_tip.plot_faces(show=False, index_row=row, index_col=4, plotter=plotter)
 
-        plotter.subplot(row, 1)
+        plotter.subplot(row, 2)
         gray_photo = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
         gray_photo[:, :, 0] = data_point[0][0]
         gray_photo[:, :, 1] = data_point[0][0]
         gray_photo[:, :, 2] = data_point[0][0]
         plotter.add_background_photo(gray_photo*255)
-        plotter.subplot(row, 0)
+        plotter.subplot(row, 1)
 
         gray_photo_with_mean = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
         photo_with_mean = add_mean_photo_to_photo(self.mean_photo, data_point[0][0])
@@ -200,7 +199,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.update_coordinates(wrong_movement, bad_mesh.pv_mesh)
         plotter.update_coordinates(bad_tip_movement, bad_tip.pv_mesh)
 
-    def set_background_image(self, plotter, mesh_col=(2, 3)):
+    def set_background_image(self, plotter, mesh_col=(4, 3)):
         if not self.background_image:
             return None
         for row in range(len(self.val_d) + len(self.train_d)):
@@ -211,29 +210,31 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     def add_text_to_plotter(self, plotter, num_training, num_valid):# assumes same position of subplots
         color = (0, 0, 0)
         font = cv2.FONT_HERSHEY_TRIPLEX
-        size = 1.5
+        size = 1.4
+        pos = (85, 50)
+        plotter.subplot(0, 0)
         txt = cv2.putText(
-            np.ones(shape=(100, 450, 3)) * 255, "epoch " + str(self.last_plotted_epoch), (70, 50), font, size, color,
+            np.ones(shape=(100, 450, 3)) * 255, "epoch " + str(self.last_plotted_epoch), (120, 50), font, size, color,
             thickness=2
         )
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 450, 3)) * 255, "Image with mean", (20, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 450, 3)) * 255, "Image with mean", (30, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 1)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 450, 3)) * 255,  "Input image", (20, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255,  "Input image", pos, font, size, color, thickness=2
         )
         plotter.subplot(0, 2)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 450, 3)) * 255, "Reconstructed", (20, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255, "Reconstructed", (75, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 3)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 450, 3)) * 255,  "True scales", (20, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255,  "True scales", pos, font, size, color, thickness=2
         )
         plotter.subplot(0, 4)
         plotter.add_background_photo(txt)

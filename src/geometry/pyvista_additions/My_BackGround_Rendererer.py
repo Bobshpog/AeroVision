@@ -45,6 +45,10 @@ class OurBackgroundRenderer(Renderer):
         origin = image_data.GetOrigin()
         extent = image_data.GetExtent()
         spacing = image_data.GetSpacing()
+        if extent[1] == 319 and extent[3] == 239:
+            # CAREFUL. theres no other way to present [320, 240] properly for our use. bandaid solution.
+            extent = (-49, 399, 0, 199, 0, 0)
+            origin = (origin[0] - 10, origin[1], origin[2])
         xc = origin[0] + 0.5*(extent[0] + extent[1]) * spacing[0]
         yc = origin[1] + 0.5*(extent[2] + extent[3]) * spacing[1]
         yd = (extent[3] - extent[2] + 1) * spacing[1]
@@ -63,5 +67,5 @@ class OurBackgroundRenderer(Renderer):
 
         if self._scale is not None:
             scale_value /= self._scale
+        self.camera.SetParallelScale(0.5 * yd / self._scale) # might need to be /scale_value, not sure enough to change
 
-        self.camera.SetParallelScale(0.5 * yd / self._scale)
