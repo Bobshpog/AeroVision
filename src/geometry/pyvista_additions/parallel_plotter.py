@@ -8,7 +8,9 @@ from src.data import matlab_reader
 from src.geometry.numpy.transforms import mesh_compatibility_creation, tip_arr_creation
 from src.geometry.numpy.wing_models import SyntheticWingModel
 import cv2
-
+from src.util.loss_functions import L_infinity
+from src.util.error_helper_functions import calc_errors
+from torch import norm
 # ----------------------------------------------------------------------------------------------------------------------#
 #                                               Parallel Plot suite
 # ----------------------------------------------------------------------------------------------------------------------#
@@ -104,11 +106,13 @@ class ParallelPlotterBase(Process, ABC):
 #                                               Parallel Plot suite
 # ----------------------------------------------------------------------------------------------------------------------#
 class RunTimeWingPlotter(ParallelPlotterBase):
-    def __init__(self, mean_photo, texture, cam_location, mode_shapes, wing_path, tip_path,
+    def __init__(self, mean_photo, texture, cam_location, mode_shapes, wing_path, tip_path, ir_index,
                  old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None, scale_by=10000):
         super().__init__()
 
         self.old_mesh_path = old_mesh_path
+        if isinstance(texture, str):
+            texture = [texture]
         self.texture = texture
         self.mean_photo = mean_photo
         self.cam = cam_location
@@ -118,7 +122,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.mode_shape = mode_shapes
         self.compatibility_arr = mesh_compatibility_creation(Mesh(self.mesh_path).vertices)
         self.data_scale = scale_by
-
+        self.ir = ir_index
         self.tip_arr = tip_arr_creation(Mesh(old_mesh_path).vertices)
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
         TIP_RADIUS = 0.008
@@ -138,25 +142,30 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     #     return dict
 
     def plot_data(self):
+        self.plot_cv()
+        self.plot_pyvista()
+
+    def plot_pyvista(self):
         row_w = [2] + [5 for _ in range(len(self.val_d) + len(self.train_d))]
         plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d) + 1, 5), row_weights=row_w,
                                   col_weights=[0.7, 0.8, 0.8, 1, 1], border=True, border_width=5, border_color="black")
+        tex = random.choice(self.texture)
         plotter.link_views()
         plotter.set_background("white")
         self.set_background_image(plotter)
         self.add_text_to_plotter(plotter, 2, 2)
         old_mesh = Mesh(self.old_mesh_path)
         for row, data_point in zip(range(len(self.train_d)), self.train_d):
-            good_mesh = Mesh(self.mesh_path, self.texture)
+            good_mesh = Mesh(self.mesh_path, tex)
             good_tip = Mesh(self.tip_path)
-            bad_mesh = Mesh(self.mesh_path, self.texture)
+            bad_mesh = Mesh(self.mesh_path, tex)
             bad_tip = Mesh(self.tip_path)
             self.plot_row(data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
 
         for row, data_point in zip(range(len(self.val_d)), self.val_d):
-            good_mesh = Mesh(self.mesh_path, self.texture)
+            good_mesh = Mesh(self.mesh_path, tex)
             good_tip = Mesh(self.tip_path)
-            bad_mesh = Mesh(self.mesh_path, self.texture)
+            bad_mesh = Mesh(self.mesh_path, tex)
             bad_tip = Mesh(self.tip_path)
             self.plot_row(data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
                           bad_tip, old_mesh)
@@ -249,6 +258,101 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             plotter.subplot(i+1 + num_training, 0)
             plotter.add_background_photo(txt)
 
+    def plot_cv(self):
+        headline_color = (0, 0, 255)
+        resolution = [640, 480]
+        text_w = 250
+        txt2_w = text_w + 1280
+        headlines = np.ones(shape=(100, txt2_w, 3))
+        cv2.putText(headlines, "general errors:", (100 + text_w, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color,
+                    lineType=2, thickness=2)
+        cv2.putText(headlines, "scale errors:", (resolution[0] + text_w + 120, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5,
+                    headline_color,
+                    lineType=2, thickness=2)
+        cv2.putText(headlines, "Source:", (10, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color,
+                    lineType=2, thickness=2)
+        headlines[71:75, :, :] = 0
+        headlines[:, text_w - 4:text_w, :] = 0
+        for im in self.create_txt_out_of_scale(self.train_d[1], self.train_d[2], "Training"):
+            headlines = cv2.vconcat([headlines, im])
+        for im in self.create_txt_out_of_scale(self.val_d[1], self.val_d[2], "Valid"):
+            headlines = cv2.vconcat([headlines, im])
+
+        cv2.imshow("headlines", headlines)
+
+    def create_txt_out_of_scale(self, scale_a, scale_b, from_where): # scales are list of scales
+        general_err_color = (0, 0, 0)
+        scale_err_color = (0, 0, 0)
+        text_color = (0, 0, 255)
+        padding = 70
+        resolution = [640, 480]
+        l_inf = L_infinity(self.mode_shape, 1, np.zeros((1, 10)), np.ones((1, 10)))
+        err = calc_errors(norm, self.mode_shape, 1, self.ir, scale_a, scale_b)
+        scale_err = err[3].numpy()
+        text_w = 250
+        img_text_height = 20
+        to_return = []
+        for i in range(scale_a):
+            if i == 1:
+                time = "First"
+            else:
+                time = "Second"
+            text = np.ones(shape=(100 + padding, text_w, 3))
+            cv2.putText(text, time, (15, img_text_height + 20), cv2.FONT_HERSHEY_TRIPLEX, 1.5, thickness=2,
+                        color=text_color,
+                        lineType=2)
+            cv2.putText(text, from_where, (15, img_text_height + 75 + 20), cv2.FONT_HERSHEY_TRIPLEX, 1.5, thickness=2,
+                        color=text_color,
+                        lineType=2)
+            text[:, text_w - 4:text_w, :] = 0
+            img_d = np.ones(shape=(100 + padding, 1280, 3))
+
+            cv2.putText(img_d, "3d reconstruction:" + f'{err[0][i]: .3e}', (0, img_text_height),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, general_err_color, lineType=2)
+
+            cv2.putText(img_d, "ir reconstruction:" + f'{err[1][i]: .3e}', (0, img_text_height + 30),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, general_err_color, lineType=2)
+
+            cv2.putText(img_d, "avg reconstruction:" + f'{err[2][i]: .3e}', (0, img_text_height + 30 * 2),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, general_err_color, lineType=2)
+
+            cv2.putText(img_d, "L inifinity:" + f'{l_inf[i]: .3e}', (0, img_text_height + 30 * 3),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, general_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 0:" + f'{scale_err[0][i]: .3e}', (resolution[0] + 1, img_text_height),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 1:" + f'{scale_err[1][i]: .3e}', (resolution[0] + 1, img_text_height + 30),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 2:" + f'{scale_err[2][i]: .3e}', (resolution[0] + 1, img_text_height + 30 * 2),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 3:" + f'{scale_err[3][i]: .3e}', (resolution[0] + 1, img_text_height + 30 * 3),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 4:" + f'{scale_err[4][i]: .3e}', (resolution[0] + 1, img_text_height + 30 * 4),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 5:" + f'{scale_err[5][i]: .3e}', (2 * resolution[0] - 260, img_text_height),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 6:" + f'{scale_err[6][i]: .3e}', (2 * resolution[0] - 260, img_text_height + 30),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 7:" + f'{scale_err[7][i]: .3e}',
+                        (2 * resolution[0] - 260, img_text_height + 30 * 2),cv2.FONT_HERSHEY_TRIPLEX,  0.75,
+                        scale_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 8:" + f'{scale_err[8][i]: .3e}', (2 * resolution[0] - 260, img_text_height + 90),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
+
+            cv2.putText(img_d, "scale 9:" + f'{scale_err[9][i]: .3e}', (2 * resolution[0] - 260, img_text_height + 120),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
+            img_f = cv2.hconcat([text, img_d])
+            img_f[96 + padding:100 + padding, :, :] = 0
+            to_return.append(img_f)
+        return to_return
 
 
 def add_mean_photo_to_photo(mean_photo, X):
