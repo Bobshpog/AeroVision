@@ -173,7 +173,7 @@ class Mesh:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position=title_location, font_size=font_size, color=font_color)
-        if camera:
+        if camera is not None:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
@@ -208,7 +208,7 @@ class Mesh:
             plotter = pv.Plotter()
         plotter.subplot(index_column=index_col, index_row=index_row)
         plotter.add_text(title, position=title_location, font_size=font_size, color=font_color)
-        if camera:
+        if camera is not None:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
@@ -289,7 +289,7 @@ class Mesh:
         plotter.subplot(index_column=index_col, index_row=index_row)
         if title:
             plotter.add_text(title, position=title_location, font_size=font_size, color=font_color)
-        if camera:
+        if camera is not None:
             plotter.set_position(camera[0])
             plotter.set_focus(camera[1])
             plotter.set_viewup(camera[2])
@@ -830,7 +830,7 @@ def animate_few_meshes(mesh, movement, f=None, subplot=(0, 0), texture=None, cma
         if depth:
             plotter.enable_depth_peeling(0)
         plotter.add_text(title[idx], position="upper_edge", font_size=font_size[idx], color=font_color[idx])
-        if camera[idx]:
+        if camera[idx] is not None:
             plotter.set_position(camera[idx][0])
             plotter.set_focus(camera[idx][1])
             plotter.set_viewup(camera[idx][2])
