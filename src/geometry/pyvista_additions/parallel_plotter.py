@@ -269,7 +269,8 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         cv2.putText(headlines, "scale errors:", (resolution[0] + text_w + 120, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5,
                     headline_color,
                     lineType=2, thickness=2)
-        cv2.putText(headlines, "Source:", (10, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color,
+        cv2.putText(headlines, "epoch {str(self.last_plotted_epoch)}:", (10, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color,
+
                     lineType=2, thickness=2)
         headlines[71:75, :, :] = 0
         headlines[:, text_w - 4:text_w, :] = 0
