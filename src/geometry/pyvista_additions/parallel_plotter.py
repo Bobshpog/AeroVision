@@ -172,7 +172,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
         plotter.show()
 
-    def plot_row(self, data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh): # from_where = "training" \ "validation"
+    def plot_row(self, data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh):
         good_mesh.plot_faces(index_row=row, plotter=plotter, index_col=3, show=False, camera=self.cam)
         good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=3)
         bad_mesh.plot_faces(index_row=row, index_col=4, show=False, camera=self.cam, plotter=plotter)
@@ -215,7 +215,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
                 plotter.subplot(row, col)
                 plotter.add_background_image(random.choice(self.background_image), as_global=False)
 
-    def add_text_to_plotter(self, plotter, num_training, num_valid):# assumes same position of subplots
+    def add_text_to_plotter(self, plotter, num_training, num_valid):    # assumes same position of subplots
         color = (0, 0, 0)
         font = cv2.FONT_HERSHEY_TRIPLEX
         size = 1.4
@@ -273,11 +273,11 @@ class RunTimeWingPlotter(ParallelPlotterBase):
                     lineType=2, thickness=2)
         headlines[71:75, :, :] = 0
         headlines[:, text_w - 4:text_w, :] = 0
-        for im in self.create_txt_out_of_scale(np.array([self.train_d[0][2], self.train_d[1][2]]),
-                                          np.array([self.train_d[0][1], self.train_d[1][1]]), "Training"):
+        for im in self.create_txt_out_of_scale(np.array([self.train_d[0][2], self.train_d[1][2]]) / self.data_scale,
+                                          np.array([self.train_d[0][1], self.train_d[1][1]]) / self.data_scale, "Training"):
             headlines = cv2.vconcat([headlines, im])
-        for im in self.create_txt_out_of_scale(np.array([self.val_d[0][2], self.val_d[1][2]]),
-                                               np.array([self.val_d[0][1], self.val_d[1][1]]), "valid"):
+        for im in self.create_txt_out_of_scale(np.array([self.val_d[0][2], self.val_d[1][2]]) / self.data_scale,
+                                               np.array([self.val_d[0][1], self.val_d[1][1]]) / self.data_scale, "valid"):
             headlines = cv2.vconcat([headlines, im])
         cv2.imshow("headlines", headlines)
 
