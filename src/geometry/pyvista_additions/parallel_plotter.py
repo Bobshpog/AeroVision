@@ -269,14 +269,21 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         cv2.putText(headlines, "scale errors:", (resolution[0] + text_w + 120, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5,
                     headline_color,
                     lineType=2, thickness=2)
-        cv2.putText(headlines, "Source:", (10, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color,
+        cv2.putText(headlines, "epoch {str(self.last_plotted_epoch)}:", (10, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color,
+
                     lineType=2, thickness=2)
         headlines[71:75, :, :] = 0
         headlines[:, text_w - 4:text_w, :] = 0
-        for im in self.create_txt_out_of_scale(self.train_d[1], self.train_d[2], "Training"):
-            headlines = cv2.vconcat([headlines, im])
-        for im in self.create_txt_out_of_scale(self.val_d[1], self.val_d[2], "Valid"):
-            headlines = cv2.vconcat([headlines, im])
+
+        im = self.create_txt_out_of_scale(np.array([self.train_d[0][2],self.train_d[1][2]]),
+                                          np.array([self.train_d[0][1],self.train_d[1][1]]), "Training")
+        for i in im:
+            headlines = cv2.vconcat([headlines, i])
+        im = self.create_txt_out_of_scale(np.array([self.val_d[0][2],self.val_d[1][2]]),
+                                          np.array([self.val_d[0][1],self.val_d[1][1]]), "valid")
+        for i in im:
+            headlines = cv2.vconcat([headlines, i])
+
 
         cv2.imshow("headlines", headlines)
 
@@ -286,17 +293,17 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         text_color = (0, 0, 255)
         padding = 70
         resolution = [640, 480]
-        l_inf = L_infinity(self.mode_shape, 1, np.zeros((1, 10)), np.ones((1, 10)))
+        l_inf = L_infinity(self.mode_shape, 1, scale_a, scale_b)
         err = calc_errors(norm, self.mode_shape, 1, self.ir, scale_a, scale_b)
         scale_err = err[3].numpy()
         text_w = 250
         img_text_height = 20
         to_return = []
-        for i in range(scale_a):
+        for i in range(scale_a.shape[0]):
             if i == 1:
-                time = "First"
-            else:
                 time = "Second"
+            else:
+                time = "First"
             text = np.ones(shape=(100 + padding, text_w, 3))
             cv2.putText(text, time, (15, img_text_height + 20), cv2.FONT_HERSHEY_TRIPLEX, 1.5, thickness=2,
                         color=text_color,
