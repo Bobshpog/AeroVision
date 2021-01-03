@@ -106,8 +106,8 @@ class ParallelPlotterBase(Process, ABC):
 #                                               Parallel Plot suite
 # ----------------------------------------------------------------------------------------------------------------------#
 class RunTimeWingPlotter(ParallelPlotterBase):
-    def __init__(self, mean_photo, texture, cam_location, mode_shapes, wing_path, tip_path, ir_index,
-                 old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None, scale_by=10000):
+    def __init__(self, mean_photo, texture, cam_location, mode_shapes, wing_path, tip_path, ir_index, output_scaling,
+                 old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None):
         super().__init__()
 
         self.old_mesh_path = old_mesh_path
@@ -121,7 +121,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.tip_path = tip_path
         self.mode_shape = mode_shapes
         self.compatibility_arr = mesh_compatibility_creation(Mesh(self.mesh_path).vertices)
-        self.data_scale = scale_by
+        self.output_scaling = output_scaling
         self.ir = ir_index
         self.tip_arr = tip_arr_creation(Mesh(old_mesh_path).vertices)
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
@@ -194,11 +194,11 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.add_background_photo(photo_with_mean * 255)
 
         right_movement, good_tip_movement = SyntheticWingModel.create_movement_vector(
-            self.mode_shape, data_point[1], self.data_scale, good_mesh, good_tip, old_mesh.vertices,
+            self.mode_shape, data_point[1], self.output_scaling, good_mesh, good_tip, old_mesh.vertices,
             self.compatibility_arr, self.tip_arr, self.y_t, self.z_t
         )
         wrong_movement, bad_tip_movement = SyntheticWingModel.create_movement_vector(
-            self.mode_shape, data_point[2], self.data_scale, bad_mesh, bad_tip, old_mesh.vertices,
+            self.mode_shape, data_point[2], self.output_scaling, bad_mesh, bad_tip, old_mesh.vertices,
             self.compatibility_arr, self.tip_arr, self.y_t, self.z_t
         )
 
@@ -274,11 +274,11 @@ class RunTimeWingPlotter(ParallelPlotterBase):
                     lineType=2, thickness=2)
         headlines[71:75, :, :] = 0
         headlines[:, text_w - 4:text_w, :] = 0
-        for im in self.create_txt_out_of_scale(np.array([self.train_d[0][2], self.train_d[1][2]]) / self.data_scale,
-                                          np.array([self.train_d[0][1], self.train_d[1][1]]) / self.data_scale, "Training"):
+        for im in self.create_txt_out_of_scale(np.array([self.train_d[0][2], self.train_d[1][2]]) / self.output_scaling,
+                                          np.array([self.train_d[0][1], self.train_d[1][1]]) / self.output_scaling, "Training"):
             headlines = cv2.vconcat([headlines, im])
-        for im in self.create_txt_out_of_scale(np.array([self.val_d[0][2], self.val_d[1][2]]) / self.data_scale,
-                                               np.array([self.val_d[0][1], self.val_d[1][1]]) / self.data_scale, "valid"):
+        for im in self.create_txt_out_of_scale(np.array([self.val_d[0][2], self.val_d[1][2]]) / self.output_scaling,
+                                               np.array([self.val_d[0][1], self.val_d[1][1]]) / self.output_scaling, "valid"):
             headlines = cv2.vconcat([headlines, im])
         cv2.imshow("headlines", headlines)
 
@@ -313,9 +313,6 @@ class RunTimeWingPlotter(ParallelPlotterBase):
                         cv2.FONT_HERSHEY_TRIPLEX, 0.75, general_err_color, lineType=2)
 
             cv2.putText(img_d, "ir reconstruction:" + f'{err[1][i]: .3e}', (0, img_text_height + 30),
-                        cv2.FONT_HERSHEY_TRIPLEX, 0.75, general_err_color, lineType=2)
-
-            cv2.putText(img_d, "avg reconstruction:" + f'{err[2][i]: .3e}', (0, img_text_height + 30 * 2),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.75, general_err_color, lineType=2)
 
             cv2.putText(img_d, "L inifinity:" + f'{l_inf[i]: .3e}', (0, img_text_height + 30 * 3),
