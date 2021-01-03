@@ -69,7 +69,7 @@ class SyntheticMatGenerator(data_gen.DataGenerator):
 
     def __repr__(self):
         return f"{self.__class__.__name__}(mesh_wing='{self.mesh_wing_path.name}', mesh_tip='{self.mesh_tip_path.name}'" \
-               f", resolution={self.resolution}, texture_path='{self.texture_path_wing.name}'"
+               f", resolution={self.resolution}, texture_path='{self.texture_path_wing.name}, cam_noise={self.cam_noise_lambda},random_texture={self.random_texture}'"
 
     def save_metadata(self, hdf5: h5py.File, group_name: str) -> None:
         group = hdf5.create_group(group_name)
