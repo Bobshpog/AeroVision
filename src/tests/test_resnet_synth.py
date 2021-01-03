@@ -97,7 +97,7 @@ class TestCustomInputResnet(TestCase):
             texture = 'data/textures/'+attrs['texture']
         parallel_plotter=RunTimeWingPlotter(mean_photo=mean_image,
                                             texture=texture,cam_location=camera,
-                                            mode_shapes=mode_shapes,wing_path=wing_path,tip_path=tip_path)
+                                            mode_shapes=mode_shapes,wing_path=wing_path,tip_path=tip_path,ir_index=ir)
 
         transform = TRANSFORM(mean_images, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
         reduce_dict = {'L_inf_mean_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'mean'),
