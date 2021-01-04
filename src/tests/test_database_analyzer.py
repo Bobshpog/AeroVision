@@ -20,3 +20,11 @@ class TestDatabaseAnalyzer(TestCase):
         print(f"mean dist between scales:{mean_dist:.3e}")
         print(f"normalized mean dist between scales:{mean_dist_normalized:.3e}")
         pass
+    def test_calc_k_fold(self):
+        hdf_path=None
+        k=None
+        analyzer = DatabaseAnalyzer(hdf_path, 1024)
+        folds = list(analyzer.find_k_fold(k))
+        for idx,val in enumerate(folds):
+            with open(f'src/tests/temp/fold{idx}.pkl', 'wb') as f:
+                pickle.dump(tuple(val), f)
