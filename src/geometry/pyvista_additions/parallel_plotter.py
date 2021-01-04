@@ -169,8 +169,8 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             bad_tip = Mesh(self.tip_path)
             self.plot_row(data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
                           bad_tip, old_mesh)
-
-        plotter.show()
+        plotter.enable_anti_aliasing()
+        plotter.show(full_screen=True)
 
     def plot_row(self, data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh):
         good_mesh.plot_faces(index_row=row, plotter=plotter, index_col=3, show=False, camera=self.cam)
