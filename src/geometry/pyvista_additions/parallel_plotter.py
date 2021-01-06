@@ -173,10 +173,10 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.show(full_screen=True)
 
     def plot_row(self, data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh):
-        good_mesh.plot_faces(index_row=row, plotter=plotter, index_col=3, show=False, camera=self.cam)
-        good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=3)
-        bad_mesh.plot_faces(index_row=row, index_col=4, show=False, camera=self.cam, plotter=plotter)
-        bad_tip.plot_faces(show=False, index_row=row, index_col=4, plotter=plotter)
+        good_mesh.plot_faces(index_row=row, plotter=plotter, index_col=4, show=False, camera=self.cam)
+        good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=4)
+        bad_mesh.plot_faces(index_row=row, index_col=3, show=False, camera=self.cam, plotter=plotter)
+        bad_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
 
         plotter.subplot(row, 2)
         gray_photo = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
