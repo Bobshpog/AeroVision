@@ -106,7 +106,7 @@ class DatabaseAnalyzer:
         plt.hist(self.scales[:, scale_id], bin_edges)
         plt.title(f'Scale{scale_id} Distribution')
         plt.xlabel(f'scale{scale_id}')
-        plt.ylabel('No of problems datapoints')
+        plt.ylabel('No of datapoints')
         plt.ticklabel_format(style="sci", scilimits=(0, 0), axis='x')
         plt.show()
 
