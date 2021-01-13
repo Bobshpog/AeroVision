@@ -66,7 +66,7 @@ class TestDatabaseBuilder(TestCase):
                          (0, 0.16643488101070833, 1)],
 
 
-            'tunnel_front_cam_middle_focus': [(0.005, -0.003, -0.09), (0.005, 0.35, 0), (0, 1, -4)],
+            'tunnel_front_cam_middle_focus': [(0.005, -0.003, -0.09), (-0.74812, 0.35, 0), (0, 1, -4)],
             'tunnel_upper_cam_middle_focus': [(0.05, -0.003, -0.09), (0.05, 0.35, 0), (0, 1, -4)],
             'tunnel_lower_cam_middle_focus': [(0.05, -0.003, 0.09), (0.05, 0.35, 0), (0, 1, 4)],
         }
