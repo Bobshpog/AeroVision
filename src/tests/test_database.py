@@ -37,13 +37,6 @@ class TestDatabaseBuilder(TestCase):
         radical_list = wing_models.SyntheticWingModel.radical_list_creation(mesh_wing_path,0.2)
         # cameras in pyvista format
         all_cameras =  {
-            'up_middle': [(0.047, -0.053320266561896174, 0.026735639600027315),
-                          (0.05, 0.3, 0.02),
-                          (0, 0, 1)],
-
-            'down_middle': [(0.04581499400545182, -0.04, -0.028567355483893577),
-                            (0.05, 0.3, 0.02),
-                            (0.001212842435223535, 0.13947688005070646, -1)],
 
             "up_right": [(0.11460619078012961, -0.04553696541254279, 0.038810512823530784),
                          (0.05, 0.3, 0.02),
@@ -64,9 +57,7 @@ class TestDatabaseBuilder(TestCase):
             'up_high': [(-1.1317097577972088, -0.6611046370580096, 0.5827882608373682),
                         (0.05, 0.3, 0.02),
                         (0.18216637888466586, 0.32036813133340425, 0.9296126455841653)],
-            'up_middle_turned': [(0.047, -0.043320266561896174, 0.026735639600027315),
-                                 (-0.08, 0.3, 0.02),
-                                 (0, 0, 1)],
+
             'only_tip': [(0.021325091578885777, 0.0973123942076604, 0.3153602234842197),
                          (0.05, 1, 0.02),
                          (-0.015600717667910225, 0.440612125193422, 0.9)],
@@ -103,7 +94,7 @@ class TestDatabaseBuilder(TestCase):
                                                Config.mesh_tip_path, Config.old_mesh_wing_path, Config.radical_list,
                                                Config.resolution, Config.cameras, Config.texture, Config.cmap,
                                                background_photos=background_pictures_list,
-                                               random_texture=Config.random_texture, )
+                                               random_texture=Config.random_texture, cam_noise_lambda=None)
         database = db.DatabaseBuilder(data_generator, 'data/databases', batch_size=300)
         data_file_path = database(dtype=np.float32)
         with h5py.File(data_file_path, 'r') as f:
