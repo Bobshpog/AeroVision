@@ -136,3 +136,4 @@ class TestCustomInputResnet(TestCase):
                          val_cache_size=VAL_CACHE_SIZE,
                          batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT), output_scaling=OUTPUT_SCALE,
                          monitor_metric_name=MONITOR,parallel_plotter=parallel_plotter)
+        parallel_plotter.finalize()
