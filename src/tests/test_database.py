@@ -14,6 +14,7 @@ from src.data.data_generators.synthetic_sin_decay_gen import SyntheticSineDecayi
 from src.util.timing import profile
 import os
 
+
 class Test(TestCase):
     def test_process_csv_pair(self):
         points, scales = db.process_csv_pair('data/synthetic_data_raw_samples/load1dice.csv',
@@ -34,9 +35,9 @@ class TestDatabaseBuilder(TestCase):
         ir_list = ids = [6419, 6756, 7033, 7333, 7635, 7937, 8239, 8541, 8841,  # first line
                          6411, 6727, 7025, 7325, 7627, 7929, 8271, 8553, 8854,  # middle
                          6361, 6697, 6974, 7315, 7576, 7919, 8199, 8482, 8782]
-        radical_list = wing_models.SyntheticWingModel.radical_list_creation(mesh_wing_path,0.2)
+        radical_list = wing_models.SyntheticWingModel.radical_list_creation(mesh_wing_path, 0.2)
         # cameras in pyvista format
-        all_cameras =  {
+        all_cameras = {
 
             "up_right": [(0.11460619078012961, -0.04553696541254279, 0.038810512823530784),
                          (0.05, 0.3, 0.02),
@@ -64,9 +65,11 @@ class TestDatabaseBuilder(TestCase):
             'sideways': [(0.14, 0, 0),
                          (0.05, 0.35, 0.02),
                          (0, 0.16643488101070833, 1)],
+            'front_sideways': [(-0.1225, -0.073, 0.01191),
+                               (0.0485, 0.3105, 0),
+                               (0.064, 0.002, 1)],
 
-
-            'tunnel_front_cam_middle_focus': [(0.005, -0.003, -0.09), (-0.74812, 0.35, 0), (0, 1, -4)],
+            'tunnel_front_cam_middle_focus': [(0.005, -0.003, -0.09), (-0.75, 0.35, 0), (0, 1, -4)],
             'tunnel_upper_cam_middle_focus': [(0.05, -0.003, -0.09), (0.05, 0.35, 0), (0, 1, -4)],
             'tunnel_lower_cam_middle_focus': [(0.05, -0.003, 0.09), (0.05, 0.35, 0), (0, 1, 4)],
         }
@@ -75,8 +78,8 @@ class TestDatabaseBuilder(TestCase):
             'normal_shake': (0.0005, 0.001, 0.05)
         }
         background_pictures_path = "data/background_pictures/lab/"
-        #chaneg this to select db cameras
-        cameras=[all_cameras['tunnel_upper_cam_middle_focus']]
+        # chaneg this to select db cameras
+        cameras = [all_cameras['tunnel_upper_cam_middle_focus']]
         texture = 'data/textures/checkers_dark_blue.png'
         cmap = 'jet'
         random_texture = False
@@ -88,7 +91,8 @@ class TestDatabaseBuilder(TestCase):
                                                       Config.mesh_tip_path, 5, 2, Config.ir_list, Config.resolution,
                                                       Config.cameras, Config.texture, Config.cmap
                                                       )
-        background_pictures_list = [Config.background_pictures_path + b for b in os.listdir(Config.background_pictures_path)]
+        background_pictures_list = [Config.background_pictures_path + b for b in
+                                    os.listdir(Config.background_pictures_path)]
         data_generator = SyntheticMatGenerator('data/data_samples/Daniella_data.mat',
                                                "data/mode_shapes/synth_mode_shapes_9103_10.mat", Config.mesh_wing_path,
                                                Config.mesh_tip_path, Config.old_mesh_wing_path, Config.radical_list,
@@ -112,7 +116,7 @@ class TestDatabaseBuilder(TestCase):
                 image = dset[index, i, :, :, :3]
                 cv2.imshow("photo", image)
                 cv2.waitKey()
-            ir_list=hf['generator metadata'].attrs['ir']
+            ir_list = hf['generator metadata'].attrs['ir']
             print(f"IR List: shape={ir_list.shape}, min={ir_list.min()},max={ir_list.max()}")
             pass
 
