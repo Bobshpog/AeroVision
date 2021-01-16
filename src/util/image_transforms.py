@@ -145,6 +145,7 @@ class TransformManyPositions:
             to_ret += str(i) + ","
         return to_ret + ")"
 
+
 class TransformRemoveDcPhoto:
     def __init__(self, dc_photo):
         self.dc_photo = dc_photo
@@ -181,7 +182,7 @@ class TransformSingleCameraRGB:
         mean_photo = many_pos_trans(mean_photo)
         remove_dc_trans = TransformRemoveDcPhoto(mean_photo)
         self.transform = transforms.Compose([many_pos_trans,
-                                             remove_dc_trans
+                                             remove_dc_trans, last_axis_to_first
                                              ])
 
     def __call__(self, img):
@@ -198,7 +199,7 @@ class TransformSingleCameraRGBD:
         mean_photo = many_pos_trans(mean_photo)
         remove_dc_trans = TransformRemoveDcPhoto(mean_photo)
         self.transform = transforms.Compose([many_pos_trans,
-                                             remove_dc_trans
+                                             remove_dc_trans, last_axis_to_first
                                              ])
 
     def __call__(self, img):
@@ -206,6 +207,7 @@ class TransformSingleCameraRGBD:
 
     def __repr__(self):
         return "SINGLE_CAMERA_RGBD_TRANSFORM_CAM_ID_" + str(self.cam_id)
+
 
 class TransformManyCameraBw:
     def __init__(self, cam_id, mean_photo):
