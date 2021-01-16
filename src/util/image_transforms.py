@@ -68,6 +68,7 @@ def many_cameras_bw(camera_ids, mean_photos):
 
     def many_cameras_slice_depth(photo):
         return slice_many_positions_no_depth(camera_ids, photo)
+
     return transforms.Compose([many_cameras_slice_depth,
                                remove_mean,
                                many_rgb_to_bw
@@ -79,7 +80,8 @@ def single_camera_bw(camera_id, mean_photos):
     remove_mean = partial(remove_dc_photo, mean_photos)
 
     def slice_single_pos_no_depth(photo):
-        return slice_many_positions_no_depth(camera_id,photo)
+        return slice_many_positions_no_depth(camera_id, photo)
+
     return transforms.Compose([slice_single_pos_no_depth,
                                remove_mean,
                                single_rgb_to_bw
@@ -128,6 +130,21 @@ class TransformManyPositionsNoDepth:
         return to_ret + ")"
 
 
+class TransformManyPositions:
+    def __init__(self, cam_id):
+        self.cam_id = cam_id
+
+    def __call__(self, img):
+        return img[self.cam_id]
+
+    def __repr__(self):
+        if isinstance(self.cam_id, int):
+            return "MANY_POSITION_TRANSFORM_CAM_ID" + str(self.cam_id)
+        to_ret = "MANY_POSITION_TRANSFORM_CAM_ID_("
+        for i in self.cam_id:
+            to_ret += str(i) + ","
+        return to_ret + ")"
+
 class TransformRemoveDcPhoto:
     def __init__(self, dc_photo):
         self.dc_photo = dc_photo
@@ -146,9 +163,9 @@ class TransformSingleCameraBw:
         mean_photo = many_pos_trans(mean_photo)
         remove_dc_trans = TransformRemoveDcPhoto(mean_photo)
         self.transform = transforms.Compose([many_pos_trans,
-                                            remove_dc_trans,
-                                            single_rgb_to_bw
-                                            ])
+                                             remove_dc_trans,
+                                             single_rgb_to_bw
+                                             ])
 
     def __call__(self, img):
         return self.transform(img)
@@ -156,6 +173,39 @@ class TransformSingleCameraBw:
     def __repr__(self):
         return "SINGLE_CAMERA_BW_TRANSFORM_CAM_ID_" + str(self.cam_id)
 
+
+class TransformSingleCameraRGB:
+    def __init__(self, cam_id, mean_photo):
+        self.cam_id = cam_id
+        many_pos_trans = TransformManyPositionsNoDepth(cam_id)
+        mean_photo = many_pos_trans(mean_photo)
+        remove_dc_trans = TransformRemoveDcPhoto(mean_photo)
+        self.transform = transforms.Compose([many_pos_trans,
+                                             remove_dc_trans
+                                             ])
+
+    def __call__(self, img):
+        return self.transform(img)
+
+    def __repr__(self):
+        return "SINGLE_CAMERA_RGB_TRANSFORM_CAM_ID_" + str(self.cam_id)
+
+
+class TransformSingleCameraRGBD:
+    def __init__(self, cam_id, mean_photo):
+        self.cam_id = cam_id
+        many_pos_trans = TransformManyPositions(cam_id)
+        mean_photo = many_pos_trans(mean_photo)
+        remove_dc_trans = TransformRemoveDcPhoto(mean_photo)
+        self.transform = transforms.Compose([many_pos_trans,
+                                             remove_dc_trans
+                                             ])
+
+    def __call__(self, img):
+        return self.transform(img)
+
+    def __repr__(self):
+        return "SINGLE_CAMERA_RGBD_TRANSFORM_CAM_ID_" + str(self.cam_id)
 
 class TransformManyCameraBw:
     def __init__(self, cam_id, mean_photo):
@@ -191,12 +241,11 @@ class TranformPoissonNoise:
 
 
 class TransformSaltAndPeper:
-    def __init__(self, amount, s_vs_p=0.5):     # for 1 cam and n channels: img.shape = [h,w,channels]
+    def __init__(self, amount, s_vs_p=0.5):  # for 1 cam and n channels: img.shape = [h,w,channels]
         self.amount = amount
         self.s_vs_p = s_vs_p
 
     def __call__(self, img):
-
         out = np.copy(img)
         num_salt = np.ceil(self.amount * img.size * self.s_vs_p)
         coords = [np.random.randint(0, i - 1, int(num_salt))
@@ -218,7 +267,7 @@ class TransformGaussian:
         self.ver = ver
 
     def __call__(self, img):
-        noise = np.random.normal(self.mean,self.ver, size=img.shape)
+        noise = np.random.normal(self.mean, self.ver, size=img.shape)
         return img + noise
 
     def __repr__(self):
@@ -249,3 +298,49 @@ class TranformOnePhotoNoisyBW:
         return to_return
 
 
+class TranformSingleNoisyRGB:
+    def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_var, salt_peper_amount, salt_pepper_ratio=0.5,
+                 cam_pos=0):
+        #   (defult into up middle)
+        self.tform = []
+        self.tform.append(TransformSingleCameraRGB(cam_pos, mean_photo))
+        if gauss_var:
+            self.tform.append(TransformGaussian(gauss_mean, gauss_var))
+        if pois_lamda:
+            self.tform.append(TranformPoissonNoise(pois_lamda))
+        if salt_peper_amount:
+            self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
+        self.tranform = transforms.Compose(self.tform)
+
+    def __call__(self, img):
+        return self.tranform(img)
+
+    def __repr__(self):
+        to_return = "NOISY ONE IMAGE RGB "
+        for o in self.tform:
+            to_return += '\n' + repr(o)
+        return to_return
+
+
+class TranformSingleNoisyRGBD:
+    def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_var, salt_peper_amount, salt_pepper_ratio=0.5,
+                 cam_pos=0):
+        #   (defult into up middle)
+        self.tform = []
+        self.tform.append(TransformSingleCameraRGBD(cam_pos, mean_photo))
+        if gauss_var:
+            self.tform.append(TransformGaussian(gauss_mean, gauss_var))
+        if pois_lamda:
+            self.tform.append(TranformPoissonNoise(pois_lamda))
+        if salt_peper_amount:
+            self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
+        self.tranform = transforms.Compose(self.tform)
+
+    def __call__(self, img):
+        return self.tranform(img)
+
+    def __repr__(self):
+        to_return = "NOISY ONE IMAGE RGBD "
+        for o in self.tform:
+            to_return += '\n' + repr(o)
+        return to_return
