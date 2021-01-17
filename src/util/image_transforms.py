@@ -236,10 +236,17 @@ class TranformPoissonNoise:
 
     def __call__(self, img):
         noise = np.random.poisson(self.lamda, size=img.shape)
+        if img.shape[-1] == 4:
+            if (len(img.shape) == 4):
+                noise[:, :, :, 3] = 0
+            elif (len(img.shape == 3)):
+                noise[:, :, 3] = 0
+            else:
+                raise NotImplementedError
         return img + noise
 
     def __repr__(self):
-        return "POISSON_NOISE_TRANSFORM_LAMDA:_" + str(self.lamda)
+        return "POISSON_NOISE_TRANSFORM_LAMBDA:_" + str(self.lamda)
 
 
 class TransformSaltAndPeper:
@@ -264,16 +271,23 @@ class TransformSaltAndPeper:
 
 
 class TransformGaussian:
-    def __init__(self, mean, ver):
+    def __init__(self, mean, std):
         self.mean = mean
-        self.ver = ver
+        self.std = std
 
     def __call__(self, img):
-        noise = np.random.normal(self.mean, self.ver, size=img.shape)
+        noise = np.random.normal(self.mean, self.std, size=img.shape)
+        if img.shape[-1] == 4:
+            if (len(img.shape) == 4):
+                noise[:, :, :, 3] = 0
+            elif (len(img.shape == 3)):
+                noise[:, :, 3] = 0
+            else:
+                raise NotImplementedError
         return img + noise
 
     def __repr__(self):
-        return "GAUSSIAN_NOISE_TRANFORM_MEAN:" + str(self.mean) + "VER:_" + str(self.ver)
+        return "GAUSSIAN_NOISE_TRANFORM_MEAN:" + str(self.mean) + "STD:_" + str(self.std)
 
 
 class TranformOnePhotoNoisyBW:
@@ -301,13 +315,13 @@ class TranformOnePhotoNoisyBW:
 
 
 class TranformSingleNoisyRGB:
-    def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_var, salt_peper_amount, salt_pepper_ratio=0.5,
+    def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_std, salt_peper_amount, salt_pepper_ratio=0.5,
                  cam_pos=0):
         #   (defult into up middle)
         self.tform = []
         self.tform.append(TransformSingleCameraRGB(cam_pos, mean_photo))
-        if gauss_var:
-            self.tform.append(TransformGaussian(gauss_mean, gauss_var))
+        if gauss_std:
+            self.tform.append(TransformGaussian(gauss_mean, gauss_std))
         if pois_lamda:
             self.tform.append(TranformPoissonNoise(pois_lamda))
         if salt_peper_amount:
@@ -346,3 +360,40 @@ class TranformSingleNoisyRGBD:
         for o in self.tform:
             to_return += '\n' + repr(o)
         return to_return
+
+
+class TransformTwoCameraBWNoisy:
+    def __init__(self, cam_ids, mean_photo, pois_lamda, gauss_mean, gauss_var,
+                 salt_peper_amount, salt_pepper_ratio=0.5):
+        self.tform = []
+        self.tform.append(TransformManyCameraBw(cam_ids, mean_photo))
+        if gauss_var:
+            self.tform.append(TransformGaussian(gauss_mean, gauss_var))
+        if pois_lamda:
+            self.tform.append(TranformPoissonNoise(pois_lamda))
+        if salt_peper_amount:
+            self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
+
+        self.transform = transforms.Compose(self.tform)
+
+    def __call__(self, img):
+        return self.transform(img)
+
+    def __repr__(self):
+        to_return = "NOISY TWO CAM RGBD "
+        for o in self.tform:
+            to_return += '\n' + repr(o)
+        return to_return
+
+
+class TransformScales:
+    def __init__(self, mode_shape, var=0.00015):  # mode shape in Z axis
+        self.inv_modeshape = np.linalg.pinv(mode_shape)
+        self.var = var
+
+    def __call__(self, scales):
+        rand_noise = np.random.normal(0, self.var, size=self.inv_modeshape.shape[2])
+        return scales + np.matmul(self.inv_modeshape, rand_noise)
+
+    def __repr__(self):
+        return "SCALE TRANSFORM WITH VAR " + str(self.var)
