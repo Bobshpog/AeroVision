@@ -363,12 +363,12 @@ class TranformSingleNoisyRGBD:
 
 
 class TransformTwoCameraBWNoisy:
-    def __init__(self, cam_ids, mean_photo, pois_lamda, gauss_mean, gauss_var,
+    def __init__(self, cam_ids, mean_photo, pois_lamda, gauss_mean, gauss_std,
                  salt_peper_amount, salt_pepper_ratio=0.5):
         self.tform = []
         self.tform.append(TransformManyCameraBw(cam_ids, mean_photo))
-        if gauss_var:
-            self.tform.append(TransformGaussian(gauss_mean, gauss_var))
+        if gauss_std:
+            self.tform.append(TransformGaussian(gauss_mean, gauss_std))
         if pois_lamda:
             self.tform.append(TranformPoissonNoise(pois_lamda))
         if salt_peper_amount:
@@ -387,13 +387,13 @@ class TransformTwoCameraBWNoisy:
 
 
 class TransformScales:
-    def __init__(self, mode_shape, var=0.00015):  # mode shape in Z axis
+    def __init__(self, mode_shape, std=0.00015):  # mode shape in Z axis
         self.inv_modeshape = np.linalg.pinv(mode_shape)
-        self.var = var
+        self.std = std
 
     def __call__(self, scales):
-        rand_noise = np.random.normal(0, self.var, size=self.inv_modeshape.shape[2])
+        rand_noise = np.random.normal(0, self.std, size=self.inv_modeshape.shape[2])
         return scales + np.matmul(self.inv_modeshape, rand_noise)
 
     def __repr__(self):
-        return "SCALE TRANSFORM WITH VAR " + str(self.var)
+        return "SCALE TRANSFORM WITH STD " + str(self.std)
