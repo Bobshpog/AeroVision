@@ -72,7 +72,8 @@ class ParallelPlotterBase(Process, ABC):
         raise NotImplementedError
 
     # self.sd[data] = (train data, val data) such that:
-    # both data are lists of data_point and each data point is (X, Y, reconstructed Y)
+    # both data are lists of data_point and each data point is (X, Y, reconstructed Y, Clean Y)
+    # TODO add clean scales in this format
 
     # Meant to be called by the producer
     def push(self, new_epoch, new_data):
@@ -144,6 +145,8 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     def plot_data(self):
         self.plot_cv()
         self.plot_pyvista()
+        if len(self.train_d[0]) == 4:
+            self.plot_noisy_scales()
 
     def plot_pyvista(self):
         row_w = [2] + [5 for _ in range(len(self.val_d) + len(self.train_d))]
@@ -353,6 +356,63 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             to_return.append(img_f)
         return to_return
 
+    def plot_noisy_scales(self):
+        plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d) + 1, 3),
+                                   border=True, border_width=5, border_color="black")
+        tex = random.choice(self.texture)
+        plotter.link_views()
+        plotter.set_background("white")
+        self.set_background_image(plotter)
+        old_mesh = Mesh(self.old_mesh_path)
+        for row, data_point in zip(range(len(self.train_d)), self.train_d):
+            good_mesh = Mesh(self.mesh_path, tex)
+            good_tip = Mesh(self.tip_path)
+            bad_mesh = Mesh(self.mesh_path, tex)
+            bad_tip = Mesh(self.tip_path)
+            clean_mesh = Mesh(self.mesh_path, tex)
+            clean_tip = Mesh(self.tip_path)
+            self.plot_noisy_row(data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh,
+                          clean_mesh, clean_tip)
+
+        for row, data_point in zip(range(len(self.val_d)), self.val_d):
+            good_mesh = Mesh(self.mesh_path, tex)
+            good_tip = Mesh(self.tip_path)
+            bad_mesh = Mesh(self.mesh_path, tex)
+            bad_tip = Mesh(self.tip_path)
+            clean_mesh = Mesh(self.mesh_path, tex)
+            clean_tip = Mesh(self.tip_path)
+            self.plot_noisy_row(data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
+                          bad_tip, old_mesh, clean_mesh, clean_tip)
+        plotter.enable_anti_aliasing()
+        plotter.show(full_screen=True)
+
+    def plot_noisy_row(self, data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh,
+                       clean_mesh, clean_tip):
+        good_mesh.plot_faces(index_row=row, plotter=plotter, index_col=0, show=False, camera=self.cam)
+        good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=0)
+        bad_mesh.plot_faces(index_row=row, index_col=1, show=False, camera=self.cam, plotter=plotter)
+        bad_tip.plot_faces(show=False, index_row=row, index_col=1, plotter=plotter)
+        clean_mesh.plot_faces(index_row=row, index_col=3, show=False, camera=self.cam, plotter=plotter)
+        clean_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
+
+        right_movement, good_tip_movement = SyntheticWingModel.create_movement_vector(
+            self.mode_shape, data_point[1], self.output_scaling, good_mesh, good_tip, old_mesh.vertices,
+            self.compatibility_arr, self.tip_arr, self.y_t, self.z_t
+        )
+        wrong_movement, bad_tip_movement = SyntheticWingModel.create_movement_vector(
+            self.mode_shape, data_point[2], self.output_scaling, bad_mesh, bad_tip, old_mesh.vertices,
+            self.compatibility_arr, self.tip_arr, self.y_t, self.z_t
+        )
+        clean_movement, clean_tip_movement = SyntheticWingModel.create_movement_vector(
+            self.mode_shape, data_point[3], self.output_scaling, bad_mesh, bad_tip, old_mesh.vertices,
+            self.compatibility_arr, self.tip_arr, self.y_t, self.z_t
+        )
+        plotter.update_coordinates(right_movement, good_mesh.pv_mesh)
+        plotter.update_coordinates(good_tip_movement, good_tip.pv_mesh)
+        plotter.update_coordinates(wrong_movement, bad_mesh.pv_mesh)
+        plotter.update_coordinates(bad_tip_movement, bad_tip.pv_mesh)
+        plotter.update_coordinates(clean_movement, clean_mesh.pv_mesh)
+        plotter.update_coordinates(clean_tip_movement, clean_tip.pv_mesh)
 
 def add_mean_photo_to_photo(mean_photo, X):
     return cv2.cvtColor(mean_photo, cv2.COLOR_RGB2GRAY) + X
