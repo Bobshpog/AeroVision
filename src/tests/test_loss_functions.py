@@ -28,7 +28,7 @@ class Test(TestCase):
         print("mean of loss: " + str(loss.mean()))
         print("mean of loss2: " + str(loss2.mean()))
         print("mean of loss3: " + str(loss3.mean()))
-        print("var of loss: " + str(loss.var()))
-        print("ver of loss2: " + str(loss2.var()))
+        print("var of loss: " + str(loss.std()))
+        print("ver of loss2: " + str(loss2.std()))
         print("ver of loss3: " + str(loss3.var()))
 
