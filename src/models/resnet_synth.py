@@ -61,17 +61,17 @@ class CustomInputResnet(pl.LightningModule):
         self.val_metrics_noisy_y = {name + "_ideal": deepcopy(foo)
                                     for name, foo in self.val_metrics.items()} if track_ideal_metrics else {}
         self.current_step = 0
-        self.resnet = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
+        self.model = resnet_dict[resnet_type](pretrained=False, num_classes=num_outputs)
         # altering resnet to fit more than 3 input layers
         if resnet_type.startswith('res'):
-            self.resnet.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
-                                          bias=False)
+            self.model.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
+                                         bias=False)
         self.plotter_val_data=None
         self.plotter_train_data = None
         self.type(dst_type=dtype)
 
     def forward(self, x):
-        x = self.resnet(x)
+        x = self.model(x)
         return x
 
     def configure_optimizers(self):
