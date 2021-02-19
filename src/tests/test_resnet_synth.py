@@ -93,7 +93,7 @@ class TestCustomInputResnet(TestCase):
             wing_path ='data/wing_off_files/'+ attrs['mesh_wing_path']
             tip_path ='data/wing_off_files/'+attrs['mesh_tip_path']
             resolution = attrs['resolution']
-            camera = attrs['cameras'][0]
+            camera = attrs['cameras']
             texture = 'data/textures/'+attrs['texture']
         parallel_plotter=RunTimeWingPlotter(mean_photo=mean_image,
                                             texture=texture,cam_location=camera,
