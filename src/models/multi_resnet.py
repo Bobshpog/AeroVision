@@ -6,10 +6,11 @@ from torchvision import models
 import pytorch_lightning as pl
 import torch
 
+from src.models.abstract_resnet import AbstractResnet
 from src.models.resnet_sine import CustomInputResnet
 
 
-class MultiResnet(CustomInputResnet):
+class MultiResnet(AbstractResnet):
     def __init__(self, num_input_layers, num_outputs, loss_func, reduce_error_func_dict, hist_error_func_dict,
                  text_error_func_dict,
                  output_scaling,
@@ -24,7 +25,6 @@ class MultiResnet(CustomInputResnet):
                          resnet_type, learning_rate,
                          cosine_annealing_steps,
                          weight_decay, dtype, track_ideal_metrics)
-        del self.model
         self.latent_layer_size_per = latent_layer_size_per
         self.num_pictures = num_pictures
         densenet_dict = {
