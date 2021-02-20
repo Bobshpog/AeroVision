@@ -148,8 +148,8 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     def plot_data(self):
         self.plot_cv()
         self.plot_pyvista()
-        if len(self.train_d[0]) == 4:
-            self.plot_noisy_scales()
+        # if len(self.train_d[0]) == 4:
+        #     self.plot_noisy_scales()
 
     def plot_pyvista(self):
         row_w = [2] + [5 for _ in range(len(self.val_d) + len(self.train_d))]
@@ -431,7 +431,10 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.update_coordinates(clean_movement, clean_mesh.pv_mesh)
         plotter.update_coordinates(clean_tip_movement, clean_tip.pv_mesh)
 
+
 def add_mean_photo_to_photo(mean_photo, X, rgb):
     if rgb:
         return mean_photo + np.moveaxis(X, 0, -1)   # torch returning X.shape[0] as size 3 and we use it last
-    return cv2.cvtColor(mean_photo, cv2.COLOR_RGB2GRAY) + X
+    if len(mean_photo.shape) == 3:
+        return cv2.cvtColor(mean_photo, cv2.COLOR_RGB2GRAY) + X
+    return mean_photo + X
