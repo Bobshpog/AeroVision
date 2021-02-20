@@ -82,7 +82,7 @@ class TestCustomInputResnet(TestCase):
 
         with h5py.File(TRAINING_DB_PATH, 'r') as hf:
             metadata = hf['generator metadata']
-            attrs=metadata.attrs
+            attrs = metadata.attrs
             mean_images = metadata['mean images'][()]
             mode_shapes = metadata['modal shapes'][()]
             ir = metadata.attrs['ir'][()]
@@ -90,14 +90,15 @@ class TestCustomInputResnet(TestCase):
             scales_mean = _scales.mean(axis=0)
             scales_std = _scales.std(axis=0)
             mean_image = mean_images[0]
-            wing_path ='data/wing_off_files/'+ attrs['mesh_wing_path']
-            tip_path ='data/wing_off_files/'+attrs['mesh_tip_path']
+            wing_path = 'data/wing_off_files/' + attrs['mesh_wing_path']
+            tip_path = 'data/wing_off_files/' + attrs['mesh_tip_path']
             resolution = attrs['resolution']
             camera = attrs['cameras']
-            texture = 'data/textures/'+attrs['texture']
-        parallel_plotter=RunTimeWingPlotter(mean_photo=mean_image,
-                                            texture=texture,cam_location=camera,
-                                            mode_shapes=mode_shapes,wing_path=wing_path,tip_path=tip_path,ir_index=ir,output_scaling=OUTPUT_SCALE)
+            texture = 'data/textures/' + attrs['texture']
+        parallel_plotter = RunTimeWingPlotter(mean_photo=mean_image[:, :, :NUM_INPUT_LAYERS],
+                                              texture=texture, cam_location=camera,
+                                              mode_shapes=mode_shapes, wing_path=wing_path, tip_path=tip_path,
+                                              ir_index=ir, output_scaling=OUTPUT_SCALE, rgb=(NUM_INPUT_LAYERS != 1))
 
         transform = TRANSFORM(mean_images, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
         reduce_dict = {'L_inf_mean_loss': (partial(L_infinity, mode_shapes[:, ir], OUTPUT_SCALE), MM_IN_METER, 'mean'),
@@ -135,5 +136,5 @@ class TestCustomInputResnet(TestCase):
                          train_cache_size=TRAIN_CACHE_SIZE,
                          val_cache_size=VAL_CACHE_SIZE,
                          batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT), output_scaling=OUTPUT_SCALE,
-                         monitor_metric_name=MONITOR,parallel_plotter=parallel_plotter)
+                         monitor_metric_name=MONITOR, parallel_plotter=parallel_plotter)
         parallel_plotter.finalize()
