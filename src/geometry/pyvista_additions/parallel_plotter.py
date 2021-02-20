@@ -216,9 +216,9 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             gray_photo = data_point[0][self.selection][3] + self.mean_photo[self.selection][:, :, 3]
         else:
             gray_photo = np.zeros(shape=(data_point[0][self.selection][0].shape[0], data_point[0][0].shape[1], 3))
-            gray_photo[:, :, 0] = data_point[0][0]
-            gray_photo[:, :, 1] = data_point[0][0]
-            gray_photo[:, :, 2] = data_point[0][0]
+            gray_photo[:, :, 0] = data_point[0][self.selection][0]
+            gray_photo[:, :, 1] = data_point[0][self.selection][0]
+            gray_photo[:, :, 2] = data_point[0][self.selection][0]
         plotter.add_background_photo(gray_photo * 255)
         plotter.subplot(row, 1)
 
