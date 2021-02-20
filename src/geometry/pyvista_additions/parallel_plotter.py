@@ -11,6 +11,8 @@ import cv2
 from src.util.loss_functions import L_infinity
 from src.util.error_helper_functions import calc_errors
 from torch import norm
+
+
 # ----------------------------------------------------------------------------------------------------------------------#
 #                                               Parallel Plot suite
 # ----------------------------------------------------------------------------------------------------------------------#
@@ -108,9 +110,10 @@ class ParallelPlotterBase(Process, ABC):
 # ----------------------------------------------------------------------------------------------------------------------#
 class RunTimeWingPlotter(ParallelPlotterBase):
     def __init__(self, mean_photo, texture, cam_location, mode_shapes, wing_path, tip_path, ir_index, output_scaling,
-                 cam_name, title, old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None, rgb=False):
+                 cam_name=None, title='', old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None,
+                 pv_as_cv=False):
         super().__init__()
-
+        self.selection = random.randint(0, len(cam_location) - 1)
         self.old_mesh_path = old_mesh_path
         if isinstance(texture, str):
             texture = [texture]
@@ -125,14 +128,19 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.output_scaling = output_scaling
         self.ir = ir_index
         self.tip_arr = tip_arr_creation(Mesh(old_mesh_path).vertices)
-        self.cam_name = cam_name
+        if cam_name is None:
+            self.cam_name = []
+        else:
+            self.cam_name = cam_name
         self.title = title
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
         TIP_RADIUS = 0.008
         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
         self.y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         self.z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
-        self.rgb = rgb
+        self.state = ''
+        self.update_state()
+        self.pv_as_cv = pv_as_cv
 
     # def prepare_plotter_dict(self, params, network_output):
     #
@@ -144,16 +152,29 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     #
     #             }
     #     return dict
+    def update_state(self):
+        if len(self.mean_photo[0].shape) == 3 and self.mean_photo[0].shape[2] == 4:
+            self.state = 'rgbd'
+        elif self.last_plotted_epoch > -1:
+            if self.train_d[0][0].shape[0] == 3:
+                self.state = 'rgb'
+            else:
+                self.state = 'bw'
 
     def plot_data(self):
+        if not self.state:
+            self.update_state()
+        self.selection = random.randint(0, len(self.cam) - 1)
         self.plot_cv()
         self.plot_pyvista()
         # if len(self.train_d[0]) == 4:
         #     self.plot_noisy_scales()
 
     def plot_pyvista(self):
+        assert self.state
         row_w = [2] + [5 for _ in range(len(self.val_d) + len(self.train_d))]
         plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d) + 1, 5), row_weights=row_w,
+                                  off_screen=self.pv_as_cv is True,
                                   col_weights=[0.7, 0.8, 0.8, 1, 1], border=True, border_width=5, border_color="black")
         tex = random.choice(self.texture)
         plotter.link_views()
@@ -176,26 +197,33 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             self.plot_row(data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
                           bad_tip, old_mesh)
         plotter.enable_anti_aliasing()
-        plotter.show(full_screen=True)
+        plotter.show(full_screen=True, auto_close=self.pv_as_cv is not True)
+        if self.pv_as_cv:
+            screen = cv2.cvtColor(plotter.screenshot(), cv2.COLOR_RGB2BGR)
+            cv2.imshow("pyvista screen in cv2", screen)
+            cv2.waitKey()
 
     def plot_row(self, data_point, row, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh):
-        good_mesh.plot_faces(index_row=row, plotter=plotter, index_col=4, show=False, camera=self.cam)
+        good_mesh.plot_faces(index_row=row, plotter=plotter, index_col=4, show=False, camera=self.cam[self.selection])
         good_tip.plot_faces(show=False, index_row=row, plotter=plotter, index_col=4)
-        bad_mesh.plot_faces(index_row=row, index_col=3, show=False, camera=self.cam, plotter=plotter)
+        bad_mesh.plot_faces(index_row=row, index_col=3, show=False, camera=self.cam[self.selection], plotter=plotter)
         bad_tip.plot_faces(show=False, index_row=row, index_col=3, plotter=plotter)
 
         plotter.subplot(row, 2)
-        if self.rgb:
-            gray_photo = np.moveaxis(data_point[0][0], 0, -1)
+        if self.state == 'rgb':
+            gray_photo = np.moveaxis(data_point[0][self.selection], 0, -1)
+        elif self.state == 'rgbd':  # does not have real input but depth one
+            gray_photo = data_point[0][self.selection][3] + self.mean_photo[self.selection][:, :, 3]
         else:
-            gray_photo = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
+            gray_photo = np.zeros(shape=(data_point[0][self.selection][0].shape[0], data_point[0][0].shape[1], 3))
             gray_photo[:, :, 0] = data_point[0][0]
             gray_photo[:, :, 1] = data_point[0][0]
             gray_photo[:, :, 2] = data_point[0][0]
-        plotter.add_background_photo(gray_photo*255)
+        plotter.add_background_photo(gray_photo * 255)
         plotter.subplot(row, 1)
 
-        photo_with_mean = add_mean_photo_to_photo(self.mean_photo, data_point[0][0], self.rgb)
+        photo_with_mean = add_mean_photo_to_photo(self.mean_photo[self.selection],
+                                                  data_point[0][self.selection], self.state)
         # gray_photo_with_mean = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
         # gray_photo_with_mean[:, :, 0] = photo_with_mean
         # gray_photo_with_mean[:, :, 1] = photo_with_mean
@@ -224,14 +252,14 @@ class RunTimeWingPlotter(ParallelPlotterBase):
                 plotter.subplot(row, col)
                 plotter.add_background_image(random.choice(self.background_image), as_global=False)
 
-    def add_text_to_plotter(self, plotter, num_training, num_valid):    # assumes same position of subplots
+    def add_text_to_plotter(self, plotter, num_training, num_valid):  # assumes same position of subplots
         color = (0, 0, 0)
         font = cv2.FONT_HERSHEY_TRIPLEX
         size = 1.4
         plotter.subplot(0, 0)
         txt = cv2.putText(
-            np.ones(shape=(100, 450, 3)) * 255, "epoch " + str(self.last_plotted_epoch), (120, 50), font, size, color,
-            thickness=2
+            np.ones(shape=(100, 450, 3)) * 255, "e" + str(self.last_plotted_epoch) + 'c' + str(self.selection),
+            (120, 50), font, size, color, thickness=2
         )
         plotter.add_background_photo(txt)
         txt = cv2.putText(
@@ -240,7 +268,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.subplot(0, 1)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 550, 3)) * 255,  "Real input", (120, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255, "Real input", (120, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 2)
         plotter.add_background_photo(txt)
@@ -250,21 +278,21 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.subplot(0, 3)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 550, 3)) * 255,  "True scales", (105, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255, "True scales", (105, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 4)
         plotter.add_background_photo(txt)
         for i in range(num_training):
             txt = cv2.putText(
-                np.ones(shape=(300, 450, 3)) * 255,  "Training", (45, 150), font, size + 1, color, thickness=2
+                np.ones(shape=(300, 450, 3)) * 255, "Training", (45, 150), font, size + 1, color, thickness=2
             )
-            plotter.subplot(i+1, 0)
+            plotter.subplot(i + 1, 0)
             plotter.add_background_photo(txt)
         for i in range(num_valid):
             txt = cv2.putText(
                 np.ones(shape=(300, 450, 3)) * 255, "Validation", (40, 150), font, size + 0.5, color, thickness=2
             )
-            plotter.subplot(i+1 + num_training, 0)
+            plotter.subplot(i + 1 + num_training, 0)
             plotter.add_background_photo(txt)
 
     def plot_cv(self):
@@ -278,9 +306,9 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         cv2.putText(headlines, "general errors:", (100 + text_w, 60 + title_range), cv2.FONT_HERSHEY_TRIPLEX, 1.5,
                     headline_color,
                     lineType=2, thickness=2)
-        cv2.putText(headlines, "cam: " + self.cam_name, (10, int(title_range / 2)), cv2.FONT_HERSHEY_TRIPLEX, 1.5,
-                    headline_color,
-                    lineType=2, thickness=2)
+        cv2.putText(headlines, "cam: " + self.cam_name[self.selection], (10, int(title_range / 2)),
+                    cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color, lineType=2, thickness=2)
+
         cv2.putText(headlines, self.title, (resolution[0], int(title_range / 2)),
                     cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color,
                     lineType=2, thickness=2)
@@ -295,14 +323,16 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         headlines[title_range:, text_w - 4:text_w, :] = 0
         headlines[title_range:title_range + 4, :, :] = 0
         for im in self.create_txt_out_of_scale(np.array([self.train_d[0][2], self.train_d[1][2]]) / self.output_scaling,
-                                          np.array([self.train_d[0][1], self.train_d[1][1]]) / self.output_scaling, "Training"):
+                                               np.array([self.train_d[0][1], self.train_d[1][1]]) / self.output_scaling,
+                                               "Training"):
             headlines = cv2.vconcat([headlines, im])
         for im in self.create_txt_out_of_scale(np.array([self.val_d[0][2], self.val_d[1][2]]) / self.output_scaling,
-                                               np.array([self.val_d[0][1], self.val_d[1][1]]) / self.output_scaling, "valid"):
+                                               np.array([self.val_d[0][1], self.val_d[1][1]]) / self.output_scaling,
+                                               "valid"):
             headlines = cv2.vconcat([headlines, im])
         cv2.imshow("headlines", headlines)
 
-    def create_txt_out_of_scale(self, scale_a, scale_b, from_where): # scales are list of scales
+    def create_txt_out_of_scale(self, scale_a, scale_b, from_where):  # scales are list of scales
         general_err_color = (0, 0, 0)
         scale_err_color = (0, 0, 0)
         text_color = (0, 0, 255)
@@ -360,7 +390,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
                         cv2.FONT_HERSHEY_TRIPLEX, 0.75, scale_err_color, lineType=2)
 
             cv2.putText(img_d, "scale 7:" + f'{scale_err[7][i]: .3e}',
-                        (2 * resolution[0] - 260, img_text_height + 30 * 2),cv2.FONT_HERSHEY_TRIPLEX,  0.75,
+                        (2 * resolution[0] - 260, img_text_height + 30 * 2), cv2.FONT_HERSHEY_TRIPLEX, 0.75,
                         scale_err_color, lineType=2)
 
             cv2.putText(img_d, "scale 8:" + f'{scale_err[8][i]: .3e}', (2 * resolution[0] - 260, img_text_height + 90),
@@ -375,7 +405,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
     def plot_noisy_scales(self):
         plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d) + 1, 3),
-                                   border=True, border_width=5, border_color="black")
+                                  border=True, border_width=5, border_color="black")
         tex = random.choice(self.texture)
         plotter.link_views()
         plotter.set_background("white")
@@ -389,7 +419,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             clean_mesh = Mesh(self.mesh_path, tex)
             clean_tip = Mesh(self.tip_path)
             self.plot_noisy_row(data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh,
-                          clean_mesh, clean_tip)
+                                clean_mesh, clean_tip)
 
         for row, data_point in zip(range(len(self.val_d)), self.val_d):
             good_mesh = Mesh(self.mesh_path, tex)
@@ -399,7 +429,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             clean_mesh = Mesh(self.mesh_path, tex)
             clean_tip = Mesh(self.tip_path)
             self.plot_noisy_row(data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
-                          bad_tip, old_mesh, clean_mesh, clean_tip)
+                                bad_tip, old_mesh, clean_mesh, clean_tip)
         plotter.enable_anti_aliasing()
         plotter.show(full_screen=True)
 
@@ -432,9 +462,9 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         plotter.update_coordinates(clean_tip_movement, clean_tip.pv_mesh)
 
 
-def add_mean_photo_to_photo(mean_photo, X, rgb):
-    if rgb:
-        return mean_photo + np.moveaxis(X, 0, -1)   # torch returning X.shape[0] as size 3 and we use it last
-    if len(mean_photo.shape) == 3:
-        return cv2.cvtColor(mean_photo, cv2.COLOR_RGB2GRAY) + X
-    return mean_photo + X
+def add_mean_photo_to_photo(mean_photo, X, state):
+    if state == 'rgb':
+        return mean_photo + np.moveaxis(X, 0, -1)  # torch returning X.shape[0] as size 3 and we use it last
+    if state == 'bw':
+        return cv2.cvtColor(mean_photo, cv2.COLOR_RGB2GRAY) + X  # normal bw
+    return mean_photo[:, :, :3] + np.moveaxis(X[:3], 0, -1)  # depth
