@@ -29,7 +29,7 @@ class AbstractResnet(pl.LightningModule, ABC):
                  resnet_type: str, learning_rate,
                  cosine_annealing_steps,
                  weight_decay, dtype=torch.float32, track_ideal_metrics=False):
-        super(pl.LightningModule, self).__init__()
+        super().__init__()
         # TODO consider removing pretrained
         if "loss" in list(reduce_error_func_dict.keys()) + list(hist_error_func_dict.keys()):
             raise ValueError("Bad function names")

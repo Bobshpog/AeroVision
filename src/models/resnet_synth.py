@@ -15,6 +15,7 @@ import torchvision.models as models
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from torch.utils.data import DataLoader
+from torchvision.models.mobilenet import ConvBNReLU, _make_divisible
 
 from src.model_datasets.image_dataset import ImageDataset
 from src.models.abstract_resnet import AbstractResnet
@@ -41,6 +42,8 @@ class CustomInputResnet(AbstractResnet):
         if resnet_type.startswith('res'):
             self.model.conv1 = nn.Conv2d(num_input_layers, 64, kernel_size=7, stride=2, padding=3,
                                          bias=False)
+        if resnet_type.startswith('mobile'):
+            self.model.features[0]=ConvBNReLU(self.num_input_layers,_make_divisible(32.0,8),stride=2,norm_layer=nn.BatchNorm2d)
         self.plotter_val_data = None
         self.plotter_train_data = None
         self.type(dst_type=dtype)
