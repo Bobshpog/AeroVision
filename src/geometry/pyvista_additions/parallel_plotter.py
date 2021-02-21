@@ -120,10 +120,9 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         if isinstance(texture, str):
             texture = [texture]
         self.texture = texture
-        if isinstance(mean_photo, np.ndarray):
-            self.mean_photo = [mean_photo]
-        else:
-            self.mean_photo = mean_photo
+        if isinstance(mean_photo, np.ndarray) and len(mean_photo.shape) == 2:
+            mean_photo = [mean_photo]
+        self.mean_photo = mean_photo
         self.cam = cam_location
         self.background_image = background_image
         self.mesh_path = wing_path
@@ -155,12 +154,12 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     #             }
     #     return dict
     def update_state(self):
-
+        #(2, 3, 2, 1, 240, 320)
         if self.last_plotted_epoch > -1:
-            if isinstance(self.train_d[0], np.ndarray):
-                photo = self.train_d[0]
-            else:
+            if isinstance(self.train_d[0][0], np.ndarray) and len(self.train_d[0][0].shape) == 3:
                 photo = self.train_d[0][0]
+            else:
+                photo = self.train_d[0][0][0]
             if photo.shape[0] == 4:
                 self.state = 'rgbd'
             elif photo.shape[0] == 3:
@@ -181,37 +180,53 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         assert self.state
         row_w = [2] + [5 for _ in range(len(self.val_d) + len(self.train_d))]
         plotter = ImprovedPlotter(shape=(len(self.val_d) + len(self.train_d) + 1, 5), row_weights=row_w,
-                                  off_screen=self.pv_as_cv is True,
-                                  col_weights=[0.7, 0.8, 0.8, 1, 1], border=True, border_width=5, border_color="black")
+                                  col_weights=[0.7, 0.8, 0.8, 1, 1], border=True, border_width=5, border_color="black",
+                                  off_screen=self.pv_as_cv)
         tex = random.choice(self.texture)
         plotter.link_views()
         plotter.set_background("white")
         self.set_background_image(plotter)
         self.add_text_to_plotter(plotter, 2, 2)
         old_mesh = Mesh(self.old_mesh_path)
-        for row, data_point in zip(range(len(self.train_d)), self.train_d):
+        rgbd = False
+        if self.state == 'rgbd':
+            rgbd = True
+            data_arr = (self.train_d[0], self.train_d[0])
+            self.state = 'rgb'
+        else:
+            data_arr = self.train_d
+        for row, data_point in zip(range(len(data_arr)), data_arr):
             good_mesh = Mesh(self.mesh_path, tex)
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, tex)
             bad_tip = Mesh(self.tip_path)
-            if isinstance(data_point[0], np.ndarray):
+            if isinstance(data_point[0], np.ndarray) and len(data_point.shape) == 3:
                 new_data_point = ([data_point[0]], data_point[1], data_point[2])
                 self.plot_row(new_data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
             else:
                 self.plot_row(data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
+            if rgbd:
+                self.state = 'rgbd'
 
-        for row, data_point in zip(range(len(self.val_d)), self.val_d):
+        if rgbd:
+            data_arr = (self.val_d[0], self.val_d[0])
+            self.state = 'rgb'
+        else:
+            data_arr = self.val_d
+        for row, data_point in zip(range(len(data_arr)), data_arr):
             good_mesh = Mesh(self.mesh_path, tex)
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, tex)
             bad_tip = Mesh(self.tip_path)
-            if isinstance(data_point[0], np.ndarray):
+            if isinstance(data_point[0], np.ndarray) and len(data_point.shape) == 3:
                 new_data_point = ([data_point[0]], data_point[1], data_point[2])
                 self.plot_row(new_data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
                               bad_tip, old_mesh)
             else:
                 self.plot_row(data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
                               bad_tip, old_mesh)
+            if rgbd:
+                self.state = 'rgbd'
         plotter.enable_anti_aliasing()
         plotter.show(full_screen=True, auto_close=not self.pv_as_cv)
         if self.pv_as_cv:
@@ -227,14 +242,16 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
         plotter.subplot(row, 2)
         if self.state == 'rgb':
-            gray_photo = np.moveaxis(data_point[0][self.selection], 0, -1)
+            gray_photo = np.moveaxis(data_point[0][self.selection][: 3], 0, -1)
         elif self.state == 'rgbd':  # does not have real input but depth one
-            gray_photo = normalize_image(data_point[0][self.selection][3] + self.mean_photo[self.selection][:, :, 3])
+            gray_photo = normalize_image(data_point[0][self.selection][3])
         else:
-            gray_photo = np.zeros(shape=(data_point[0][self.selection][0].shape[0], data_point[0][0].shape[1], 3))
+            gray_photo = np.zeros(shape=(data_point[0][self.selection][0].shape[0],
+                                         data_point[0][self.selection][0].shape[1], 3))
             gray_photo[:, :, 0] = data_point[0][self.selection][0]
             gray_photo[:, :, 1] = data_point[0][self.selection][0]
             gray_photo[:, :, 2] = data_point[0][self.selection][0]
+            # gray_photo = data_point[0][self.selection][0]
         plotter.add_background_photo(gray_photo * 255)
         plotter.subplot(row, 1)
 
@@ -278,24 +295,22 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             (120, 50), font, size, color, thickness=2
         )
         plotter.add_background_photo(txt)
+
+        input_name = "Real input"
+        recon_name = "Human input"
         txt = cv2.putText(
-            np.ones(shape=(100, 450, 3)) * 255, "Human input", (50, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 450, 3)) * 255, recon_name, (50, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 1)
         plotter.add_background_photo(txt)
-        if self.state == 'rgbd':
-            input_name = "Depth input"
-            recon_name = 'RGB input'
-        else:
-            input_name = "Real input"
-            recon_name = "Reconstructed"
+
         txt = cv2.putText(
             np.ones(shape=(100, 550, 3)) * 255, input_name, (120, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 2)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 550, 3)) * 255, recon_name, (75, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255, "Reconstructed", (75, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 3)
         plotter.add_background_photo(txt)
@@ -487,10 +502,10 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
 def add_mean_photo_to_photo(mean_photo, X, state):
     if state == 'rgb':
-        return mean_photo + np.moveaxis(X, 0, -1)  # torch returning X.shape[0] as size 3 and we use it last
+        return mean_photo[:, :, :3] + np.moveaxis(X[:3], 0, -1)  # torch returning X.shape[0] as size 3 and we use it last
     if state == 'bw':
-        return cv2.cvtColor(mean_photo, cv2.COLOR_RGB2GRAY) + X  # normal bw
-    return mean_photo[:, :, :3] + np.moveaxis(X[:3], 0, -1)  # depth
+        return cv2.cvtColor(mean_photo[:, :, :3], cv2.COLOR_RGB2GRAY) + X[0]  # normal bw
+    return normalize_image(mean_photo[:, :, 3] + X[3])  # depth addition only
 
 
 def normalize_image(x):
