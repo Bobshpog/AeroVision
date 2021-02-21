@@ -42,7 +42,7 @@ def single_rgb_to_bw(img):
 
 
 def many_rgb_to_bw(img):
-    return np.array([cv2.cvtColor(im, cv2.COLOR_RGB2GRAY) for im in img])
+    return np.array([cv2.cvtColor(im, cv2.COLOR_RGB2GRAY) for im in img])[:,np.newaxis,:,:]
 
 
 def top_middle_rgb(mean_photos):

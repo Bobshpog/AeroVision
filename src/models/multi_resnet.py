@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 import torch
 
 from src.models.abstract_resnet import AbstractResnet
-from src.models.resnet_sine import CustomInputResnet
+from src.models.resnet_synth import CustomInputResnet
 
 
 class MultiResnet(AbstractResnet):
@@ -34,19 +34,20 @@ class MultiResnet(AbstractResnet):
             'densenet201': models.densenet201
         }
         self.img_resnets = ([CustomInputResnet(num_input_layers, latent_layer_size_per, loss_func,
-                                               [], [], [], 1,
+                                               {},{},{}, 1,
                                                resnet_type, learning_rate,
                                                cosine_annealing_steps,
                                                weight_decay, dtype) for _ in range(num_pictures)])
 
+        self.depth_resnets=False
         if use_depth:
             self.depth_resnets = ([CustomInputResnet(1, latent_layer_size_per, loss_func,
-                                                     [], [], [], 1,
+                                                     {}, {}, {}, 1,
                                                      resnet_type, learning_rate,
                                                      cosine_annealing_steps,
                                                      weight_decay, dtype) for _ in range(num_pictures)])
 
-        self.densenet = densenet_dict[densenet_type]
+        self.densenet = densenet_dict[densenet_type]()
         densenet_num_init_features = self.densenet.features[0].in_channels
         self.densenet.features['conv0'] = nn.Conv2d(1, densenet_num_init_features, kernel_size=7, stride=2,
                                                     padding=3, bias=False)
