@@ -28,13 +28,12 @@ class MultiResnet(AbstractResnet):
                          weight_decay, dtype, track_ideal_metrics)
         self.latent_layer_size_per = latent_layer_size_per
         self.num_pictures = num_pictures
-        self.latent_layer_size=latent_layer_size_per*num_pictures
-        densenet_dict = {
-            'densenet121': models.densenet121,
-            'densenet161': models.densenet161,
-            'densenet169': models.densenet169,
-            'densenet201': models.densenet201
-        }
+        # densenet_dict = {
+        #     'densenet121': models.densenet121,
+        #     'densenet161': models.densenet161,
+        #     'densenet169': models.densenet169,
+        #     'densenet201': models.densenet201
+        # }
         self.img_resnets = nn.ModuleList([CustomInputResnet(num_input_layers, latent_layer_size_per, loss_func,
                                                {},{},{}, 1,
                                                resnet_type, learning_rate,
@@ -53,7 +52,15 @@ class MultiResnet(AbstractResnet):
         # densenet_num_init_features = self.densenet.features[0].in_channels
         # self.densenet.features[0] = nn.Conv2d(1, densenet_num_init_features, kernel_size=7, stride=2,
         #                                             padding=3, bias=False)
-        self.densenet=nn.Sequential(nn.Linear(self.latent_layer_size,1024),nn.Linear(1024,512),nn.Linear(512,self.num_outputs))
+
+        latent_layer_size=latent_layer_size_per*num_pictures
+        dense1_size=max(latent_layer_size//2,256)
+        dense2_size=max(latent_layer_size//4,256)
+        dense3_size=max(latent_layer_size//8,128)
+        self.densenet=nn.Sequential(nn.Linear(latent_layer_size,dense1_size),
+                                    nn.Linear(dense1_size,dense2_size),
+                                    nn.Linear(dense2_size, dense3_size),
+                                    nn.Linear(dense3_size,self.num_outputs))
 
     def forward(self, x):
         # x.shape=(N,K,L,H,W)
