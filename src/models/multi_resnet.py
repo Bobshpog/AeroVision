@@ -33,7 +33,7 @@ class MultiResnet(AbstractResnet):
             'densenet169': models.densenet169,
             'densenet201': models.densenet201
         }
-        self.img_resnets = ([CustomInputResnet(num_input_layers, latent_layer_size_per, loss_func,
+        self.img_resnets = nn.ModuleList([CustomInputResnet(num_input_layers, latent_layer_size_per, loss_func,
                                                {},{},{}, 1,
                                                resnet_type, learning_rate,
                                                cosine_annealing_steps,
@@ -41,7 +41,7 @@ class MultiResnet(AbstractResnet):
 
         self.depth_resnets=False
         if use_depth:
-            self.depth_resnets = ([CustomInputResnet(1, latent_layer_size_per, loss_func,
+            self.depth_resnets = nn.ModuleList([CustomInputResnet(1, latent_layer_size_per, loss_func,
                                                      {}, {}, {}, 1,
                                                      resnet_type, learning_rate,
                                                      cosine_annealing_steps,
@@ -49,7 +49,7 @@ class MultiResnet(AbstractResnet):
 
         self.densenet = densenet_dict[densenet_type]()
         densenet_num_init_features = self.densenet.features[0].in_channels
-        self.densenet.features['conv0'] = nn.Conv2d(1, densenet_num_init_features, kernel_size=7, stride=2,
+        self.densenet.features[0] = nn.Conv2d(1, densenet_num_init_features, kernel_size=7, stride=2,
                                                     padding=3, bias=False)
 
     def forward(self, x):
