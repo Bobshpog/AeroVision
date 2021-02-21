@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 import src.util.image_transforms as my_transforms
 from src.geometry.pyvista_additions.parallel_plotter import RunTimeWingPlotter
-from src.models.resnet_synth import run_resnet_synth
+from src.models.abstract_resnet import run_resnet_synth
 from src.util.loss_functions import L_infinity, reconstruction_loss_3d, y_hat_get_scale_i, y_get_scale_i, \
     l1_norm_indexed, l1_norm
 
@@ -50,7 +50,7 @@ class TestCustomInputResnet(TestCase):
     #                     name_of_picture, show_ssim=True,res=[100,400])
 
     def test_resnet_noisy(self):
-        NETWORK_CLASS= None# CustomInputResnet or MultiResnet
+        NETWORK_CLASS = None  # CustomInputResnet or MultiResnet
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
         NUM_EPOCHS = 1000
         NUM_INPUT_LAYERS = 1
@@ -60,6 +60,7 @@ class TestCustomInputResnet(TestCase):
         EXPERIMENT_NAME = None
         TRAINING_DB_PATH = ""
         VALIDATION_DB_PATH = TRAINING_DB_PATH
+        EXTRA_PARAMS = None # need to supply  num_pictures, use_depth=False,latent_layer_size_per=128 for MultiResnet
         with open('data/validation_splits/2/val_split.pkl', 'rb') as f:
             VAL_SPLIT = pickle.load(f)
         # Total possible cahce is around 6500 total images (640,480,3) total space
@@ -131,11 +132,11 @@ class TestCustomInputResnet(TestCase):
         #     POISSON_RATE = i*i
         #     EXPERIMENT_NAME=f"noisy pois={i*i}"
         # transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
-        run_resnet_synth(NETWORK_CLASS,NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH,
-                         VAL_SPLIT,
-                         transform, None, reduce_dict, hist_dict, text_dict, resnet_type=RESNET_TYPE,
+        run_resnet_synth(NETWORK_CLASS, NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH,
+                         VALIDATION_DB_PATH, VAL_SPLIT, transform, None, reduce_dict, hist_dict, text_dict,
+                         resnet_type=RESNET_TYPE,
                          train_cache_size=TRAIN_CACHE_SIZE,
                          val_cache_size=VAL_CACHE_SIZE,
                          batch_size=BATCH_SIZE, subsampler_size=len(VAL_SPLIT), output_scaling=OUTPUT_SCALE,
-                         monitor_metric_name=MONITOR, parallel_plotter=parallel_plotter)
+                         monitor_metric_name=MONITOR, parallel_plotter=parallel_plotter, extra_params=EXTRA_PARAMS)
         parallel_plotter.finalize()
