@@ -133,10 +133,8 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.output_scaling = output_scaling
         self.ir = ir_index
         self.tip_arr = tip_arr_creation(Mesh(old_mesh_path).vertices)
-        if cam_name is None:
-            self.cam_name = []
-        else:
-            self.cam_name = cam_name
+
+        self.cam_name = cam_name
         self.title = title
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
         TIP_RADIUS = 0.008
@@ -157,12 +155,17 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     #             }
     #     return dict
     def update_state(self):
+
         if self.last_plotted_epoch > -1:
-            if self.train_d[0][0].shape[0] == 3 and self.mean_photo[0].shape[2] == 4:
+            if isinstance(self.train_d[0], np.ndarray):
+                photo = self.train_d[0]
+            else:
+                photo = self.train_d[0][0]
+            if photo.shape[0] == 4:
                 self.state = 'rgbd'
-            elif self.train_d[0][0].shape[0] == 3 and self.mean_photo[0].shape[2] == 3:
+            elif photo.shape[0] == 3:
                 self.state = 'rgb'
-            elif self.train_d[0][0].shape[0] == 1:
+            elif photo.shape[0] == 1:
                 self.state = 'bw'
 
     def plot_data(self):
@@ -280,13 +283,19 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         )
         plotter.subplot(0, 1)
         plotter.add_background_photo(txt)
+        if self.state == 'rgbd':
+            input_name = "Depth input"
+            recon_name = 'RGB input'
+        else:
+            input_name = "Real input"
+            recon_name = "Reconstructed"
         txt = cv2.putText(
-            np.ones(shape=(100, 550, 3)) * 255, "Real input", (120, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255, input_name, (120, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 2)
         plotter.add_background_photo(txt)
         txt = cv2.putText(
-            np.ones(shape=(100, 550, 3)) * 255, "Reconstructed", (75, 50), font, size, color, thickness=2
+            np.ones(shape=(100, 550, 3)) * 255, recon_name, (75, 50), font, size, color, thickness=2
         )
         plotter.subplot(0, 3)
         plotter.add_background_photo(txt)
@@ -319,8 +328,9 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         cv2.putText(headlines, "general errors:", (100 + text_w, 60 + title_range), cv2.FONT_HERSHEY_TRIPLEX, 1.5,
                     headline_color,
                     lineType=2, thickness=2)
-        cv2.putText(headlines, "cam: " + self.cam_name[self.selection], (10, int(title_range / 2)),
-                    cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color, lineType=2, thickness=2)
+        if self.cam_name:
+            cv2.putText(headlines, "cam: " + self.cam_name[self.selection], (10, int(title_range / 2)),
+                        cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color, lineType=2, thickness=2)
 
         cv2.putText(headlines, self.title, (resolution[0], int(title_range / 2)),
                     cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color,
