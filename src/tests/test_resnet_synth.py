@@ -50,6 +50,7 @@ class TestCustomInputResnet(TestCase):
     #                     name_of_picture, show_ssim=True,res=[100,400])
 
     def test_resnet_noisy(self):
+        NETWORK_CLASS= None# CustomInputResnet or MultiResnet
         BATCH_SIZE = None  # 16 for Resnet50, 64 for resnet 18
         NUM_EPOCHS = 1000
         NUM_INPUT_LAYERS = 1
@@ -130,7 +131,7 @@ class TestCustomInputResnet(TestCase):
         #     POISSON_RATE = i*i
         #     EXPERIMENT_NAME=f"noisy pois={i*i}"
         # transform = TRANSFORM(mean_image, POISSON_RATE, GAUSS_MEAN, GAUSS_VAR, SP_RATE)
-        run_resnet_synth(NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH,
+        run_resnet_synth(NETWORK_CLASS,NUM_INPUT_LAYERS, NUM_OUTPUTS, EXPERIMENT_NAME, TRAINING_DB_PATH, VALIDATION_DB_PATH,
                          VAL_SPLIT,
                          transform, None, reduce_dict, hist_dict, text_dict, resnet_type=RESNET_TYPE,
                          train_cache_size=TRAIN_CACHE_SIZE,
