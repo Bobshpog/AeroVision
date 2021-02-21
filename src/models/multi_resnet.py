@@ -5,6 +5,7 @@ from torch import optim, nn
 from torchvision import models
 import pytorch_lightning as pl
 import torch
+from torchvision.transforms import transforms
 
 from src.models.abstract_resnet import AbstractResnet
 from src.models.resnet_synth import CustomInputResnet
@@ -27,13 +28,13 @@ class MultiResnet(AbstractResnet):
                          weight_decay, dtype, track_ideal_metrics)
         self.latent_layer_size_per = latent_layer_size_per
         self.num_pictures = num_pictures
-        densenet_dict = {
-            'densenet121': models.densenet121,
-            'densenet161': models.densenet161,
-            'densenet169': models.densenet169,
-            'densenet201': models.densenet201
-        }
-        self.img_resnets = ([CustomInputResnet(num_input_layers, latent_layer_size_per, loss_func,
+        # densenet_dict = {
+        #     'densenet121': models.densenet121,
+        #     'densenet161': models.densenet161,
+        #     'densenet169': models.densenet169,
+        #     'densenet201': models.densenet201
+        # }
+        self.img_resnets = nn.ModuleList([CustomInputResnet(num_input_layers, latent_layer_size_per, loss_func,
                                                {},{},{}, 1,
                                                resnet_type, learning_rate,
                                                cosine_annealing_steps,
@@ -41,16 +42,25 @@ class MultiResnet(AbstractResnet):
 
         self.depth_resnets=False
         if use_depth:
-            self.depth_resnets = ([CustomInputResnet(1, latent_layer_size_per, loss_func,
+            self.depth_resnets = nn.ModuleList([CustomInputResnet(1, latent_layer_size_per, loss_func,
                                                      {}, {}, {}, 1,
                                                      resnet_type, learning_rate,
                                                      cosine_annealing_steps,
                                                      weight_decay, dtype) for _ in range(num_pictures)])
 
-        self.densenet = densenet_dict[densenet_type]()
-        densenet_num_init_features = self.densenet.features[0].in_channels
-        self.densenet.features['conv0'] = nn.Conv2d(1, densenet_num_init_features, kernel_size=7, stride=2,
-                                                    padding=3, bias=False)
+        # self.densenet = densenet_dict[densenet_type]()
+        # densenet_num_init_features = self.densenet.features[0].in_channels
+        # self.densenet.features[0] = nn.Conv2d(1, densenet_num_init_features, kernel_size=7, stride=2,
+        #                                             padding=3, bias=False)
+
+        latent_layer_size=latent_layer_size_per*num_pictures
+        dense1_size=max(latent_layer_size//2,256)
+        dense2_size=max(latent_layer_size//4,256)
+        dense3_size=max(latent_layer_size//8,128)
+        self.densenet=nn.Sequential(nn.Linear(latent_layer_size,dense1_size),
+                                    nn.Linear(dense1_size,dense2_size),
+                                    nn.Linear(dense2_size, dense3_size),
+                                    nn.Linear(dense3_size,self.num_outputs))
 
     def forward(self, x):
         # x.shape=(N,K,L,H,W)
