@@ -108,6 +108,8 @@ class ParallelPlotterBase(Process, ABC):
 # ----------------------------------------------------------------------------------------------------------------------#
 #                                               Parallel Plot suite
 # ----------------------------------------------------------------------------------------------------------------------#
+
+
 class RunTimeWingPlotter(ParallelPlotterBase):
     def __init__(self, mean_photo, texture, cam_location, mode_shapes, wing_path, tip_path, ir_index, output_scaling,
                  cam_name=None, title='', old_mesh_path='data/wing_off_files/synth_wing_v3.off', background_image=None,
@@ -118,7 +120,10 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         if isinstance(texture, str):
             texture = [texture]
         self.texture = texture
-        self.mean_photo = mean_photo
+        if isinstance(mean_photo, np.ndarray):
+            self.mean_photo = [mean_photo]
+        else:
+            self.mean_photo = mean_photo
         self.cam = cam_location
         self.background_image = background_image
         self.mesh_path = wing_path
@@ -138,8 +143,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         tip_vertex_gain_arr = np.linspace(0, 2 * np.pi, NUM_OF_VERTICES_ON_CIRCUMFERENCE, endpoint=False)
         self.y_t = TIP_RADIUS * np.cos(tip_vertex_gain_arr)
         self.z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
-        self.state = ''
-        self.update_state()
+        self.state = None
         self.pv_as_cv = pv_as_cv
 
     # def prepare_plotter_dict(self, params, network_output):
@@ -153,12 +157,12 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     #             }
     #     return dict
     def update_state(self):
-        if len(self.mean_photo[0].shape) == 3 and self.mean_photo[0].shape[2] == 4:
-            self.state = 'rgbd'
-        elif self.last_plotted_epoch > -1:
-            if self.train_d[0][0].shape[0] == 3:
+        if self.last_plotted_epoch > -1:
+            if self.train_d[0][0].shape[0] == 3 and self.mean_photo[0].shape[2] == 4:
+                self.state = 'rgbd'
+            elif self.train_d[0][0].shape[0] == 3 and self.mean_photo[0].shape[2] == 3:
                 self.state = 'rgb'
-            else:
+            elif self.train_d[0][0].shape[0] == 1:
                 self.state = 'bw'
 
     def plot_data(self):
@@ -187,17 +191,26 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, tex)
             bad_tip = Mesh(self.tip_path)
-            self.plot_row(data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
+            if isinstance(data_point[0], np.ndarray):
+                new_data_point = ([data_point[0]], data_point[1], data_point[2])
+                self.plot_row(new_data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
+            else:
+                self.plot_row(data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
 
         for row, data_point in zip(range(len(self.val_d)), self.val_d):
             good_mesh = Mesh(self.mesh_path, tex)
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, tex)
             bad_tip = Mesh(self.tip_path)
-            self.plot_row(data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
-                          bad_tip, old_mesh)
+            if isinstance(data_point[0], np.ndarray):
+                new_data_point = ([data_point[0]], data_point[1], data_point[2])
+                self.plot_row(new_data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
+                              bad_tip, old_mesh)
+            else:
+                self.plot_row(data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
+                              bad_tip, old_mesh)
         plotter.enable_anti_aliasing()
-        plotter.show(full_screen=True, auto_close=self.pv_as_cv is not True)
+        plotter.show(full_screen=True, auto_close=not self.pv_as_cv)
         if self.pv_as_cv:
             screen = cv2.cvtColor(plotter.screenshot(), cv2.COLOR_RGB2BGR)
             cv2.imshow("pyvista screen in cv2", screen)
@@ -213,7 +226,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         if self.state == 'rgb':
             gray_photo = np.moveaxis(data_point[0][self.selection], 0, -1)
         elif self.state == 'rgbd':  # does not have real input but depth one
-            gray_photo = data_point[0][self.selection][3] + self.mean_photo[self.selection][:, :, 3]
+            gray_photo = normalize_image(data_point[0][self.selection][3] + self.mean_photo[self.selection][:, :, 3])
         else:
             gray_photo = np.zeros(shape=(data_point[0][self.selection][0].shape[0], data_point[0][0].shape[1], 3))
             gray_photo[:, :, 0] = data_point[0][self.selection][0]
@@ -468,3 +481,9 @@ def add_mean_photo_to_photo(mean_photo, X, state):
     if state == 'bw':
         return cv2.cvtColor(mean_photo, cv2.COLOR_RGB2GRAY) + X  # normal bw
     return mean_photo[:, :, :3] + np.moveaxis(X[:3], 0, -1)  # depth
+
+
+def normalize_image(x):
+    m = x.min()
+    M = x.max()
+    return (x - m) / (M - m)
