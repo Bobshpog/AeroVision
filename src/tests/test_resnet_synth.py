@@ -66,7 +66,7 @@ class TestCustomInputResnet(TestCase):
         TRAIN_CACHE_SIZE = 6500 * 3 - VAL_CACHE_SIZE
         MONITOR = 'val_l1_smooth'
 
-        TRANSFORM = my_transforms.TranformOnePhotoNoisyBW
+        TRANSFORM = my_transforms.TranformSingleNoisyBW
         OUTPUT_SCALE = 1e4
         LEARNING_RATE = 1e-2
         WEIGTH_DECAY = 0

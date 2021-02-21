@@ -78,7 +78,7 @@ def run_resnet_synth(num_input_layers, num_outputs,
               'val_db': val_db_path.split('/')[-1], 'train-val_split_index': val_split,
               'loss_func': loss_func.__name__, 'num_outputs': num_outputs,
               'output_scaling': output_scaling, 'resnet_type': resnet_type, 'lr': lr,
-              'weight_decay': weight_decay, 'cosine_annealing_steps': cosine_annealing_steps}
+              'weight_decay': weight_decay, 'cosine_annealing_steps': cosine_annealing_steps,'transform':transform}
     with h5py.File(train_db_path, 'r') as hf:
         db_size = hf['data']['images'].len()
     if isinstance(val_split, int):

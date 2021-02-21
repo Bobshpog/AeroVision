@@ -290,7 +290,7 @@ class TransformGaussian:
         return "GAUSSIAN_NOISE_TRANFORM_MEAN:" + str(self.mean) + "STD:_" + str(self.std)
 
 
-class TranformOnePhotoNoisyBW:
+class TranformSingleNoisyBW:
     def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_var, salt_peper_amount, salt_pepper_ratio=0.5,
                  cam_pos=0):
         #   (defult into up middle)
@@ -362,7 +362,7 @@ class TranformSingleNoisyRGBD:
         return to_return
 
 
-class TransformTwoCameraBWNoisy:
+class TransformManyCamerasBWNoisy:
     def __init__(self, cam_ids, mean_photo, pois_lamda, gauss_mean, gauss_std,
                  salt_peper_amount, salt_pepper_ratio=0.5):
         self.tform = []
@@ -372,7 +372,8 @@ class TransformTwoCameraBWNoisy:
         if pois_lamda:
             self.tform.append(TranformPoissonNoise(pois_lamda))
         if salt_peper_amount:
-            self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
+            raise NotImplementedError
+            # self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
 
         self.transform = transforms.Compose(self.tform)
 
@@ -380,7 +381,7 @@ class TransformTwoCameraBWNoisy:
         return self.transform(img)
 
     def __repr__(self):
-        to_return = "NOISY TWO CAM RGBD "
+        to_return = "NOISY MULTI CAM BW"
         for o in self.tform:
             to_return += '\n' + repr(o)
         return to_return

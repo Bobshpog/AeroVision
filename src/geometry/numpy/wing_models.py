@@ -438,8 +438,8 @@ class SyntheticWingModel:
         normal_factor = res[0] / 640
         photo = Mesh.get_many_photos([mesh, tip], [mesh.vertices, tip.vertices], res, "jet", plotter,
                                      [cam], cam_noise_lambda=cam_noise)
-        tform = tforms.TranformOnePhotoNoisyBW(np.zeros(photo.shape).astype(np.float32), pois, gaussian_mean,
-                                               gaussian_var, s_p)
+        tform = tforms.TranformSingleNoisyBW(np.zeros(photo.shape).astype(np.float32), pois, gaussian_mean,
+                                             gaussian_var, s_p)
         photo = tform(photo)
         font = cv2.FONT_HERSHEY_SIMPLEX
         org = (int(30 * normal_factor), int(30 * normal_factor))
