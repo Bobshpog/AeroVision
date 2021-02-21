@@ -53,7 +53,8 @@ class MultiResnet(AbstractResnet):
         # densenet_num_init_features = self.densenet.features[0].in_channels
         # self.densenet.features[0] = nn.Conv2d(1, densenet_num_init_features, kernel_size=7, stride=2,
         #                                             padding=3, bias=False)
-        self.densenet=transforms.Compose([nn.Linear(self.latent_layer_size,1024),nn.Linear(1024,512),nn.Linear(512,self.num_outputs)])
+        self.densenet=nn.Sequential(nn.Linear(self.latent_layer_size,1024),nn.Linear(1024,512),nn.Linear(512,self.num_outputs))
+
     def forward(self, x):
         # x.shape=(N,K,L,H,W)
         # N= Batch size
