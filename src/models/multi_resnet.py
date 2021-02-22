@@ -58,8 +58,11 @@ class MultiResnet(AbstractResnet):
         dense2_size=max(latent_layer_size//4,256)
         dense3_size=max(latent_layer_size//8,128)
         self.densenet=nn.Sequential(nn.Linear(latent_layer_size,dense1_size),
+                                    nn.ReLU(),
                                     nn.Linear(dense1_size,dense2_size),
+                                    nn.ReLU(),
                                     nn.Linear(dense2_size, dense3_size),
+                                    nn.ReLU(),
                                     nn.Linear(dense3_size,self.num_outputs))
 
     def forward(self, x):
