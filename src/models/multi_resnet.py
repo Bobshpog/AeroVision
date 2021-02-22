@@ -34,36 +34,36 @@ class MultiResnet(AbstractResnet):
         #     'densenet169': models.densenet169,
         #     'densenet201': models.densenet201
         # }
-        self.img_resnets = nn.ModuleList([CustomInputResnet(num_input_layers, latent_layer_size_per, loss_func,
-                                               {},{},{}, 1,
-                                               resnet_type, learning_rate,
-                                               cosine_annealing_steps,
-                                               weight_decay, dtype) for _ in range(num_pictures)])
+        self.img_subnets = nn.ModuleList([CustomInputResnet(num_input_layers, latent_layer_size_per, loss_func,
+                                                            {}, {}, {}, 1,
+                                                            resnet_type, learning_rate,
+                                                            cosine_annealing_steps,
+                                                            weight_decay, dtype) for _ in range(num_pictures)])
 
-        self.depth_resnets=False
+        self.depth_subnets = False
         if use_depth:
-            self.depth_resnets = nn.ModuleList([CustomInputResnet(1, latent_layer_size_per, loss_func,
-                                                     {}, {}, {}, 1,
-                                                     resnet_type, learning_rate,
-                                                     cosine_annealing_steps,
-                                                     weight_decay, dtype) for _ in range(num_pictures)])
+            self.depth_subnets = nn.ModuleList([CustomInputResnet(1, latent_layer_size_per, loss_func,
+                                                                  {}, {}, {}, 1,
+                                                                  resnet_type, learning_rate,
+                                                                  cosine_annealing_steps,
+                                                                  weight_decay, dtype) for _ in range(num_pictures)])
 
         # self.densenet = densenet_dict[densenet_type]()
         # densenet_num_init_features = self.densenet.features[0].in_channels
         # self.densenet.features[0] = nn.Conv2d(1, densenet_num_init_features, kernel_size=7, stride=2,
         #                                             padding=3, bias=False)
 
-        latent_layer_size=latent_layer_size_per*num_pictures
-        dense1_size=max(latent_layer_size//2,256)
-        dense2_size=max(latent_layer_size//4,256)
-        dense3_size=max(latent_layer_size//8,128)
-        self.densenet=nn.Sequential(nn.Linear(latent_layer_size,dense1_size),
-                                    nn.ReLU(),
-                                    nn.Linear(dense1_size,dense2_size),
-                                    nn.ReLU(),
-                                    nn.Linear(dense2_size, dense3_size),
-                                    nn.ReLU(),
-                                    nn.Linear(dense3_size,self.num_outputs))
+        latent_layer_size = latent_layer_size_per * num_pictures
+        dense1_size = max(latent_layer_size // 2, 256)
+        dense2_size = max(latent_layer_size // 4, 256)
+        dense3_size = max(latent_layer_size // 8, 128)
+        self.densenet = nn.Sequential(nn.Linear(latent_layer_size, dense1_size),
+                                      nn.ReLU(),
+                                      nn.Linear(dense1_size, dense2_size),
+                                      nn.ReLU(),
+                                      nn.Linear(dense2_size, dense3_size),
+                                      nn.ReLU(),
+                                      nn.Linear(dense3_size, self.num_outputs))
 
     def forward(self, x):
         # x.shape=(N,K,L,H,W)
@@ -73,17 +73,17 @@ class MultiResnet(AbstractResnet):
         #      Incremented by 1 if depth is used
         N, K, L, H, W = x.shape
         latent_size = self.latent_layer_size_per * self.num_pictures
-        if self.depth_resnets:
+        if self.depth_subnets:
             latent_size *= 2
         latent = torch.zeros((N, latent_size), dtype=x.dtype, device=x.device)
         start = 0
         end = self.latent_layer_size_per
-        for index, resnet in enumerate(self.img_resnets):
+        for index, resnet in enumerate(self.img_subnets):
             latent[:, start:end] = resnet(x[:, index, :self.num_input_layers])
             start = end
             end += self.latent_layer_size_per
-        if self.depth_resnets:
-            for index, resnet in enumerate(self.depth_resnets):
+        if self.depth_subnets:
+            for index, resnet in enumerate(self.depth_subnets):
                 latent[:, start:end] = resnet(x[:, index, -1])
                 start = end
                 end += self.latent_layer_size_per
