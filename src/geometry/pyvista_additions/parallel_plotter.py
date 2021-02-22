@@ -200,7 +200,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, tex)
             bad_tip = Mesh(self.tip_path)
-            if isinstance(data_point[0], np.ndarray) and len(data_point.shape) == 3:
+            if isinstance(data_point[0], np.ndarray) and len(data_point[0].shape) == 3:
                 new_data_point = ([data_point[0]], data_point[1], data_point[2])
                 self.plot_row(new_data_point, row + 1, plotter, good_mesh, good_tip, bad_mesh, bad_tip, old_mesh)
             else:
@@ -218,7 +218,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
             good_tip = Mesh(self.tip_path)
             bad_mesh = Mesh(self.mesh_path, tex)
             bad_tip = Mesh(self.tip_path)
-            if isinstance(data_point[0], np.ndarray) and len(data_point.shape) == 3:
+            if isinstance(data_point[0], np.ndarray) and len(data_point[0].shape) == 3:
                 new_data_point = ([data_point[0]], data_point[1], data_point[2])
                 self.plot_row(new_data_point, row + len(self.train_d) + 1, plotter, good_mesh, good_tip, bad_mesh,
                               bad_tip, old_mesh)
@@ -246,21 +246,12 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         elif self.state == 'rgbd':  # does not have real input but depth one
             gray_photo = normalize_image(data_point[0][self.selection][3])
         else:
-            gray_photo = np.zeros(shape=(data_point[0][self.selection][0].shape[0],
-                                         data_point[0][self.selection][0].shape[1], 3))
-            gray_photo[:, :, 0] = data_point[0][self.selection][0]
-            gray_photo[:, :, 1] = data_point[0][self.selection][0]
-            gray_photo[:, :, 2] = data_point[0][self.selection][0]
-            # gray_photo = data_point[0][self.selection][0]
+            gray_photo = data_point[0][self.selection][0]
         plotter.add_background_photo(gray_photo * 255)
         plotter.subplot(row, 1)
 
         photo_with_mean = add_mean_photo_to_photo(self.mean_photo[self.selection],
                                                   data_point[0][self.selection], self.state)
-        # gray_photo_with_mean = np.zeros(shape=(data_point[0][0].shape[0], data_point[0][0].shape[1], 3))
-        # gray_photo_with_mean[:, :, 0] = photo_with_mean
-        # gray_photo_with_mean[:, :, 1] = photo_with_mean
-        # gray_photo_with_mean[:, :, 2] = photo_with_mean
         plotter.add_background_photo(photo_with_mean * 255)
 
         right_movement, good_tip_movement = SyntheticWingModel.create_movement_vector(
@@ -341,22 +332,17 @@ class RunTimeWingPlotter(ParallelPlotterBase):
 
         headlines = np.ones(shape=(100 + title_range, txt2_w, 3))
         cv2.putText(headlines, "general errors:", (100 + text_w, 60 + title_range), cv2.FONT_HERSHEY_TRIPLEX, 1.5,
-                    headline_color,
-                    lineType=2, thickness=2)
+                    headline_color, lineType=2, thickness=2)
         if self.cam_name:
             cv2.putText(headlines, "cam: " + self.cam_name[self.selection], (10, int(title_range / 2)),
                         cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color, lineType=2, thickness=2)
 
         cv2.putText(headlines, self.title, (resolution[0], int(title_range / 2)),
-                    cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color,
-                    lineType=2, thickness=2)
+                    cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color, lineType=2, thickness=2)
         cv2.putText(headlines, "scale errors:", (resolution[0] + text_w + 120, 60 + title_range),
-                    cv2.FONT_HERSHEY_TRIPLEX, 1.5,
-                    headline_color,
-                    lineType=2, thickness=2)
-        cv2.putText(headlines, f"epoch {str(0)}:", (10, 60 + title_range), cv2.FONT_HERSHEY_TRIPLEX, 1.5,
-                    headline_color,
-                    lineType=2, thickness=2)
+                    cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color, lineType=2, thickness=2)
+        cv2.putText(headlines, f"epoch {str(self.last_plotted_epoch)}:",
+                    (10, 60 + title_range), cv2.FONT_HERSHEY_TRIPLEX, 1.5, headline_color, lineType=2, thickness=2)
         headlines[71 + title_range: 75 + title_range, :, :] = 0
         headlines[title_range:, text_w - 4:text_w, :] = 0
         headlines[title_range:title_range + 4, :, :] = 0
