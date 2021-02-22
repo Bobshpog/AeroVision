@@ -251,6 +251,6 @@ def run_resnet_synth(network_class: AbstractResnet, num_input_layers, num_output
     trainer = pl.Trainer(gpus=1, max_epochs=num_epochs,
                          callbacks=callbacks,
                          num_sanity_val_steps=0,
-                         profiler=True, logger=logger)
+                         profiler=True, logger=logger,auto_scale_batch_size=True)
     trainer.fit(model, train_loader, val_loader)
     logger.experiment.log_asset_folder(checkpoints_folder)
