@@ -177,7 +177,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     def plot_data(self):
         if not self.state:
             self.update_state()
-        self.selection = random.randint(0, self.num_cam - 1)
+        self.selection = (self.selection + 1) % self.num_cam
         self.plot_cv()
         self.plot_pyvista()
         # if len(self.train_d[0]) == 4:
