@@ -132,7 +132,6 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.output_scaling = output_scaling
         self.ir = ir_index
         self.tip_arr = tip_arr_creation(Mesh(old_mesh_path).vertices)
-
         self.cam_name = cam_name
         self.title = title
         NUM_OF_VERTICES_ON_CIRCUMFERENCE = 30
@@ -142,6 +141,7 @@ class RunTimeWingPlotter(ParallelPlotterBase):
         self.z_t = TIP_RADIUS * np.sin(tip_vertex_gain_arr)
         self.state = None
         self.pv_as_cv = pv_as_cv
+        self.num_cam = 0
 
     # def prepare_plotter_dict(self, params, network_output):
     #
@@ -154,23 +154,30 @@ class RunTimeWingPlotter(ParallelPlotterBase):
     #             }
     #     return dict
     def update_state(self):
-        #(2, 3, 2, 1, 240, 320)
+        #   (2, 3, 2, 1, 240, 320)
+        #   (num_points, data_point_format, num_cameras, color_channels, H, W)
         if self.last_plotted_epoch > -1:
             if isinstance(self.train_d[0][0], np.ndarray) and len(self.train_d[0][0].shape) == 3:
                 photo = self.train_d[0][0]
+                self.num_cam = 1
             else:
                 photo = self.train_d[0][0][0]
+                self.num_cam = len(self.train_d[0][0])
             if photo.shape[0] == 4:
                 self.state = 'rgbd'
             elif photo.shape[0] == 3:
                 self.state = 'rgb'
             elif photo.shape[0] == 1:
                 self.state = 'bw'
+            else:
+                err_msg = "num points: " + str(len(self.train_d)) + " num cameras: " + str(len(self.train_d[0][0])) +\
+                          " photo shape: " + str(photo.shape)
+                raise NotImplementedError(err_msg)
 
     def plot_data(self):
         if not self.state:
             self.update_state()
-        self.selection = random.randint(0, len(self.cam) - 1)
+        self.selection = random.randint(0, self.num_cam - 1)
         self.plot_cv()
         self.plot_pyvista()
         # if len(self.train_d[0]) == 4:
