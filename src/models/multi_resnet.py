@@ -15,7 +15,7 @@ class MultiResnet(AbstractResnet):
     def __init__(self, num_input_layers, num_outputs, loss_func, reduce_error_func_dict, hist_error_func_dict,
                  text_error_func_dict,
                  output_scaling,
-                 resnet_type: str, densenet_type: str, learning_rate,
+                 resnet_type: str, learning_rate,
                  cosine_annealing_steps,
                  weight_decay, num_pictures, dtype=torch.float32, track_ideal_metrics=False, use_depth=False,
                  latent_layer_size_per=128):
@@ -28,12 +28,7 @@ class MultiResnet(AbstractResnet):
                          weight_decay, dtype, track_ideal_metrics)
         self.latent_layer_size_per = latent_layer_size_per
         self.num_pictures = num_pictures
-        # densenet_dict = {
-        #     'densenet121': models.densenet121,
-        #     'densenet161': models.densenet161,
-        #     'densenet169': models.densenet169,
-        #     'densenet201': models.densenet201
-        # }
+
         self.img_subnets = nn.ModuleList([CustomInputResnet(num_input_layers, latent_layer_size_per, loss_func,
                                                             {}, {}, {}, 1,
                                                             resnet_type, learning_rate,
@@ -47,11 +42,6 @@ class MultiResnet(AbstractResnet):
                                                                   resnet_type, learning_rate,
                                                                   cosine_annealing_steps,
                                                                   weight_decay, dtype) for _ in range(num_pictures)])
-
-        # self.densenet = densenet_dict[densenet_type]()
-        # densenet_num_init_features = self.densenet.features[0].in_channels
-        # self.densenet.features[0] = nn.Conv2d(1, densenet_num_init_features, kernel_size=7, stride=2,
-        #                                             padding=3, bias=False)
 
         latent_layer_size = latent_layer_size_per * num_pictures
         dense1_size = max(latent_layer_size // 2, 256)
