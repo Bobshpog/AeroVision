@@ -34,6 +34,15 @@ class AggResnet(AbstractResnet):
                                                             weight_decay, dtype) for _ in range(num_pictures)])
         self.num_pictures = num_pictures
         self.mode = mode
+        if mode == 'other':
+            self.weight_net = nn.Sequential(
+                nn.Linear(num_pictures * 10, 64),
+                nn.ReLU(),
+                nn.Linear(64, 64),
+                nn.ReLU(),
+                nn.Linear(64, num_pictures),
+                nn.Softmax()
+            )
 
     def forward(self, x):
         # x.shape=(N,K,L,H,W)
@@ -45,11 +54,16 @@ class AggResnet(AbstractResnet):
         latent = torch.zeros((N, self.num_pictures, self.num_outputs), dtype=x.dtype, device=x.device)
         for index, resnet in enumerate(self.img_subnets):
             latent[:, index, :] = resnet(x[:, index, :self.num_input_layers])
-        if (self.mode == 'mean'):
+        if self.mode == 'mean':
             return latent.mean(dim=1)
-        elif (self.mode == 'min'):
+        elif self.mode == 'min':
             return latent.min(dim=1)
-        elif (self.mode == 'max'):
+        elif self.mode == 'max':
             return latent.min(dim=1)
+        elif self.mode == 'other':
+            output = latent.reshape(N, -1)
+            weights = self.weight_net(output).unsqueeze(-1)
+            output = output * weights
+            return output.sum(dim=1)
         else:
             raise NotImplementedError
