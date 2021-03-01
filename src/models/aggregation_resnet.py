@@ -34,7 +34,7 @@ class AggResnet(AbstractResnet):
                                                             weight_decay, dtype) for _ in range(num_pictures)])
         self.num_pictures = num_pictures
         self.mode = mode
-        if mode == 'other':
+        if mode.startswith('other'):
             self.weight_net = nn.Sequential(
                 nn.Linear(num_pictures * 10, 64),
                 nn.ReLU(),
@@ -43,6 +43,11 @@ class AggResnet(AbstractResnet):
                 nn.Linear(64, num_pictures),
                 nn.Softmax()
             )
+        if mode == 'other_frozen':
+            db_names=None
+            for name,net in zip(db_names,self.img_subnets):
+                net.load_from_checkpoint(name)
+                net.freeze()
 
     def forward(self, x):
         # x.shape=(N,K,L,H,W)
@@ -60,7 +65,7 @@ class AggResnet(AbstractResnet):
             return latent.min(dim=1)
         elif self.mode == 'max':
             return latent.min(dim=1)
-        elif self.mode == 'other':
+        elif self.mode.startswith('other'):
             output = latent.reshape(N, -1)
             weights = self.weight_net(output).unsqueeze(-1)
             output = output * weights
