@@ -68,7 +68,7 @@ class AggResnet(AbstractResnet):
         elif self.mode.startswith('other'):
             output = latent.reshape(N, -1)
             weights = self.weight_net(output).unsqueeze(-1)
-            output = output * weights
+            output = latent * weights
             return output.sum(dim=1)
         else:
             raise NotImplementedError
