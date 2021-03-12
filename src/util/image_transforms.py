@@ -162,8 +162,8 @@ class TransformManyPositionsHHA:
 
     def __repr__(self):
         if isinstance(self.cam_id, int):
-            return "MANY_POSITION_ONLY_DEPTH_TRANSFORM_CAM_ID" + str(self.cam_id)
-        to_ret = "MANY_POSITION_ONLY_DEPTH_TRANSFORM_CAM_ID_("
+            return "MANY_POSITION_HHA_TRANSFORM_CAM_ID" + str(self.cam_id)
+        to_ret = "MANY_POSITION_HHA_TRANSFORM_CAM_ID_("
         for i in self.cam_id:
             to_ret += str(i) + ","
         return to_ret + ")"
