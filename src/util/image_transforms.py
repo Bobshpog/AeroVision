@@ -158,7 +158,7 @@ class TransformManyPositionsHHA:
         mtx = pv.trans_from_matrix(vmtx)
         self.camera_matrix=mtx[:-1,:-1]
     def __call__(self, img):
-        return getHHA(self.camera_matrix,img[self.cam_id, :, :, -1],0)
+        return last_axis_to_first(getHHA(self.camera_matrix,img[self.cam_id, :, :, -1],0))
 
     def __repr__(self):
         if isinstance(self.cam_id, int):
