@@ -44,16 +44,14 @@ class MultiResnet(AbstractResnet):
                                                                   weight_decay, dtype) for _ in range(num_pictures)])
 
         latent_layer_size = latent_layer_size_per * num_pictures
-        dense1_size = max(latent_layer_size // 2, 256)
-        dense2_size = max(latent_layer_size // 4, 256)
-        dense3_size = max(latent_layer_size // 8, 128)
-        self.densenet = nn.Sequential(nn.Linear(latent_layer_size, dense1_size),
+        # dense1_size = max(latent_layer_size // 2, 256)
+        # dense2_size = max(latent_layer_size // 4, 256)
+        # dense3_size = max(latent_layer_size // 8, 128)
+        self.densenet = nn.Sequential(nn.Linear(latent_layer_size, 64),
                                       nn.ReLU(),
-                                      nn.Linear(dense1_size, dense2_size),
+                                      nn.Linear(64, 64),
                                       nn.ReLU(),
-                                      nn.Linear(dense2_size, dense3_size),
-                                      nn.ReLU(),
-                                      nn.Linear(dense3_size, self.num_outputs))
+                                      nn.Linear(64, self.num_outputs))
 
     def forward(self, x):
         # x.shape=(N,K,L,H,W)
