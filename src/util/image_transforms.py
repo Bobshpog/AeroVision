@@ -15,6 +15,7 @@ def slice_many_positions_no_depth(ids, input_photo):
 def slice_first_position_no_depth(input_photo):
     return input_photo[0, :, :, :3]
 
+
 def slice_first_position_with_depth(input_photo):
     return input_photo[0, :, :, :]
 
@@ -44,7 +45,7 @@ def single_rgb_to_bw(img):
 
 
 def many_rgb_to_bw(img):
-    return np.array([cv2.cvtColor(im, cv2.COLOR_RGB2GRAY) for im in img])[:,np.newaxis,:,:]
+    return np.array([cv2.cvtColor(im, cv2.COLOR_RGB2GRAY) for im in img])[:, np.newaxis, :, :]
 
 
 def top_middle_rgb(mean_photos):
@@ -62,6 +63,7 @@ def top_middle_bw(mean_photos):
                                remove_mean,
                                single_rgb_to_bw
                                ])
+
 
 def many_cameras_bw(camera_ids, mean_photos):
     mean_photos = slice_many_positions_no_depth(camera_ids, mean_photos)
@@ -130,6 +132,7 @@ class TransformManyPositionsNoDepth:
             to_ret += str(i) + ","
         return to_ret + ")"
 
+
 class TransformManyPositionsOnlyDepth:
     def __init__(self, cam_id):
         self.cam_id = cam_id
@@ -146,19 +149,19 @@ class TransformManyPositionsOnlyDepth:
         return to_ret + ")"
 
 
-
 class TransformManyPositionsHHA:
     def __init__(self, cam_id, camera_pos):
         self.cam_id = cam_id
         p = pv.Plotter()
         p.add_mesh(pv.Sphere())
-        p.camera_position=camera_pos
+        p.camera_position = camera_pos
         # Now grab the matrix
         vmtx = p.camera.GetModelViewTransformMatrix()
         mtx = pv.trans_from_matrix(vmtx)
-        self.camera_matrix=mtx[:-1,:-1]
+        self.camera_matrix = mtx[:-1, :-1]
+
     def __call__(self, img):
-        return last_axis_to_first(getHHA(self.camera_matrix,img[self.cam_id, :, :, -1],0))
+        return last_axis_to_first(getHHA(self.camera_matrix, img[self.cam_id, :, :, -1], 0))
 
     def __repr__(self):
         if isinstance(self.cam_id, int):
@@ -167,6 +170,7 @@ class TransformManyPositionsHHA:
         for i in self.cam_id:
             to_ret += str(i) + ","
         return to_ret + ")"
+
 
 class TransformManyPositions:
     def __init__(self, cam_id):
@@ -247,7 +251,6 @@ class TransformSingleCameraRGBD:
         return "SINGLE_CAMERA_RGBD_TRANSFORM_CAM_ID_" + str(self.cam_id)
 
 
-
 class TransformSingleCameraDepth:
     def __init__(self, cam_id, mean_photo):
         self.cam_id = cam_id
@@ -257,11 +260,13 @@ class TransformSingleCameraDepth:
         self.transform = transforms.Compose([many_pos_trans,
                                              remove_dc_trans
                                              ])
+
     def __call__(self, img):
         return self.transform(img)
 
     def __repr__(self):
         return "SINGLE_CAMERA_DEPTH_TRANSFORM_CAM_ID_" + str(self.cam_id)
+
 
 class TransformManyCameraBw:
     def __init__(self, cam_id, mean_photo):
@@ -279,6 +284,27 @@ class TransformManyCameraBw:
 
     def __repr__(self):
         to_ret = "MANY_CAMERA_BW_TRANSFORM_CAM_ID_("
+        for i in self.cam_id:
+            to_ret += str(i) + ","
+        return to_ret + ")"
+
+
+class TransformManyCamerasRGBD:
+    def __init__(self, cam_id, mean_photo):
+        self.cam_id = cam_id
+        many_pos_trans = TransformManyPositions(cam_id)
+        mean_photo = many_pos_trans(mean_photo)
+        remove_dc_trans = TransformRemoveDcPhoto(mean_photo)
+        self.transform = transforms.Compose([many_pos_trans,
+                                             remove_dc_trans,
+                                             many_rgb_to_bw
+                                             ])
+
+    def __call__(self, img):
+        return self.transform(img)
+
+    def __repr__(self):
+        to_ret = "MANY_CAMERA_RGBD_TRANSFORM_CAM_ID_("
         for i in self.cam_id:
             to_ret += str(i) + ","
         return to_ret + ")"
@@ -436,6 +462,31 @@ class TransformManyCamerasBWNoisy:
 
     def __repr__(self):
         to_return = "NOISY MULTI CAM BW"
+        for o in self.tform:
+            to_return += '\n' + repr(o)
+        return to_return
+
+
+class TransformManyCamerasRGBDNoisy:
+    def __init__(self, cam_ids, mean_photo, pois_lamda, gauss_mean, gauss_std,
+                 salt_peper_amount, salt_pepper_ratio=0.5):
+        self.tform = []
+        self.tform.append(TransformManyCamerasRGBD(cam_ids, mean_photo))
+        if gauss_std:
+            self.tform.append(TransformGaussian(gauss_mean, gauss_std))
+        if pois_lamda:
+            self.tform.append(TranformPoissonNoise(pois_lamda))
+        if salt_peper_amount:
+            raise NotImplementedError
+            # self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
+
+        self.transform = transforms.Compose(self.tform)
+
+    def __call__(self, img):
+        return self.transform(img)
+
+    def __repr__(self):
+        to_return = "NOISY MULTI CAM RGBD"
         for o in self.tform:
             to_return += '\n' + repr(o)
         return to_return
