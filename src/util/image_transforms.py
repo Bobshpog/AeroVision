@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from torchvision.transforms import transforms
 import pyvista as pv
-
+from torch import unsqueeze
 from src.util.depth2hha.getHHA import getHHA
 
 
@@ -288,16 +288,21 @@ class TransformManyCameraBw:
             to_ret += str(i) + ","
         return to_ret + ")"
 
+def my_unsqueeze(img):
+    return np.expand_dims(img,0)
 
 class TransformManyCamerasRGBD:
     def __init__(self, cam_id, mean_photo):
         self.cam_id = cam_id
+        tform=[]
         many_pos_trans = TransformManyPositions(cam_id)
         mean_photo = many_pos_trans(mean_photo)
         remove_dc_trans = TransformRemoveDcPhoto(mean_photo)
+        tform.append(many_pos_trans)
+        tform.append(remove_dc_trans)
+
         self.transform = transforms.Compose([many_pos_trans,
-                                             remove_dc_trans,
-                                             many_rgb_to_bw
+                                             remove_dc_trans
                                              ])
 
     def __call__(self, img):
@@ -319,7 +324,7 @@ class TranformPoissonNoise:
         if img.shape[-1] == 4:
             if (len(img.shape) == 4):
                 noise[:, :, :, 3] = 0
-            elif (len(img.shape == 3)):
+            elif (len(img.shape) == 3):
                 noise[:, :, 3] = 0
             else:
                 raise NotImplementedError
@@ -406,6 +411,7 @@ class TranformSingleNoisyRGB:
             self.tform.append(TranformPoissonNoise(pois_lamda))
         if salt_peper_amount:
             self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
+        self.tform.append(my_undsqueeze)
         self.tranform = transforms.Compose(self.tform)
 
     def __call__(self, img):
@@ -417,9 +423,11 @@ class TranformSingleNoisyRGB:
             to_return += '\n' + repr(o)
         return to_return
 
+def my_undsqueeze(x):
+    return np.expand_dims(x,0)
 
 class TranformSingleNoisyRGBD:
-    def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_var, salt_peper_amount, salt_pepper_ratio=0.5,
+    def __init__(self, mean_photo, pois_lamda, gauss_mean, gauss_var, salt_peper_amount, salt_pepper_ratio,
                  cam_pos=0):
         #   (default into up middle)
         self.tform = []
@@ -430,6 +438,8 @@ class TranformSingleNoisyRGBD:
             self.tform.append(TranformPoissonNoise(pois_lamda))
         if salt_peper_amount:
             self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
+        if isinstance(cam_pos,int):
+            self.tform.append(my_unsqueeze)
         self.tranform = transforms.Compose(self.tform)
 
     def __call__(self, img):
@@ -466,30 +476,30 @@ class TransformManyCamerasBWNoisy:
             to_return += '\n' + repr(o)
         return to_return
 
-
-class TransformManyCamerasRGBDNoisy:
-    def __init__(self, cam_ids, mean_photo, pois_lamda, gauss_mean, gauss_std,
-                 salt_peper_amount, salt_pepper_ratio=0.5):
-        self.tform = []
-        self.tform.append(TransformManyCamerasRGBD(cam_ids, mean_photo))
-        if gauss_std:
-            self.tform.append(TransformGaussian(gauss_mean, gauss_std))
-        if pois_lamda:
-            self.tform.append(TranformPoissonNoise(pois_lamda))
-        if salt_peper_amount:
-            raise NotImplementedError
-            # self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
-
-        self.transform = transforms.Compose(self.tform)
-
-    def __call__(self, img):
-        return self.transform(img)
-
-    def __repr__(self):
-        to_return = "NOISY MULTI CAM RGBD"
-        for o in self.tform:
-            to_return += '\n' + repr(o)
-        return to_return
+#
+# class TransformManyCamerasRGBDNoisy:
+#     def __init__(self, cam_ids, mean_photo, pois_lamda, gauss_mean, gauss_std,
+#                  salt_peper_amount, salt_pepper_ratio=0.5):
+#         self.tform = []
+#         self.tform.append(TransformManyCamerasRGBD(cam_ids, mean_photo))
+#         if gauss_std:
+#             self.tform.append(TransformGaussian(gauss_mean, gauss_std))
+#         if pois_lamda:
+#             self.tform.append(TranformPoissonNoise(pois_lamda))
+#         if salt_peper_amount:
+#             raise NotImplementedError
+#             # self.tform.append(TransformSaltAndPeper(salt_peper_amount, salt_pepper_ratio))
+#
+#         self.transform = transforms.Compose(self.tform)
+#
+#     def __call__(self, img):
+#         return self.transform(img)
+#
+#     def __repr__(self):
+#         to_return = "NOISY MULTI CAM RGBD"
+#         for o in self.tform:
+#             to_return += '\n' + repr(o)
+#         return to_return
 
 
 class TransformScales:

@@ -42,6 +42,7 @@ class MultiResnet(AbstractResnet):
                                                                   resnet_type, learning_rate,
                                                                   cosine_annealing_steps,
                                                                   weight_decay, dtype) for _ in range(num_pictures)])
+            latent_layer_size_per*=2
 
         latent_layer_size = latent_layer_size_per * num_pictures
         # dense1_size = max(latent_layer_size // 2, 256)
@@ -72,7 +73,7 @@ class MultiResnet(AbstractResnet):
             end += self.latent_layer_size_per
         if self.depth_subnets:
             for index, resnet in enumerate(self.depth_subnets):
-                latent[:, start:end] = resnet(x[:, index, -1])
+                latent[:, start:end] = resnet(x[:, index, -1,np.newaxis])
                 start = end
                 end += self.latent_layer_size_per
         return self.densenet(latent)
